@@ -633,8 +633,9 @@ function windowTile(wall, glass, mix, lit, litColors) {
   }
   return { width: W, height: Hh, data: d };
 }
-const NIGHT_LIT = [[0, 1, 0, 0, 1, 0, 0, 0], [1, 0, 0, 0, 0, 0, 1, 0], [0, 0, 1, 0, 0, 1, 0, 1], [0, 0, 0, 1, 1, 0, 0, 0], [1, 0, 0, 0, 0, 1, 0, 0]];
-const NIGHT_LIT_COLORS = [[[255, 232, 160], [255, 214, 128]], [[255, 220, 140], [255, 238, 180]], [[255, 226, 150], [255, 206, 118]], [[255, 236, 170], [255, 218, 134]], [[255, 214, 126], [255, 232, 164]]];
+const NIGHT_LIT = [[0, 1, 0, 0, 0, 0, 0, 1], [1, 0, 0, 0, 0, 0, 1, 0], [0, 0, 1, 0, 1, 0, 0, 1], [0, 0, 0, 1, 0, 1, 0, 0], [1, 0, 0, 0, 0, 0, 1, 0]];
+// 화면 전체 필터(0.74)에 깎이는 만큼 더 밝고 채도 높은 노란빛
+const NIGHT_LIT_COLORS = [[[255, 208, 84], [255, 224, 120]], [[255, 196, 64], [255, 216, 100]], [[255, 214, 96], [255, 190, 58]], [[255, 222, 112], [255, 202, 76]], [[255, 200, 70], [255, 220, 108]]];
 function makeWindowImage(wall, band, alpha) { return windowTile(wall, band, alpha, null, null); }
 function makeNightImage(wall, i) { return windowTile(wall, "#222b3c", 0.5, NIGHT_LIT[i % 5], NIGHT_LIT_COLORS[i % 5]); }
 function addAptImages() {
