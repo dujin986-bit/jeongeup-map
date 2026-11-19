@@ -1279,7 +1279,7 @@ function renderComm() {
     commBody.innerHTML = `<div class="soon"><div class="soon-ic">${s[0]}</div><div class="soon-t">${s[1]}</div><div class="soon-d">${s[2]}</div><div class="soon-b">🛠 곧 열려요 · 업데이트 예정</div></div>`;
     return;
   }
-  let html = `<div class="comm-topic" id="food-card"><b>🍚 오늘의 맛집 TOP 3</b><div id="food-list">불러오는 중…</div><button id="food-vote" class="chip">투표하기</button><div id="food-yday"></div></div>`;
+  let html = `<div class="comm-topic" id="food-card"><div class="food-hd"><b>🍚 오늘의 맛집 TOP 3</b><span id="food-total"></span></div><div id="food-list">불러오는 중…</div><button id="food-vote" class="chip">투표하기</button><div id="food-yday"></div></div>`;
   html += `<div class="comm-note">💬 이야기 글쓰기는 곧 열려요. 지금은 지도 제보로 참여할 수 있어요.</div>`;
   html += `<div class="comm-head">실시간 제보 ${reports.length}건</div>`;
   if (!reports.length) html += `<div class="feed-empty">아직 제보가 없어요. 첫 제보를 남겨 보세요!</div>`;
@@ -1287,8 +1287,9 @@ function renderComm() {
   loadFood();
   for (const r of reports) {
     const c = CATEGORIES[r.cat];
+    if (expAt(r) <= Date.now()) continue;
     const card = document.createElement("div"); card.className = "comm-card";
-    card.innerHTML = `<div class="comm-meta"><span class="feed-dot" style="background:${c.color}"></span>${c.label} · ${timeAgo(r.ts)}</div>` +
+    card.innerHTML = `<div class="comm-meta"><span class="feed-dot" style="background:${c.color}"></span>${c.label} · ${timeAgo(r.ts)}<span class="exp-badge" data-exp="${expAt(r)}"></span></div>` +
       `<div class="comm-title">${esc(r.title)}</div>` + (r.desc ? `<div class="comm-desc">${esc(r.desc)}</div>` : "") + (r.photo ? `<a href="${esc(r.photo)}" target="_blank" rel="noopener"><img class="comm-photo" src="${esc(r.photo)}" loading="lazy"></a>` : "") +
       `<div class="shop-act">${rxHtml("report", r.id)}<button class="chip comm-go">📍 지도에서 보기</button></div>`;
     card.querySelector(".comm-go").onclick = () => {
@@ -1298,9 +1299,27 @@ function renderComm() {
     commBody.appendChild(card);
   }
   hydrateRx(commBody);
+  tickExp();
 }
-function openComm() { renderComm(); commEl.hidden = false; requestAnimationFrame(() => commEl.classList.add("open")); document.body.style.overflow = "hidden"; fetchReports(); }
-function closeComm() { commEl.classList.remove("open"); setTimeout(() => { commEl.hidden = true; }, 220); document.body.style.overflow = ""; }
+// ----- 제보 만료 배지: 1분 간격, 배지 텍스트만 갱신, 숨김/닫힘이면 정지 -----
+function expAt(r) { return new Date(r.ts).getTime() + (EXPIRE_HOURS[r.cat] || 72) * 3600e3; }
+function expText(ms) { const m = Math.ceil(ms / 60000); return m <= 10 ? "곧 만료" : m < 60 ? m + "분 남음" : Math.floor(m / 60) + "시간" + (m % 60 >= 30 && m < 600 ? " 30분" : "") + " 남음"; }
+let expTimer = 0;
+function tickExp() {
+  if (!commEl || commEl.hidden || document.hidden) return;
+  const now = Date.now();
+  commBody.querySelectorAll(".exp-badge").forEach(el => {
+    const left = +el.dataset.exp - now;
+    if (left <= 0) { const c = el.closest(".comm-card"); if (c) c.remove(); return; }
+    const t = expText(left); if (el.textContent !== t) el.textContent = t;
+    el.classList.toggle("warn", left <= 10 * 60000);
+  });
+}
+function startExp() { stopExp(); tickExp(); expTimer = setInterval(tickExp, 60000); }
+function stopExp() { if (expTimer) { clearInterval(expTimer); expTimer = 0; } }
+document.addEventListener("visibilitychange", () => { if (document.hidden) stopExp(); else if (commEl && !commEl.hidden) startExp(); });
+function openComm() { renderComm(); commEl.hidden = false; startExp(); requestAnimationFrame(() => commEl.classList.add("open")); document.body.style.overflow = "hidden"; fetchReports(); }
+function closeComm() { stopExp(); commEl.classList.remove("open"); setTimeout(() => { commEl.hidden = true; }, 220); document.body.style.overflow = ""; }
 if (commEl) {
   document.getElementById("comm-btn").onclick = openComm;
   document.getElementById("comm-back").onclick = closeComm;
@@ -1614,9 +1633,12 @@ async function loadFood() {
   const [today, yday] = await Promise.all([foodRpc(kstDay()), foodRpc(kstDay(-1))]);
   if (!document.getElementById("food-list")) return;
   const medal = ["🥇", "🥈", "🥉"];
-  list.innerHTML = !today ? "<small>투표 준비 중이에요</small>" : today.length ? today.map((r, i) => `<div class="food-row" data-id="${esc(r.shop_id)}">${medal[i]} <b>${esc(r.shop_name)}</b> <small>${r.cnt}표</small></div>`).join("") : "<small>아직 투표가 없어요. 첫 표를 남겨 보세요!</small>";
+  const tot = today ? today.reduce((a, r) => a + (+r.cnt || 0), 0) : 0, top = today && today.length ? Math.max(...today.map(r => +r.cnt || 0)) || 1 : 1;
+  const ft = document.getElementById("food-total"); if (ft) ft.textContent = tot ? "총 " + tot + "표" : "";
+  list.innerHTML = !today ? "<small>투표 준비 중이에요</small>" : today.length ? today.slice(0, 3).map((r, i) => { const p = tot ? Math.round(r.cnt / tot * 100) : 0; return `<div class="food-row r${i + 1}" data-id="${esc(r.shop_id)}"><div class="food-line"><span class="food-rank">${i + 1}</span><b>${esc(r.shop_name)}</b><span class="food-cnt">${r.cnt}표 · ${p}%</span></div><div class="food-bar"><i data-s="${(r.cnt / top).toFixed(3)}"></i></div></div>`; }).join("") : "<small>아직 투표가 없어요. 첫 표를 남겨 보세요!</small>";
+  requestAnimationFrame(() => requestAnimationFrame(() => list.querySelectorAll(".food-bar i").forEach(el => { el.style.transform = "scaleX(" + el.dataset.s + ")"; })));
   list.querySelectorAll(".food-row").forEach(el => el.onclick = () => { const s = shopInfo(el.dataset.id); if (!s) return; closeComm(); map.flyTo({ center: s.coord, zoom: 18, pitch: 55, duration: 1500 }); });
-  const y = document.getElementById("food-yday"); if (y) y.innerHTML = yday && yday.length ? `<small>어제의 1등 👑 ${esc(yday[0].shop_name)} (${yday[0].cnt}표)</small>` : "";
+  const y = document.getElementById("food-yday"); if (y) y.innerHTML = yday && yday.length ? `<span class="yday">👑 어제의 1위 <b>${esc(yday[0].shop_name)}</b> · ${yday[0].cnt}표</span>` : "";
   const btn = document.getElementById("food-vote"), mv = myVote();
   if (mv) { btn.textContent = "✔ 오늘 투표 완료 · " + mv.name; btn.disabled = true; } else btn.onclick = openFoodVote;
 }
