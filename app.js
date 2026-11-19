@@ -475,13 +475,12 @@ const APT_FAR_DAY = ["match", ["%", ["floor", ["/", ["to-number", ["coalesce", [
   0, APT_WALL[0], 1, APT_WALL[1], 2, APT_WALL[2], 3, APT_WALL[3], APT_WALL[4]];
 const APT_FAR_NIGHT = "#8b93b4";
 function hex2rgb(h) { const n = parseInt(h.slice(1), 16); return [n >> 16 & 255, n >> 8 & 255, n & 255]; }
-function makeWindowImage(wall, win, litMix) {      // 16x16 타일: 층 높이 한 칸, 창문 2개(밤에는 하나만 불 켜짐)
-  const W = 16, Hh = 16, d = new Uint8Array(W * Hh * 4), wr = hex2rgb(wall);
+function makeWindowImage(wall, band, alpha) {      // 8x8 타일: 층마다 가로 유리띠 한 줄 (세로 칸 없이 깔끔하게)
+  const W = 8, Hh = 8, d = new Uint8Array(W * Hh * 4), wr = hex2rgb(wall), br = hex2rgb(band);
   for (let y = 0; y < Hh; y++) for (let x = 0; x < W; x++) {
     let c = wr;
-    const inRow = y >= 4 && y < 12;
-    const w1 = inRow && x >= 2 && x < 7, w2 = inRow && x >= 9 && x < 14;
-    if (w1) c = hex2rgb(win[0]); else if (w2) c = hex2rgb(win[1]);
+    if (y >= 2 && y < 6) c = wr.map((v, k) => Math.round(v * (1 - alpha) + br[k] * alpha));   // 유리띠
+    else if (y === 7) c = wr.map(v => Math.round(v * 0.9));                                     // 층 구분선
     const o = (y * W + x) * 4; d[o] = c[0]; d[o + 1] = c[1]; d[o + 2] = c[2]; d[o + 3] = 255;
   }
   return { width: W, height: Hh, data: d };
@@ -490,8 +489,8 @@ function addAptImages() {
   const dark = (h, k) => "#" + hex2rgb(h).map(v => Math.round(v * k).toString(16).padStart(2, "0")).join("");
   APT_WALL.forEach((w, i) => {
     try {
-      map.addImage(`apt${i}-day`, makeWindowImage(w, ["#9db4c8", "#a9bfd1"]));
-      map.addImage(`apt${i}-night`, makeWindowImage(dark(w, 0.5), i % 2 ? ["#fff0b8", "#3a4056"] : ["#3a4056", "#ffe9a0"]));
+      map.addImage(`apt${i}-day`, makeWindowImage(w, "#7f98b0", 0.45));
+      map.addImage(`apt${i}-night`, makeWindowImage(dark(w, 0.55), "#ffd27a", 0.6));
     } catch (e) {}
   });
   try { aptPatterns = APT_WALL.every((_, i) => map.hasImage(`apt${i}-day`) && map.hasImage(`apt${i}-night`)) && !/[?&]stripes=0/.test(location.search); } catch (e) {}
