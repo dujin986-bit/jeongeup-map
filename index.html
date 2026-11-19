@@ -11,7 +11,7 @@
 <meta name="apple-mobile-web-app-title" content="정읍지도">
 <link rel="apple-touch-icon" href="icons/user-apple-180.png">
 <link href="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.css" rel="stylesheet">
-<link rel="stylesheet" href="style.css?v=27">
+<link rel="stylesheet" href="style.css?v=28">
 </head>
 <body>
 <div id="map"></div>
@@ -26,6 +26,8 @@
   <div id="searchbox"><input id="q" type="search" placeholder="🔍 가게·아파트·주소 검색" autocomplete="off"><div id="results" hidden></div></div>
   <nav id="filters"></nav>
   <button id="feed-btn" class="chip on feedbtn">제보 0</button>
+  <button id="refresh-btn" class="chip" title="새로고침">🔄</button>
+  <button id="comm-btn" class="chip">💬 커뮤니티</button>
   <button id="night-btn" class="chip">🌙 밤</button>
   <select id="wx-select" class="chip" hidden>
     <option value="auto">날씨: 실시간</option><option value="clear">맑음</option><option value="cloud">흐림</option>
@@ -57,12 +59,16 @@
 <button id="fab">＋ 제보하기</button>
 <div id="crosshair" hidden>📍</div>
 <a id="live-exit" href="./">방송 모드 끄기 (Esc)</a>
-<div id="ver">v27</div>
+<div id="ver">v28</div>
+<div id="comm" hidden>
+  <div class="comm-top"><button id="comm-back" class="chip">← 지도</button><strong>정읍 이야기</strong><button id="comm-refresh" class="chip">🔄</button></div>
+  <div id="comm-body"></div>
+</div>
 <div id="hint">＋ 제보하기 버튼을 누르거나 지도를 길게 누르세요</div>
 
 <script src="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="data.js?v=27"></script>
-<script src="app.js?v=27"></script>
+<script src="data.js?v=28"></script>
+<script src="app.js?v=28"></script>
 </body>
 </html>

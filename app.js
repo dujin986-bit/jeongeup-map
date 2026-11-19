@@ -81,6 +81,7 @@ function render() {
   LANDMARKS.filter(l => activeCats.has(l.cat)).forEach(l => addMarker(l, true));
   reports.filter(r => activeCats.has(r.cat)).forEach(r => addMarker(r, false));
   renderFeed();
+  if (typeof renderComm === "function" && commEl && !commEl.hidden) renderComm();
 }
 
 // ---------- 제보 목록 (상단) ----------
@@ -461,7 +462,7 @@ async function fetchReports() {
   try {
     const res = await fetch(SUPABASE_URL + "/rest/v1/reports?select=id,category,title,description,lon,lat,created_at&order=created_at.desc&limit=200",
       { headers: { apikey: SUPABASE_KEY, Authorization: "Bearer " + SUPABASE_KEY } });
-    if (!res.ok) return;
+    if (!res.ok) return false;
     const rows = await res.json();
     const next = rows.filter(r => CATEGORIES[r.category] && (Date.now() - new Date(r.created_at)) < (EXPIRE_HOURS[r.category] || 72) * 3600e3).map(r => ({
       id: r.id, title: r.title, desc: r.description || "", cat: r.category,
@@ -470,11 +471,12 @@ async function fetchReports() {
     const fresh = next.filter(r => !knownIds.has(r.id));
     const firstLoad = !started; started = true;
     next.forEach(r => knownIds.add(r.id));
-    if (JSON.stringify(next) === JSON.stringify(reports)) return;   // 변화 없으면 다시 그리지 않음(열린 팝업 유지)
+    if (JSON.stringify(next) === JSON.stringify(reports)) return true;   // 변화 없으면 다시 그리지 않음(열린 팝업 유지)
     reports = next;
     render();
     if (LIVE && !firstLoad && fresh.length) showReport(fresh[0]);
-  } catch (e) {}
+    return true;
+  } catch (e) { return false; }
 }
 fetchReports();
 setInterval(fetchReports, 30000);   // 실시간 알림이 안 올 때를 위한 보조 갱신
@@ -1013,3 +1015,54 @@ document.addEventListener("click", e => { if (!e.target.closest("#searchbox")) r
   go.onclick = () => { if (ev) { ev.prompt(); bar.style.display = "none"; } };
   if (/iPhone|iPad/.test(ua)) { msg.textContent = "공유 버튼(□↑) → '홈 화면에 추가'를 누르면 앱처럼 쓸 수 있어요"; bar.style.display = "flex"; }
 })();
+
+
+// ===== 새로고침 버튼 + 앱으로 돌아올 때 자동 갱신 =====
+async function manualRefresh(btn) {
+  const old = btn.textContent; btn.disabled = true; btn.textContent = "⏳";
+  const ok = await fetchReports();
+  btn.textContent = ok ? "✓ 방금" : "⚠ 실패";
+  setTimeout(() => { btn.textContent = old; btn.disabled = false; }, 1500);
+}
+for (const id of ["refresh-btn", "comm-refresh"]) { const b = document.getElementById(id); if (b) b.onclick = () => manualRefresh(b); }
+let lastAutoRefresh = 0;
+function autoRefresh() { if (Date.now() - lastAutoRefresh < 3000) return; lastAutoRefresh = Date.now(); fetchReports(); }
+document.addEventListener("visibilitychange", () => { if (!document.hidden) autoRefresh(); });
+addEventListener("focus", autoRefresh);
+addEventListener("online", autoRefresh);
+addEventListener("pageshow", autoRefresh);
+
+// ===== 커뮤니티 화면 (제보 피드 + 오늘의 주제) =====
+const commEl = document.getElementById("comm"), commBody = document.getElementById("comm-body");
+function renderComm() {
+  if (!commBody) return;
+  const topic = (typeof COMM_TOPIC !== "undefined" && COMM_TOPIC) || "";
+  let html = topic ? `<div class="comm-topic"><b>📌 이번 주 주제</b><br>${esc(topic)}<br><small>지도를 길게 눌러 제보로 참여해 보세요</small></div>` : "";
+  html += `<div class="comm-note">💬 이야기 글쓰기는 곧 열려요. 지금은 지도 제보로 참여할 수 있어요.</div>`;
+  html += `<div class="comm-head">실시간 제보 ${reports.length}건</div>`;
+  if (!reports.length) html += `<div class="feed-empty">아직 제보가 없어요. 첫 제보를 남겨 보세요!</div>`;
+  commBody.innerHTML = html;
+  for (const r of reports) {
+    const c = CATEGORIES[r.cat];
+    const card = document.createElement("div"); card.className = "comm-card";
+    card.innerHTML = `<div class="comm-meta"><span class="feed-dot" style="background:${c.color}"></span>${c.label} · ${timeAgo(r.ts)}</div>` +
+      `<div class="comm-title">${esc(r.title)}</div>` + (r.desc ? `<div class="comm-desc">${esc(r.desc)}</div>` : "") +
+      `<button class="chip comm-go">📍 지도에서 보기</button>`;
+    card.querySelector(".comm-go").onclick = () => {
+      closeComm();
+      map.flyTo({ center: r.coord, zoom: 17, pitch: 60, duration: 1500 });
+      setTimeout(() => { const mk = markers.find(x => x._item && x._item.id === r.id); if (mk && !mk.getPopup().isOpen()) mk.togglePopup(); }, 1600);
+    };
+    commBody.appendChild(card);
+  }
+}
+function openComm() { renderComm(); commEl.hidden = false; requestAnimationFrame(() => commEl.classList.add("open")); document.body.style.overflow = "hidden"; fetchReports(); }
+function closeComm() { commEl.classList.remove("open"); setTimeout(() => { commEl.hidden = true; }, 220); document.body.style.overflow = ""; }
+if (commEl) {
+  document.getElementById("comm-btn").onclick = openComm;
+  document.getElementById("comm-back").onclick = closeComm;
+  addEventListener("keydown", e => { if (e.key === "Escape" && !commEl.hidden) closeComm(); });
+  let sy = 0;                                         // 아래로 당겨서 새로고침
+  commEl.addEventListener("touchstart", e => { sy = e.touches[0].clientY; }, { passive: true });
+  commEl.addEventListener("touchend", e => { if (commBody.scrollTop <= 0 && e.changedTouches[0].clientY - sy > 90) manualRefresh(document.getElementById("comm-refresh")); }, { passive: true });
+}
