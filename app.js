@@ -54,6 +54,7 @@ for (const [key, c] of Object.entries(CATEGORIES)) {
   filtersEl.appendChild(b);
   catSel.add(new Option(c.label, key));
 }
+if (!IS_LOCAL) { catSel.add(new Option("🛠 가게 정보 수정", "__fix")); catSel.add(new Option("➕ 없는 가게 알려주기", "__newshop")); }
 
 // ---------- 마커 ----------
 function addMarker(item, isLandmark) {
@@ -497,6 +498,7 @@ function openPanel(lngLat, pick) {
   else { pickMode = false; crosshair.hidden = true; rpSet("form"); showPanel(true); }   // 길게 누른 경우: 바로 입력
 }
 function closePanel() {
+  if (typeof syncCat === "function" && catSel.value === "__newshop") { catSel.selectedIndex = 0; syncCat(); }
   if (typeof clearPhoto === "function") clearPhoto();
   showPanel(false); rpSet("none"); pickMode = false; crosshair.hidden = true;
   const nm = document.getElementById("ch-name"); if (nm) nm.hidden = true;
@@ -522,6 +524,21 @@ function syncMode() {
   document.getElementById("desc").placeholder = shop ? "주소/설명 (선택)" : "내용 (선택)";
 }
 modeSel.onchange = syncMode;
+let catPrev = "";
+function syncCat() {
+  const v = catSel.value, ns = v === "__newshop";
+  if (v === "__fix") {                         // 가게 정보 수정 → 지도에서 가게 점을 누르도록 안내
+    catSel.selectedIndex = 0; closePanel();
+    const m = document.getElementById("notice-modal");
+    m.innerHTML = `<div class="nm"><b>🛠 가게 정보 수정</b><div style="margin:8px 0 12px;color:#555;font-size:15px;line-height:1.5">지도에서 <b>고칠 가게의 점</b>을 눌러 보세요.<br>팝업 아래 <b>✏ 정보가 틀렸어요</b> 버튼으로 보낼 수 있어요.<br><small>점이 없는 가게는 ➕ 없는 가게 알려주기를 이용해 주세요.</small></div><div style="display:flex;gap:8px"><button id="nm-x" style="flex:1">확인</button></div></div>`;
+    m.hidden = false; document.getElementById("nm-x").onclick = () => m.hidden = true;
+    return;
+  }
+  document.getElementById("photo-row").hidden = ns;
+  document.getElementById("title").placeholder = ns ? "가게 이름" : "제목 (예: 내장산 입구 정체)";
+  document.getElementById("desc").placeholder = ns ? "업종·주소 (예: 카페, 수성동 123)" : "내용 (선택)";
+}
+catSel.onchange = syncCat;
 if (!IS_LOCAL) {                            // 공개 사이트에서는 제보만
   modeSel.hidden = true;
   document.getElementById("hint").textContent = "지도를 길게 누르면(PC는 우클릭) 우리 동네 소식을 제보할 수 있어요";
@@ -544,6 +561,18 @@ document.getElementById("save").onclick = async () => {
   if (!title || !pending) return;
   const last = Number(localStorage.getItem("jeongeup-last-report") || 0);
   if (Date.now() - last < 30000) { alert("제보는 30초에 한 번만 보낼 수 있어요."); return; }
+  if (catSel.value === "__newshop") {
+    const btn0 = document.getElementById("save"); btn0.disabled = true;
+    try {
+      const r = await fetch(SUPABASE_URL + "/rest/v1/shop_corrections", { method: "POST", headers: { ...rxHdr, Prefer: "return=minimal" },
+        body: JSON.stringify({ shop_id: "new:" + pending[0].toFixed(6) + "," + pending[1].toFixed(6), shop_name: title.slice(0, 40), kind: "없는 가게예요(추가 요청)", note: document.getElementById("desc").value.trim().slice(0, 100) || null }) });
+      if (!r.ok) throw new Error("보내지 못했어요 (" + r.status + "). 잠시 뒤 다시 해 주세요.");
+      try { localStorage.setItem("jeongeup-last-report", String(Date.now())); } catch {}
+      document.getElementById("title").value = ""; document.getElementById("desc").value = ""; catSel.selectedIndex = 0; syncCat();
+      closePanel(); alert("알려주셔서 고마워요! 확인 후 지도에 추가할게요 🙏");
+    } catch (err) { alert(err.message); }
+    btn0.disabled = false; return;
+  }
   const btn = document.getElementById("save"); btn.disabled = true;
   try {
     let photoUrl = "";

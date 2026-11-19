@@ -187,8 +187,8 @@ async function drawFix() {
   box.innerHTML = "";
   for (const r of data) {
     const el = document.createElement("div"); el.className = "card";
-    el.innerHTML = `<div style="font-size:12px;color:#666">${new Date(r.created_at).toLocaleString("ko-KR")}</div><div style="margin:4px 0"><b>${esc(r.shop_name || r.shop_id)}</b> · ${esc(r.kind)}</div>${r.note ? `<div class="desc">${esc(r.note)}</div>` : ""}
-      <div style="display:flex;gap:8px;margin-top:8px"><a class="act ok" style="flex:2;text-align:center;text-decoration:none;padding:12px;border-radius:10px;color:#fff;font-weight:700" href="./?edit=1&shop=${encodeURIComponent(r.shop_id)}">지도에서 고치기</a><button class="act hide" style="flex:1">처리완료</button></div>`;
+    el.innerHTML = `<div style="font-size:12px;color:#666">${new Date(r.created_at).toLocaleString("ko-KR")}</div><div style="margin:4px 0"><b>${esc(r.shop_name || r.shop_id)}</b> · ${esc(r.kind)}</div>${String(r.shop_id).startsWith('new:') ? `<div style="font-size:12px;color:#666">📍 ${esc(r.shop_id.slice(4))} (경도,위도)</div>` : ""}${r.note ? `<div class="desc">${esc(r.note)}</div>` : ""}
+      <div style="display:flex;gap:8px;margin-top:8px"><a class="act ok" style="flex:2;text-align:center;text-decoration:none;padding:12px;border-radius:10px;color:#fff;font-weight:700" href="./?edit=1${String(r.shop_id).startsWith('new:') ? '' : '&shop=' + encodeURIComponent(r.shop_id)}">${String(r.shop_id).startsWith('new:') ? '지도에서 추가하기' : '지도에서 고치기'}</a><button class="act hide" style="flex:1">처리완료</button></div>`;
     el.querySelector("button").onclick = async () => { await sb.from("shop_corrections").update({ status: "done" }).eq("id", r.id); drawFix(); };
     box.appendChild(el);
   }
