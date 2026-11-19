@@ -93,6 +93,20 @@ function timeAgo(ts) {
   if (m < 1440) return Math.floor(m / 60) + "시간 전";
   return Math.floor(m / 1440) + "일 전";
 }
+// 목록에서 제보를 눌렀을 때: 그 위치로 날아가서 팝업을 열고 연출(경광등·폭죽 등)까지 자동 재생
+function focusReport(r, dur = 1500) {
+  map.flyTo({ center: r.coord, zoom: 17, pitch: 60, duration: dur, essential: true });
+  let done = false;
+  const fire = () => {
+    if (done) return; done = true;
+    const mk = markers.find(x => x._item && x._item.id === r.id);
+    if (!mk) return;
+    if (!mk.getPopup().isOpen()) mk.togglePopup();
+    playFx(r.cat, mk.getElement());
+  };
+  map.once("moveend", () => setTimeout(fire, 120));
+  setTimeout(fire, dur + 700);        // moveend가 안 오는 경우 대비
+}
 function renderFeed() {
   const btn = document.getElementById("feed-btn"), box = document.getElementById("feed");
   if (!btn || !box) return;
@@ -108,9 +122,7 @@ function renderFeed() {
       `<div class="feed-meta">${c.label} · ${timeAgo(r.ts)}${r.desc ? " · " + esc(r.desc) : ""}</div></div>`;
     row.onclick = () => {
       if (!LIVE) box.hidden = true;
-      map.flyTo({ center: r.coord, zoom: 17, pitch: 60, duration: 1500 });
-      const mk = markers.find(x => x._item && x._item.id === r.id);
-      if (mk && !mk.getPopup().isOpen()) setTimeout(() => mk.togglePopup(), 1500);
+      focusReport(r);
     };
     box.appendChild(row);
   }
@@ -677,11 +689,7 @@ function tourStep() {
 function showReport(r) {
   holdUntil = Date.now() + 15000;
   document.getElementById("tour-label").textContent = "🔔 새 제보";
-  map.flyTo({ center: r.coord, zoom: 17, pitch: 60, duration: 3000, essential: true });
-  setTimeout(() => {
-    const mk = markers.find(x => x._item && x._item.id === r.id);
-    if (mk && !mk.getPopup().isOpen()) mk.togglePopup();
-  }, 3200);
+  focusReport(r, 3000);
 }
 if (LIVE) {
   document.getElementById("live-url").hidden = false;
@@ -1051,8 +1059,7 @@ function renderComm() {
       `<button class="chip comm-go">📍 지도에서 보기</button>`;
     card.querySelector(".comm-go").onclick = () => {
       closeComm();
-      map.flyTo({ center: r.coord, zoom: 17, pitch: 60, duration: 1500 });
-      setTimeout(() => { const mk = markers.find(x => x._item && x._item.id === r.id); if (mk && !mk.getPopup().isOpen()) mk.togglePopup(); }, 1600);
+      focusReport(r);
     };
     commBody.appendChild(card);
   }
