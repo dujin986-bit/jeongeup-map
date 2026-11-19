@@ -1692,3 +1692,35 @@ function openFix(id, name) {
     m.hidden = true; alert(r.ok ? "알려주셔서 고마워요! 확인 후 고칠게요 🙏" : "보내지 못했어요. 잠시 뒤 다시 해 주세요.");
   };
 }
+
+
+// ===== 뒤로가기: 열린 화면이 있으면 그것만 닫고, 지도만 보이면 "한 번 더 누르면 종료" (v64) =====
+(function backNav() {
+  if (LIVE) return;
+  let armed = false, timer = null;
+  const toast = document.createElement("div"); toast.id = "exit-toast"; toast.hidden = true; toast.textContent = "한 번 더 누르면 종료돼요";
+  document.body.appendChild(toast);
+  const vis = id => { const e = document.getElementById(id); return e && !e.hidden; };
+  function closeTop() {
+    try {
+      if (vis("tut")) { document.getElementById("tut-skip").click(); return true; }
+      if (vis("notice-modal")) { document.getElementById("notice-modal").hidden = true; return true; }
+      if (vis("ed-sheet")) { edClose(); return true; }
+      if (!commEl.hidden) { closeComm(); return true; }
+      if (rpStep !== "none" || !panel.hidden) { closePanel(); return true; }
+      if (vis("feed")) { document.getElementById("feed").hidden = true; return true; }
+      if (document.body.classList.contains("searching") || !resEl.hidden) { resEl.hidden = true; qEl.blur(); return true; }
+      if (document.querySelector(".maplibregl-popup")) { closePopups(); return true; }
+      if (vis("filters")) { document.getElementById("filter-btn").click(); return true; }
+    } catch (e) {}
+    return false;
+  }
+  try { history.replaceState({ jg: 0 }, ""); history.pushState({ jg: 1 }, ""); } catch (e) { return; }
+  addEventListener("popstate", () => {
+    if (closeTop()) { history.pushState({ jg: 1 }, ""); return; }
+    if (armed) { armed = false; clearTimeout(timer); toast.hidden = true; history.back(); return; }   // 두 번째: 종료
+    armed = true; toast.hidden = false;
+    timer = setTimeout(() => { armed = false; toast.hidden = true; }, 2000);
+    history.pushState({ jg: 1 }, "");
+  });
+})();

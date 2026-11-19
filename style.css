@@ -341,3 +341,7 @@ body.searching #results { max-height: 45vh; }
 body.searching .res-row { padding: 13px 16px; font-size: 18px; }
 body.searching .res-row small { font-size: 14px; }
 body.searching .res-empty { font-size: 17px; padding: 16px; }
+
+/* v64: 뒤로가기 종료 안내 */
+#exit-toast { position: fixed; left: 50%; bottom: 96px; transform: translateX(-50%); z-index: 60; background: rgba(20,24,32,.92); color: #fff; padding: 10px 18px; border-radius: 20px; font-size: 15px; font-weight: 600; pointer-events: none; box-shadow: 0 2px 10px rgba(0,0,0,.35); }
+#exit-toast[hidden] { display: none; }
