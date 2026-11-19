@@ -346,6 +346,7 @@ async function loadShops() {
       for (const id of ["shops-dot", "shops-label"]) map.setLayoutProperty(id, "visibility", on ? "visible" : "none");
     };
     document.getElementById("filters").appendChild(chip);
+    if (nightOn) setBuildingNight(true);   // 가게 후광 레이어는 가게가 올라온 뒤에 만든다
   } catch (e) { /* 파일 없음: 무시 */ }
 }
 
@@ -470,10 +471,10 @@ const APT_WALL = ["#f2e3c6", "#cfe0f1", "#e9d2d2", "#d5e6d0", "#e0dbee"];
 const BLD_DAY = ["interpolate", ["linear"], ["coalesce", ["get", "height"], 6],
   0, "#e8dcc8", 10, "#e3c9a8", 25, "#d9a98a", 45, "#c98a7a", 70, "#a96f86"];
 const BLD_NIGHT = ["interpolate", ["linear"], ["coalesce", ["get", "height"], 6],
-  0, "#8a8aa0", 10, "#8189a6", 25, "#7a7fa2", 45, "#7479a4", 70, "#6e72a6"];
+  0, "#70748f", 10, "#686d90", 25, "#60668f", 45, "#5a608f", 70, "#555b92"];
 const APT_FAR_DAY = ["match", ["%", ["floor", ["/", ["to-number", ["coalesce", ["get", "id"], "0"], 0], 1000]], 5],
   0, APT_WALL[0], 1, APT_WALL[1], 2, APT_WALL[2], 3, APT_WALL[3], APT_WALL[4]];
-const APT_FAR_NIGHT = "#8b93b4";
+const APT_FAR_NIGHT = "#6a7099";
 function hex2rgb(h) { const n = parseInt(h.slice(1), 16); return [n >> 16 & 255, n >> 8 & 255, n & 255]; }
 function makeWindowImage(wall, band, alpha) {      // 8x8 타일: 층마다 가로 유리띠 한 줄 (세로 칸 없이 깔끔하게)
   const W = 8, Hh = 8, d = new Uint8Array(W * Hh * 4), wr = hex2rgb(wall), br = hex2rgb(band);
@@ -485,24 +486,58 @@ function makeWindowImage(wall, band, alpha) {      // 8x8 타일: 층마다 가�
   }
   return { width: W, height: Hh, data: d };
 }
+function makeNightImage(wall) {                    // 밤: 어두운 벽에 노란 불빛 점만 드문드문
+  const W = 16, Hh = 16, d = new Uint8Array(W * Hh * 4), wr = hex2rgb(wall), spots = [[3, 5], [10, 11]];
+  for (let y = 0; y < Hh; y++) for (let x = 0; x < W; x++) {
+    let c = wr;
+    for (const [sx, sy] of spots) if (x >= sx && x < sx + 3 && y >= sy && y < sy + 3) c = [255, 214, 130];
+    const o = (y * W + x) * 4; d[o] = c[0]; d[o + 1] = c[1]; d[o + 2] = c[2]; d[o + 3] = 255;
+  }
+  return { width: W, height: Hh, data: d };
+}
 function addAptImages() {
   const dark = (h, k) => "#" + hex2rgb(h).map(v => Math.round(v * k).toString(16).padStart(2, "0")).join("");
   APT_WALL.forEach((w, i) => {
     try {
       map.addImage(`apt${i}-day`, makeWindowImage(w, "#7f98b0", 0.45));
-      map.addImage(`apt${i}-night`, makeWindowImage(dark(w, 0.55), "#ffd27a", 0.6));
+      map.addImage(`apt${i}-night`, makeNightImage(dark(w, 0.36)));
     } catch (e) {}
   });
   try { aptPatterns = APT_WALL.every((_, i) => map.hasImage(`apt${i}-day`) && map.hasImage(`apt${i}-night`)) && !/[?&]stripes=0/.test(location.search); } catch (e) {}
 }
 let nightOn = false, bldReady = false, aptPatterns = false;
+// 밤 조명: 도로 빛, 가게 후광, 하늘 쪽 안개
+function ensureNightLights() {
+  try {
+    if (!map.getLayer("night-road-glow")) {
+      const firstExt = map.getStyle().layers.find(l => l.type === "fill-extrusion");
+      const flt = ["in", ["get", "class"], ["literal", ["motorway", "trunk", "primary", "secondary", "tertiary", "minor", "street", "residential", "service"]]];
+      const w = k => ["interpolate", ["linear"], ["zoom"], 13, ["*", k, 2], 17, ["*", k, 11]];
+      const kk = ["match", ["get", "class"], ["motorway", "trunk", "primary"], 1.8, ["secondary", "tertiary"], 1.3, 0.8];
+      map.addLayer({ id: "night-road-glow", type: "line", source: "openmaptiles", "source-layer": "transportation", minzoom: 13, filter: flt,
+        layout: { visibility: "none", "line-cap": "round", "line-join": "round" },
+        paint: { "line-color": "#ffae4d", "line-width": w(kk), "line-blur": 6, "line-opacity": 0.55 } }, firstExt && firstExt.id);
+      map.addLayer({ id: "night-road-core", type: "line", source: "openmaptiles", "source-layer": "transportation", minzoom: 14, filter: flt,
+        layout: { visibility: "none", "line-cap": "round", "line-join": "round" },
+        paint: { "line-color": "#ffe3a6", "line-width": ["interpolate", ["linear"], ["zoom"], 14, 0.4, 18, 2.2], "line-opacity": 0.6 } }, firstExt && firstExt.id);
+    }
+    if (map.getSource("shops") && !map.getLayer("shops-glow")) {
+      map.addLayer({ id: "shops-glow", type: "circle", source: "shops", minzoom: 14,
+        layout: { visibility: "none" },
+        paint: { "circle-radius": ["interpolate", ["linear"], ["zoom"], 14, 7, 18, 22], "circle-color": ["get", "color"], "circle-blur": 1, "circle-opacity": 0.55 } }, "shops-dot");
+    }
+  } catch (e) {}
+}
 function setBuildingNight(on) {
   nightOn = !!on;
   if (!bldReady) return;
   try {                                   // 땅·길·물·글씨까지 한꺼번에 어둡게 (건물만 어두워 보이던 문제)
     const cv = map.getCanvas(); cv.style.transition = "filter 1.5s ease";
-    cv.style.filter = on ? "brightness(0.62) saturate(0.85) hue-rotate(8deg)" : "none";
+    cv.style.filter = on ? "brightness(0.68) contrast(1.15) saturate(0.9) hue-rotate(8deg)" : "none";
   } catch (e) {}
+  document.body.classList.toggle("night", !!on);
+  if (on) ensureNightLights();
+  for (const id of ["night-road-glow", "night-road-core", "shops-glow"]) { try { if (map.getLayer(id)) map.setLayoutProperty(id, "visibility", on ? "visible" : "none"); } catch (e) {} }
   try { map.setLight(on ? { anchor: "viewport", position: [1.4, 210, 45], intensity: 0.25, color: "#9fb0ff" } : { anchor: "viewport", position: [1.4, 210, 45], intensity: 0.55, color: "#fff4e0" }); } catch (e) {}
   for (const l of map.getStyle().layers) {
     try {

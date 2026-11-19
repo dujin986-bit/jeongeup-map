@@ -162,3 +162,8 @@ body.live #night-btn { display: none !important; }
 
 #ver { position: fixed; left: 6px; bottom: 2px; z-index: 4; font-size: 10px; color: rgba(0,0,0,.35); pointer-events: none; }
 body.live #ver { display: none; }
+
+#night-haze { position: fixed; inset: 0; z-index: 3; pointer-events: none; opacity: 0; transition: opacity 2s ease;
+  background: linear-gradient(to bottom, rgba(30,42,110,.55) 0%, rgba(30,42,110,.25) 28%, rgba(0,0,0,0) 55%),
+              radial-gradient(ellipse at 50% 120%, rgba(255,160,70,.18), rgba(0,0,0,0) 60%); }
+body.night #night-haze { opacity: 1; }
