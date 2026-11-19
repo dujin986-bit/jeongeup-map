@@ -785,7 +785,7 @@ function searchIndex() {
 }
 // ---------- 도로명 주소 검색 (상가 주소의 번호로 위치를 추정) ----------
 const ROAD_RE = /([가-힣0-9]+(?:대로|로|길))\s*(\d+)(?:\s*[-의]\s*(\d+))?\s*(?:번지|번길)?/;
-let ROAD_IDX = null;
+let ROAD_IDX = null, ROAD_N = -1;
 function buildRoadIdx() {
   ROAD_IDX = {};
   const add = (addr, coord) => {
@@ -799,7 +799,7 @@ function buildRoadIdx() {
 function roadSearch(raw) {
   const m = String(raw).replace(/전북특별자치도|전라북도|정읍시/g, "").match(ROAD_RE);
   if (!m) return null;
-  if (!ROAD_IDX) buildRoadIdx();
+  if (!ROAD_IDX || ROAD_N !== SHOPS.length + PLACES_IDX.length) { buildRoadIdx(); ROAD_N = SHOPS.length + PLACES_IDX.length; }
   const list = ROAD_IDX[m[1]]; if (!list || !list.length) return null;
   const n = +m[2], par = n % 2;
   const same = list.filter(x => x.n % 2 === par), pool = same.length ? same : list;
