@@ -207,6 +207,7 @@ async function loadPlaces() {
       } else {                                       // 내 사무실: 노란 간판
         el.className = "sign";
         el.style.background = p.color || "#ffd400";
+        if (p.textColor) el.style.color = p.textColor;
         el.innerHTML = `<span>${esc(p.name)}</span><i></i>`;
         new maplibregl.Marker({ element: el, anchor: "bottom" }).setLngLat(p.coord).addTo(map);
       }
