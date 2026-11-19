@@ -171,6 +171,8 @@ async function loadLocalBuildings() {
       }
     } catch (e) { /* 파일 없음/열기 제한: 무시 */ }
   }
+  NAMED.length = 0;                 // 검색용: 이름 있는 건물(아파트 등)
+  for (const [name, g] of groups) NAMED.push({ name, coord: [g.x / g.n, g.y / g.n] });
   const labels = [];
   for (const [name, g] of groups) {
     if (g.floors < 7) continue;     // 큰 건물(아파트 단지 등)만 이름 표시
@@ -744,3 +746,60 @@ if (LIVE) {
   const ex = document.getElementById("live-exit"); let hideT;
   addEventListener("mousemove", () => { ex.classList.add("show"); clearTimeout(hideT); hideT = setTimeout(() => ex.classList.remove("show"), 2500); });
 }
+
+
+// ---------- 검색 (가게·아파트·장소·주소) ----------
+const NAMED = [];
+let PLACES_IDX = [];
+fetch("data/places.json").then(r => r.ok ? r.json() : []).then(l => { PLACES_IDX = l; }).catch(() => {});
+const qEl = document.getElementById("q"), resEl = document.getElementById("results");
+let searchPin = null;
+const norm = t => String(t || "").toLowerCase().replace(/\s+/g, "");
+
+function searchIndex() {
+  const out = [];
+  for (const s of (typeof SHOPS !== "undefined" ? SHOPS : []).concat(EDITS.added || [])) {
+    const e = (EDITS.edits || {})[s.id] || {};
+    if (e.hidden) continue;
+    out.push({ name: e.name || s.name, sub: (s.category || "").split(">").pop().trim() + (s.address ? " · " + s.address.replace("전북특별자치도 ", "") : ""),
+               addr: s.address || "", coord: s.coord, kind: "상가" });
+  }
+  for (const p of PLACES_IDX) out.push({ name: p.name, sub: p.address ? p.address.replace("전북특별자치도 ", "") : "", addr: p.address || "", coord: p.coord, kind: "장소" });
+  for (const n of NAMED) out.push({ name: n.name, sub: "건물", addr: "", coord: n.coord, kind: "건물" });
+  for (const l of LANDMARKS) out.push({ name: l.name, sub: "명소", addr: "", coord: l.coord, kind: "명소" });
+  return out;
+}
+function doSearch() {
+  const q = norm(qEl.value);
+  if (q.length < 1) { resEl.hidden = true; return; }
+  const scored = [];
+  for (const it of searchIndex()) {
+    const n = norm(it.name), a = norm(it.addr);
+    let sc = 0;
+    if (n === q) sc = 100; else if (n.startsWith(q)) sc = 80; else if (n.includes(q)) sc = 60; else if (a.includes(q)) sc = 40;
+    if (sc) scored.push([sc, it]);
+  }
+  scored.sort((x, y) => y[0] - x[0]);
+  const top = scored.slice(0, 8).map(x => x[1]);
+  resEl.innerHTML = top.length ? "" : '<div class="res-empty">검색 결과가 없어요</div>';
+  for (const it of top) {
+    const row = document.createElement("div"); row.className = "res-row";
+    row.innerHTML = `<b>${esc(it.name)}</b><small>${esc(it.sub)}</small>`;
+    row.onclick = () => goTo(it);
+    resEl.appendChild(row);
+  }
+  resEl.hidden = false;
+}
+function goTo(it) {
+  resEl.hidden = true; qEl.blur();
+  map.flyTo({ center: it.coord, zoom: 18, pitch: 60, duration: 1500, essential: true });
+  if (searchPin) searchPin.remove();
+  const pop = new maplibregl.Popup({ offset: 24, closeOnClick: true })
+    .setHTML(`<strong>${esc(it.name)}</strong><br><small>${esc(it.sub)}</small>`);
+  searchPin = new maplibregl.Marker({ color: "#e5484d" }).setLngLat(it.coord).setPopup(pop).addTo(map);
+  setTimeout(() => searchPin && !searchPin.getPopup().isOpen() && searchPin.togglePopup(), 1500);
+}
+qEl.addEventListener("input", doSearch);
+qEl.addEventListener("focus", doSearch);
+qEl.addEventListener("keydown", e => { if (e.key === "Enter") { const r = resEl.querySelector(".res-row"); if (r) r.click(); } });
+document.addEventListener("click", e => { if (!e.target.closest("#searchbox")) resEl.hidden = true; });
