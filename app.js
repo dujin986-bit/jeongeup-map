@@ -663,7 +663,7 @@ function ensureNightLights() {
     if (map.getSource("shops") && !map.getLayer("shops-glow")) {
       map.addLayer({ id: "shops-glow", type: "circle", source: "shops", minzoom: 14,
         layout: { visibility: "none" },
-        paint: { "circle-radius": ["interpolate", ["linear"], ["zoom"], 14, 4, 18, 13], "circle-color": "#ffcf7a", "circle-blur": 0.3, "circle-opacity": 0.8 } }, "shops-dot");
+        paint: { "circle-radius": ["interpolate", ["linear"], ["zoom"], 14, 2.6, 16, 5.5, 18, 13], "circle-color": "#ffcf7a", "circle-blur": 0.3, "circle-opacity": 0.8 } }, "shops-dot");
     }
   } catch (e) {}
 }
@@ -1178,6 +1178,9 @@ qEl.addEventListener("input", doSearch);
 qEl.addEventListener("focus", doSearch);
 qEl.addEventListener("keydown", e => { if (e.key === "Enter") { const r = resEl.querySelector(".res-row"); if (r) r.click(); } });
 document.addEventListener("click", e => { if (!e.target.closest("#searchbox")) resEl.hidden = true; });
+// 검색창을 누르면 크게 보이기 (끝나면 원래 헤더로)
+qEl.addEventListener("focus", () => { document.body.classList.add("searching"); qEl.placeholder = "🔍 가게·아파트·주소 검색"; });
+qEl.addEventListener("blur", () => setTimeout(() => { if (document.activeElement !== qEl) { document.body.classList.remove("searching"); qEl.placeholder = "🔍 검색"; } }, 250));
 
 // ===== PWA: 서비스워커 + "📲 앱 설치" 버튼 (각자 선택) =====
 (function () {

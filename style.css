@@ -330,3 +330,14 @@ body.live #rp-bar, body.live #rp-pick { display: none !important; }
 #filters > * { flex: none; }
 .feedbtn { margin-left: 0; }
 body.live #tools { display: contents; }
+
+/* v63: 검색창을 누르면 크게 (고령 사용자) + 칩 폭 정리 */
+#top > .chip, #top #refresh-btn { flex: none; width: auto; min-width: 0; }
+#top #refresh-btn { padding: 2px 9px; }
+body.searching #top > *:not(#searchbox) { display: none !important; }
+body.searching #top #searchbox { flex: 1 1 100%; width: 100%; }
+body.searching #top #q { font-size: 19px; padding: 11px 16px; border-radius: 24px; border: 2px solid #1f6feb; }
+body.searching #results { max-height: 45vh; }
+body.searching .res-row { padding: 13px 16px; font-size: 18px; }
+body.searching .res-row small { font-size: 14px; }
+body.searching .res-empty { font-size: 17px; padding: 16px; }
