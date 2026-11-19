@@ -314,3 +314,19 @@ body.live #rp-bar, body.live #rp-pick { display: none !important; }
 .rx-b.mine { background: #1f6feb; color: #fff; border-color: #1f6feb; }
 .rx-b[data-v="-1"].mine { background: #e5484d; border-color: #e5484d; }
 .fix-btn { border: 0; background: transparent; color: #888; font-size: 12px; text-decoration: underline; padding: 5px 2px; }
+
+/* 헤더 슬림화 (v62): 1줄=이름·검색·필터·제보·새로고침, 2줄=가로 스크롤 도구줄, 필터 칩도 한 줄 스크롤 */
+#top { padding: 5px 8px; gap: 5px 6px; }
+#top strong { font-size: 15px; white-space: nowrap; }
+#top .chip { padding: 2px 8px; font-size: 12px; line-height: 20px; }
+#top #searchbox { flex: 1 1 70px; min-width: 0; max-width: none; }
+#top #q { padding: 4px 10px; font-size: 14px; }
+.viewers { font-size: 11px; }
+#tools { order: 5; width: 100%; display: flex; flex-wrap: nowrap; align-items: center; gap: 5px; overflow-x: auto; scrollbar-width: none; }
+#tools::-webkit-scrollbar { display: none; }
+#tools > * { flex: none; }
+#filters { flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; }
+#filters::-webkit-scrollbar { display: none; }
+#filters > * { flex: none; }
+.feedbtn { margin-left: 0; }
+body.live #tools { display: contents; }

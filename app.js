@@ -369,8 +369,8 @@ async function loadShops() {
     const feats = shopFeatures();
     map.addSource("shops", { type: "geojson", data: { type: "FeatureCollection", features: feats } });
     map.addLayer({ id: "shops-dot", type: "circle", source: "shops", minzoom: 14,
-      paint: { "circle-radius": ["interpolate", ["linear"], ["zoom"], 14, 3, 18, 7],
-               "circle-color": ["get", "color"], "circle-stroke-color": "#fff", "circle-stroke-width": 1.5 } });
+      paint: { "circle-radius": ["interpolate", ["linear"], ["zoom"], 14, 2, 16, 3.5, 18, 7],   // 멀리서는 작고 얇게 → 겹침 완화
+               "circle-color": ["get", "color"], "circle-stroke-color": "#fff", "circle-stroke-width": ["interpolate", ["linear"], ["zoom"], 14, 0.4, 16, 1, 18, 1.5] } });
     map.addLayer({ id: "shops-label", type: "symbol", source: "shops", minzoom: 16.5,
       layout: { "text-field": ["get", "name"], "text-font": ["Noto Sans Regular"], "text-size": 11,
                 "text-offset": [0, 1.1], "text-anchor": "top", "text-max-width": 8 },
