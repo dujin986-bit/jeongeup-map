@@ -818,16 +818,18 @@ function roadSearch(raw) {
   return { name: `${m[1]} ${m[2]}${m[3] ? "-" + m[3] : ""}`, sub: (approx ? "대략적인 위치" : "주소") + (near ? " · 근처: " + near : ""), addr: "", coord, kind: "주소" };
 }
 // ---------- 지번 주소 검색 (건물 id의 본번·부번으로 만든 data/jibun.json) ----------
-let JIBUN = null;
+let JIBUN = null, JIBUN_NAMES = null;
 fetch("data/jibun.json").then(r => r.ok ? r.json() : null).then(j => { JIBUN = j; }).catch(() => {});
-const DONG_RE = /(수성|장명|상|시기|연지)\s*동?/;
 function jibunSearch(raw) {
   if (!JIBUN) return null;
   const s = String(raw).replace(/전북특별자치도|전라북도|정읍시/g, "");
-  const m = s.match(/(수성|장명|시기|연지|상)\s*동\s*(산)?\s*(\d+)(?:\s*(?:[-의]|번지)\s*(\d+))?\s*(?:번지)?/) || s.match(/(수성|장명|시기|연지)\s*(산)?\s*(\d+)(?:\s*(?:[-의]|번지)\s*(\d+))?/);
+  if (!JIBUN_NAMES) JIBUN_NAMES = Object.keys(JIBUN).sort((x, y) => y.length - x.length);
+  const dong = JIBUN_NAMES.find(n => s.includes(n)); if (!dong) return null;
+  const rest = s.slice(s.indexOf(dong) + dong.length);
+  const m = rest.match(/^\s*(산)?\s*(\d+)(?:\s*(?:[-의]|번지)\s*(\d+))?/);
   if (!m) return null;
-  const dong = m[1] + "동", tbl = JIBUN[dong]; if (!tbl) return null;
-  const main = (m[2] || "") + (+m[3]), sub = m[4] ? +m[4] : 0;
+  const tbl = JIBUN[dong];
+  const main = (m[1] || "") + (+m[2]), sub = m[3] ? +m[3] : 0;
   let coord = tbl[main + "-" + sub], approx = false;
   if (!coord) {                                    // 부번이 없거나 다르면 같은 본번의 다른 필지로 대신 안내
     const alt = Object.keys(tbl).find(k => k.startsWith(main + "-"));
