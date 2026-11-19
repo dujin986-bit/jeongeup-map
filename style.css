@@ -190,3 +190,14 @@ body.live #refresh-btn, body.live #comm-btn, body.live #comm { display: none !im
   box-shadow: 0 2px 8px rgba(0,0,0,.35); }
 #ch-name[hidden] { display: none; }
 body.live #ch-name { display: none !important; }
+
+#install-btn { background: #fff; border-color: #1f6feb; color: #1f6feb; font-weight: 700; padding: 3px 9px; font-size: 12px; }
+#install-btn[hidden] { display: none; }
+body.live #install-btn, body.live #install-modal { display: none !important; }
+#install-modal { position: fixed; inset: 0; z-index: 40; background: rgba(0,0,0,.5); display: flex; align-items: center; justify-content: center; padding: 20px; }
+#install-modal[hidden] { display: none; }
+#install-box { background: #fff; color: #222; border-radius: 14px; padding: 18px; width: min(92vw, 360px); font-size: 14px; line-height: 1.6; box-shadow: 0 8px 30px rgba(0,0,0,.35); }
+#install-box p { margin: 8px 0; }
+.im-row { display: flex; gap: 8px; margin-top: 12px; }
+.im-row button { flex: 1; padding: 10px; border-radius: 10px; border: 1px solid #ccc; background: #f4f5f7; font-size: 14px; }
+.im-row button:first-child:not(:last-child) { background: #1f6feb; color: #fff; border-color: #1f6feb; }

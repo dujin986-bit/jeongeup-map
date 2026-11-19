@@ -1020,7 +1020,7 @@ qEl.addEventListener("focus", doSearch);
 qEl.addEventListener("keydown", e => { if (e.key === "Enter") { const r = resEl.querySelector(".res-row"); if (r) r.click(); } });
 document.addEventListener("click", e => { if (!e.target.closest("#searchbox")) resEl.hidden = true; });
 
-// ===== PWA: 서비스워커 + 홈 화면 추가 안내 =====
+// ===== PWA: 서비스워커 + "📲 앱 설치" 버튼 (각자 선택) =====
 (function () {
   if (IS_LOCAL) return;
   if ("serviceWorker" in navigator) {
@@ -1028,21 +1028,45 @@ document.addEventListener("click", e => { if (!e.target.closest("#searchbox")) r
     navigator.serviceWorker.addEventListener("controllerchange", () => { if (had && !window.__reloaded) { window.__reloaded = true; location.reload(); } });   // 새 버전이 깔리면 한 번 자동 새로고침
     navigator.serviceWorker.register("sw.js").catch(() => {});
   }
-  if (LIVE) return;
+  const btn = document.getElementById("install-btn"); if (!btn || LIVE) return;
   const ua = navigator.userAgent;
   const standalone = matchMedia("(display-mode: standalone)").matches || navigator.standalone;
-  if (standalone || /KAKAOTALK|Instagram|FBAN|FBAV|NAVER\(inapp/i.test(ua)) return;
-  try { if (localStorage.getItem("pwa-dismiss")) return; } catch (e) {}
-  const bar = document.createElement("div");
-  bar.style.cssText = "position:fixed;left:8px;right:8px;bottom:8px;z-index:50;background:#1f6feb;color:#fff;padding:10px 12px;border-radius:10px;font-size:13px;display:none;align-items:center;gap:8px;box-shadow:0 2px 10px rgba(0,0,0,.3)";
-  bar.innerHTML = '<span id="pwa-msg" style="flex:1"></span><button id="pwa-go" style="display:none;background:#fff;color:#1f6feb;border:0;border-radius:6px;padding:6px 10px;font-weight:700">설치</button><button id="pwa-x" style="background:none;border:0;color:#fff;font-size:18px">✕</button>';
-  document.body.appendChild(bar);
-  const msg = bar.querySelector("#pwa-msg"), go = bar.querySelector("#pwa-go");
-  bar.querySelector("#pwa-x").onclick = () => { bar.style.display = "none"; try { localStorage.setItem("pwa-dismiss", "1"); } catch (e) {} };
+  if (standalone) return;
+  const inapp = /KAKAOTALK|Instagram|FBAN|FBAV|Threads|NAVER\(inapp|DaumApps|Line\//i.test(ua);
+  const ios = /iPhone|iPad|iPod/.test(ua), android = /Android/.test(ua);
+  const url = location.origin + location.pathname;
+  btn.hidden = false;
   let ev = null;
-  addEventListener("beforeinstallprompt", e => { e.preventDefault(); ev = e; msg.textContent = "앱처럼 홈 화면에 추가할 수 있어요"; go.style.display = ""; bar.style.display = "flex"; });
-  go.onclick = () => { if (ev) { ev.prompt(); bar.style.display = "none"; } };
-  if (/iPhone|iPad/.test(ua)) { msg.textContent = "공유 버튼(□↑) → '홈 화면에 추가'를 누르면 앱처럼 쓸 수 있어요"; bar.style.display = "flex"; }
+  addEventListener("beforeinstallprompt", e => { e.preventDefault(); ev = e; });
+  addEventListener("appinstalled", () => { btn.hidden = true; });
+  const modal = document.getElementById("install-modal"), box = document.getElementById("install-box");
+  const close = () => { modal.hidden = true; };
+  const copy = async b => { try { await navigator.clipboard.writeText(url); b.textContent = "✓ 복사됨"; } catch (e) { b.textContent = "복사 실패 - 주소창에서 복사해 주세요"; } };
+  function show(html, actions) {
+    box.innerHTML = html + '<div class="im-row"></div>';
+    const row = box.querySelector(".im-row");
+    for (const [label, fn] of actions.concat([["닫기", close]])) {
+      const b = document.createElement("button"); b.textContent = label;
+      b.onclick = () => fn === close ? close() : fn(b); row.appendChild(b);
+    }
+    modal.hidden = false;
+  }
+  modal.onclick = e => { if (e.target === modal) close(); };
+  btn.onclick = async () => {
+    if (ev) { ev.prompt(); try { await ev.userChoice; } catch (e) {} ev = null; return; }            // 안드로이드 크롬: 바로 설치창
+    if (inapp) {
+      const acts = [];
+      if (android) acts.push(["크롬으로 열기", () => { location.href = "intent://" + url.replace(/^https?:\/\//, "") + "#Intent;scheme=https;package=com.android.chrome;end"; }]);
+      acts.push(["주소 복사", copy]);
+      show(`<b>📲 앱으로 설치하기</b><p>지금 열린 화면(인스타·스레드·카카오톡 등)에서는 설치가 안 돼요.</p>` +
+        (ios ? `<p>① 화면의 <b>⋯</b> 또는 <b>공유</b> 메뉴 → <b>Safari로 열기</b><br>② Safari에서 공유 버튼(□↑) → <b>홈 화면에 추가</b></p>` :
+               `<p>아래 <b>크롬으로 열기</b>를 누른 뒤, 크롬에서 다시 <b>📲 앱 설치</b>를 눌러 주세요.</p>`), acts);
+    } else if (ios) {
+      show(`<b>📲 홈 화면에 추가</b><p>① 아래쪽 <b>공유 버튼(□↑)</b>을 누르세요<br>② <b>홈 화면에 추가</b>를 고르세요<br>③ 오른쪽 위 <b>추가</b>를 누르면 끝!</p><p style="color:#666;font-size:12px">설치하지 않아도 지도는 똑같이 쓸 수 있어요.</p>`, []);
+    } else {
+      show(`<b>📲 홈 화면에 추가</b><p>브라우저 메뉴(⋮)에서 <b>홈 화면에 추가</b> 또는 <b>앱 설치</b>를 눌러 주세요.</p><p style="color:#666;font-size:12px">설치하지 않아도 지도는 똑같이 쓸 수 있어요.</p>`, [["주소 복사", copy]]);
+    }
+  };
 })();
 
 
