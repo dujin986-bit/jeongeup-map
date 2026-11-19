@@ -219,3 +219,6 @@ body.editing #fab { display: none; }
 .ed-r { display: flex; gap: 8px; } .ed-r button { flex: 1; border: 0; border-radius: 10px; padding: 12px; font-size: 15px; font-weight: 700; color: #fff; background: #1f6feb; }
 .ed-r button.g { background: #868e96; } .ed-r button.red { background: #e5484d; } .ed-r button.ok { background: #2f9e44; }
 body.live #edit-btn, body.live #ed-bar, body.live #ed-sheet { display: none !important; }
+#ed-bar button { color: #222 !important; background: #fff !important; border: 2px solid #1f6feb !important; opacity: 1 !important; font-size: 15px; }
+#ed-bar button.on { color: #fff !important; background: #1f6feb !important; }
+#ed-bar #ed-end { background: #e5484d !important; border-color: #e5484d !important; color: #fff !important; }
