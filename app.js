@@ -600,15 +600,15 @@ setInterval(fetchReports, 30000);   // 실시간 알림이 안 올 때를 위한
 
 // ---------- 지형 + 색감 ----------
 // ---------- 건물 낮/밤 + 아파트 창문 줄무늬 ----------
-const APT_PATTERN_ZOOM = 16;
+const APT_PATTERN_ZOOM = 17;   // 창문 패턴은 가까이서만 (성능)
 const APT_WALL = ["#f2e3c6", "#cfe0f1", "#e9d2d2", "#d5e6d0", "#e0dbee"];
 const BLD_DAY = ["interpolate", ["linear"], ["coalesce", ["get", "height"], 6],
   0, "#eadcc0", 8, "#e2c29e", 15, "#d4a283", 25, "#c8bdb2", 40, "#c4cad2", 70, "#b3bcc9"];   // 저층=베이지·테라코타, 고층=쿨실버
 const BLD_NIGHT = ["interpolate", ["linear"], ["coalesce", ["get", "height"], 6],
-  0, "#6c737d", 10, "#697079", 25, "#636d79", 45, "#5d6977", 70, "#586675"];   // 딥 슬레이트·차콜
+  0, "#50565e", 10, "#4e545c", 25, "#495159", 45, "#444d58", 70, "#404a56"];   // 딥 슬레이트·차콜
 const APT_FAR_DAY = ["match", ["%", ["floor", ["/", ["to-number", ["coalesce", ["get", "id"], "0"], 0], 1000]], 5],
   0, APT_WALL[0], 1, APT_WALL[1], 2, APT_WALL[2], 3, APT_WALL[3], APT_WALL[4]];
-const APT_FAR_NIGHT = "#76818e";
+const APT_FAR_NIGHT = "#58616b";
 const BLD_NIGHT_DS = ["interpolate", ["linear"], ["coalesce", ["get", "height"], 6],
   0, "#2e334d", 10, "#2b3050", 25, "#282d52", 45, "#252a54", 70, "#222758"];
 function hex2rgb(h) { const n = parseInt(h.slice(1), 16); return [n >> 16 & 255, n >> 8 & 255, n & 255]; }
@@ -644,7 +644,7 @@ function addAptImages() {
   APT_WALL.forEach((w, i) => {
     try {
       map.addImage(`apt${i}-day`, makeWindowImage(w, "#8fa6bc", 0.28));
-      map.addImage(`apt${i}-night`, makeNightImage(dark(w, 0.45), i));
+      map.addImage(`apt${i}-night`, makeNightImage(dark(w, 0.33), i));
     } catch (e) {}
   });
   try { aptPatterns = APT_WALL.every((_, i) => map.hasImage(`apt${i}-day`) && map.hasImage(`apt${i}-night`)) && !/[?&]stripes=0/.test(location.search); } catch (e) {}
@@ -653,14 +653,9 @@ let nightOn = false, bldReady = false, aptPatterns = false;
 // 밤 조명: 도로 빛, 가게 후광, 하늘 쪽 안개
 function ensureNightLights() {
   try {
-    if (!map.getLayer("night-road-glow")) {
+    if (!map.getLayer("night-road-core")) {
       const firstExt = map.getStyle().layers.find(l => l.type === "fill-extrusion");
       const flt = ["in", ["get", "class"], ["literal", ["motorway", "trunk", "primary", "secondary", "tertiary"]]];
-      const w = k => ["interpolate", ["linear"], ["zoom"], 13, ["*", k, 2], 17, ["*", k, 11]];
-      const kk = ["match", ["get", "class"], ["motorway", "trunk", "primary"], 1.2, ["secondary", "tertiary"], 0.8, 0.4];
-      map.addLayer({ id: "night-road-glow", type: "line", source: vecSrc(), "source-layer": "transportation", minzoom: 15, filter: flt,
-        layout: { visibility: "none", "line-cap": "round", "line-join": "round" },
-        paint: { "line-color": "#FBBF24", "line-width": w(kk), "line-blur": 4, "line-opacity": 0.2 } }, firstExt && firstExt.id);
       map.addLayer({ id: "night-road-core", type: "line", source: vecSrc(), "source-layer": "transportation", minzoom: 15, filter: flt,
         layout: { visibility: "none", "line-cap": "round", "line-join": "round" },
         paint: { "line-color": "#FDE68A", "line-dasharray": [0.5, 3], "line-width": ["interpolate", ["linear"], ["zoom"], 15, 1.4, 18, 3.2], "line-opacity": 0.85 } }, firstExt && firstExt.id);
@@ -668,7 +663,7 @@ function ensureNightLights() {
     if (map.getSource("shops") && !map.getLayer("shops-glow")) {
       map.addLayer({ id: "shops-glow", type: "circle", source: "shops", minzoom: 14,
         layout: { visibility: "none" },
-        paint: { "circle-radius": ["interpolate", ["linear"], ["zoom"], 14, 4, 18, 13], "circle-color": "#ffcf7a", "circle-blur": 0.7, "circle-opacity": 0.9 } }, "shops-dot");
+        paint: { "circle-radius": ["interpolate", ["linear"], ["zoom"], 14, 4, 18, 13], "circle-color": "#ffcf7a", "circle-blur": 0.3, "circle-opacity": 0.8 } }, "shops-dot");
     }
   } catch (e) {}
 }
@@ -678,9 +673,14 @@ const ROAD_ORIG = {};
 function roadTier(id) { return /(motorway|trunk|primary)/.test(id) ? 1 : /(secondary|tertiary)/.test(id) ? 2 : 3; }
 const ROAD_DAY = { 1: "#b4b4b9", 2: "#cacace", 3: "#e3e2df" };
 const ROAD_DAY_CASE = { 1: "#8f8a84", 2: "#a9a49e", 3: "#c4c0ba" };
-const ROAD_NIGHT = { 1: "#b8c0cd", 2: "#a9b2c0", 3: "#98a1af" };   // 밤 땅(#8e97a5)보다 밝게
-const ROAD_NIGHT_CASE = "#2b313c";
+const ROAD_NIGHT = { 1: "#8a929f", 2: "#7c8591", 3: "#6f7782" };   // 밤 땅(night-dim)보다 밝게
+const ROAD_NIGHT_CASE = "#20252d";
 function setupRoads() {
+  try {
+    const firstRoad = map.getStyle().layers.find(l => /^(road|bridge|tunnel)_/.test(l.id));
+    if (!map.getLayer("night-dim")) map.addLayer({ id: "night-dim", type: "background", layout: { visibility: "none" },
+      paint: { "background-color": "#101c34", "background-opacity": 0.6 } }, firstRoad && firstRoad.id);   // 도로 아래, 땅·물·숲 위
+  } catch (e) {}
   try {
     const firstExt = map.getStyle().layers.find(l => l.type === "fill-extrusion");
     if (!map.getLayer("road-centerline")) {
@@ -701,7 +701,7 @@ function applyRoadTone(on) {
       if (casing) map.setPaintProperty(l.id, "line-color", on ? ROAD_NIGHT_CASE : ROAD_DAY_CASE[t]);
       else map.setPaintProperty(l.id, "line-color", on ? ROAD_NIGHT[t] : ROAD_DAY[t]);
     }
-    map.setPaintProperty("background", "background-color", on ? "#8e97a5" : "#f4efe4");   // 밤 땅: 보라 없이 푸른 슬레이트
+    if (map.getLayer("night-dim")) map.setLayoutProperty("night-dim", "visibility", on ? "visible" : "none");   // 밤 땅·물·숲을 한 겹으로 푸르게 어둡게
     if (map.getLayer("road-centerline")) map.setPaintProperty("road-centerline", "line-color", on ? "#f0c850" : "#e2b52f");
   } catch (e) {}
 }
@@ -723,7 +723,7 @@ function setBuildingNight(on) {
   if (!bldReady) return;
   try {                                   // 땅·길·물·글씨까지 한꺼번에 어둡게 (건물만 어두워 보이던 문제)
     const cv = map.getCanvas(); cv.style.transition = "filter 1.5s ease";
-    cv.style.filter = on && !DARKSTYLE ? "brightness(0.74) contrast(1.06) saturate(0.88)" : "none";   // 약하게: 라벨이 어두워지지 않도록
+    cv.style.filter = "none";   // 성능: 화면 전체 필터 제거. 밤 땅은 night-dim 레이어로 어둡게
   } catch (e) {}
   document.body.classList.toggle("night", !!on);
   applyRoadTone(on); applyLabelTone(on);
@@ -918,7 +918,11 @@ function applyWeather(next) {
   b.hidden = false;
 }
 
+let wxMoving = false;
+map.on("movestart", () => { wxMoving = true; try { wxCanvas.style.transition = "opacity .15s"; wxCanvas.style.opacity = "0"; } catch (e) {} });
+map.on("moveend", () => { wxMoving = false; try { wxCanvas.style.transition = "opacity .5s"; wxCanvas.style.opacity = "1"; } catch (e) {} });
 function wxDraw(t) {
+  if (wxMoving) { requestAnimationFrame(wxDraw); return; }   // 지도를 움직이는 동안 날씨 효과는 쉼 (성능)
   wxCtx.clearRect(0, 0, wxCanvas.width, wxCanvas.height);
   const w = wxCanvas.width, h = wxCanvas.height;
   if (wx.kind === "rain" || wx.kind === "storm") {
