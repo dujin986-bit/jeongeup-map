@@ -658,12 +658,12 @@ function ensureNightLights() {
       const flt = ["in", ["get", "class"], ["literal", ["motorway", "trunk", "primary", "secondary", "tertiary"]]];
       const w = k => ["interpolate", ["linear"], ["zoom"], 13, ["*", k, 2], 17, ["*", k, 11]];
       const kk = ["match", ["get", "class"], ["motorway", "trunk", "primary"], 1.2, ["secondary", "tertiary"], 0.8, 0.4];
-      map.addLayer({ id: "night-road-glow", type: "line", source: vecSrc(), "source-layer": "transportation", minzoom: 13, filter: flt,
+      map.addLayer({ id: "night-road-glow", type: "line", source: vecSrc(), "source-layer": "transportation", minzoom: 15, filter: flt,
         layout: { visibility: "none", "line-cap": "round", "line-join": "round" },
-        paint: { "line-color": "#ffb85c", "line-width": w(kk), "line-blur": 3, "line-opacity": 0.3 } }, firstExt && firstExt.id);
-      map.addLayer({ id: "night-road-core", type: "line", source: vecSrc(), "source-layer": "transportation", minzoom: 14, filter: flt,
+        paint: { "line-color": "#FBBF24", "line-width": w(kk), "line-blur": 4, "line-opacity": 0.2 } }, firstExt && firstExt.id);
+      map.addLayer({ id: "night-road-core", type: "line", source: vecSrc(), "source-layer": "transportation", minzoom: 15, filter: flt,
         layout: { visibility: "none", "line-cap": "round", "line-join": "round" },
-        paint: { "line-color": "#ffd98a", "line-width": ["interpolate", ["linear"], ["zoom"], 14, 0.5, 18, 2.4], "line-opacity": 0.85 } }, firstExt && firstExt.id);
+        paint: { "line-color": "#FDE68A", "line-dasharray": [0.5, 3], "line-width": ["interpolate", ["linear"], ["zoom"], 15, 1.4, 18, 3.2], "line-opacity": 0.85 } }, firstExt && firstExt.id);
     }
     if (map.getSource("shops") && !map.getLayer("shops-glow")) {
       map.addLayer({ id: "shops-glow", type: "circle", source: "shops", minzoom: 14,
