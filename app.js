@@ -294,16 +294,52 @@ function shopColor(cat) {
 }
 
 let SHOPS = [];
-let EDITS = { edits: {}, added: [] };   // 이름 수정/숨김 (data/shop_edits.json, tools/serve.py 가 저장)
+let EDITS = { edits: {}, added: [] };   // 이름 수정/숨김 (data/shop_edits.json, tools/serve.py 가 저장) + 관리자 화면 수정(Supabase)
+let EDITS_FILE = { edits: {}, added: [] }, REMOTE_ROWS = [];
+function mergeRemote() {                // 파일 수정 위에 관리자 화면(Supabase)의 수정을 덮어씀
+  const E = { edits: { ...(EDITS_FILE.edits || {}) }, added: [...(EDITS_FILE.added || [])] };
+  for (const r of REMOTE_ROWS) {
+    if (r.is_new) {
+      E.added = E.added.filter(s => s.id !== r.id);
+      E.added.push({ id: r.id, name: r.name, category: r.category || "기타", address: "", coord: [r.lon, r.lat] });
+      E.edits[r.id] = { ...(E.edits[r.id] || {}), hidden: !!r.hidden };
+    } else {
+      const e = { ...(E.edits[r.id] || {}), hidden: !!r.hidden };
+      if (r.name) e.name = r.name;
+      if (r.category) e.category = r.category;
+      if (r.lon != null && r.lat != null) e.coord = [r.lon, r.lat];
+      E.edits[r.id] = e;
+    }
+  }
+  EDITS = E;
+}
+let REMOTE_JSON = "";
+async function fetchShopEdits() {
+  try {
+    const res = await fetch(SUPABASE_URL + "/rest/v1/shop_edits?select=*", { headers: { apikey: SUPABASE_KEY, Authorization: "Bearer " + SUPABASE_KEY } });
+    if (!res.ok) return false;                      // 표가 아직 없으면(SQL 전) 조용히 무시
+    const rows = await res.json(), js = JSON.stringify(rows);
+    if (js === REMOTE_JSON) return true;
+    REMOTE_JSON = js; REMOTE_ROWS = rows; mergeRemote();
+    const src = map.getSource("shops");
+    if (src) {
+      const feats = shopFeatures();
+      src.setData({ type: "FeatureCollection", features: feats });
+      const chip = document.getElementById("shop-chip"); if (chip) chip.textContent = `상가 ${feats.length}`;
+    }
+    return true;
+  } catch (e) { return false; }
+}
 
 function shopFeatures() {
   const out = [];
   for (const s of SHOPS.concat(EDITS.added || [])) {
     const e = (EDITS.edits || {})[s.id] || {};
     if (e.hidden) continue;
-    out.push({ type: "Feature", geometry: { type: "Point", coordinates: s.coord },
-      properties: { id: s.id, name: e.name || s.name, category: s.category, address: s.address, lon: s.coord[0], lat: s.coord[1],
-                    color: shopColor(s.category) } });
+    const co = e.coord || s.coord, cat = e.category || s.category;
+    out.push({ type: "Feature", geometry: { type: "Point", coordinates: co },
+      properties: { id: s.id, name: e.name || s.name, category: cat, address: s.address, lon: co[0], lat: co[1],
+                    color: shopColor(cat) } });
   }
   return out;
 }
@@ -312,7 +348,7 @@ async function sendEdit(payload) {
   const r = await fetch("/api/edit", { method: "POST", headers: { "Content-Type": "application/json" },
                                        body: JSON.stringify(payload) });
   if (!r.ok) throw new Error("저장 실패 (run_map.bat 으로 연 지도에서만 수정이 저장됩니다)");
-  EDITS = await r.json();
+  EDITS = EDITS_FILE = await r.json(); mergeRemote();
   const feats = shopFeatures();
   map.getSource("shops").setData({ type: "FeatureCollection", features: feats });
   const chip = document.getElementById("shop-chip");
@@ -324,7 +360,8 @@ async function loadShops() {
     const res = await fetch("data/shops.json");
     if (!res.ok) return;
     SHOPS = await res.json();
-    try { const er = await fetch("data/shop_edits.json"); if (er.ok) EDITS = await er.json(); } catch (e) {}
+    try { const er = await fetch("data/shop_edits.json"); if (er.ok) { EDITS_FILE = await er.json(); EDITS = EDITS_FILE; } } catch (e) {}
+    await fetchShopEdits();
     if (!SHOPS.length) return;
     const feats = shopFeatures();
     map.addSource("shops", { type: "geojson", data: { type: "FeatureCollection", features: feats } });
@@ -408,7 +445,7 @@ function nearestPlace(lng, lat) {
   const take = (name, c, lim, kind) => { if (!name || !c) return; const d = dist(c); if (d <= lim && (!best || d < best.d)) best = { name, d, kind }; };
   for (const s of (typeof SHOPS !== "undefined" ? SHOPS : []).concat(EDITS.added || [])) {
     const e = (EDITS.edits || {})[s.id] || {}; if (e.hidden) continue;
-    take(e.name || s.name, s.coord, 30, "상가");
+    take(e.name || s.name, e.coord || s.coord, 30, "상가");
   }
   for (const p of PLACES_IDX) take(p.name, p.coord, 40, "장소");
   for (const n of NAMED) take(n.name, n.coord, 60, "건물");
@@ -921,8 +958,8 @@ function searchIndex() {
   for (const s of (typeof SHOPS !== "undefined" ? SHOPS : []).concat(EDITS.added || [])) {
     const e = (EDITS.edits || {})[s.id] || {};
     if (e.hidden) continue;
-    out.push({ name: e.name || s.name, sub: (s.category || "").split(">").pop().trim() + (s.address ? " · " + s.address.replace("전북특별자치도 ", "") : ""),
-               addr: s.address || "", coord: s.coord, kind: "상가" });
+    out.push({ name: e.name || s.name, sub: (e.category || s.category || "").split(">").pop().trim() + (s.address ? " · " + s.address.replace("전북특별자치도 ", "") : ""),
+               addr: s.address || "", coord: e.coord || s.coord, kind: "상가" });
   }
   for (const p of PLACES_IDX) out.push({ name: p.name, sub: p.address ? p.address.replace("전북특별자치도 ", "") : "", addr: p.address || "", coord: p.coord, kind: "장소" });
   for (const n of NAMED) out.push({ name: n.name, sub: "건물", addr: "", coord: n.coord, kind: "건물" });
@@ -1074,7 +1111,7 @@ document.addEventListener("click", e => { if (!e.target.closest("#searchbox")) r
 // ===== 새로고침 버튼 + 앱으로 돌아올 때 자동 갱신 =====
 async function manualRefresh(btn) {
   const old = btn.textContent; btn.disabled = true; btn.textContent = "⏳";
-  const ok = await fetchReports();
+  const [ok] = await Promise.all([fetchReports(), fetchShopEdits()]);
   btn.textContent = ok ? "✓ 방금" : "⚠ 실패";
   setTimeout(() => { btn.textContent = old; btn.disabled = false; }, 1500);
 }
@@ -1247,3 +1284,5 @@ thunderLoop();
   document.addEventListener("visibilitychange", () => { if (!AC) return; if (document.hidden) AC.suspend(); else if (sndOn) AC.resume(); });
   label();
 })();
+
+setInterval(fetchShopEdits, 60000);   // 관리자가 고친 가게 정보를 1분마다 반영

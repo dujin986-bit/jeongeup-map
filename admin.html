@@ -11,6 +11,7 @@
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="제보관리">
 <link rel="apple-touch-icon" href="icons/admin-apple-180.png">
+<link href="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.css" rel="stylesheet">
 <style>
   * { box-sizing: border-box; }
   body { margin: 0; font-family: -apple-system, "Malgun Gothic", sans-serif; background: #f4f5f7; color: #222; }
@@ -37,6 +38,19 @@
   a { color: #1f6feb; }
   .top { display: flex; justify-content: space-between; align-items: center; }
   .link { font-size: 13px; background: none; border: 0; color: #1f6feb; cursor: pointer; }
+  #mapedit { position: relative; height: calc(100vh - 96px); height: calc(100dvh - 96px); }
+  #amap { position: absolute; inset: 0; }
+  #mtools { position: absolute; top: 8px; left: 8px; right: 8px; z-index: 3; display: flex; gap: 6px; flex-wrap: wrap; }
+  #mtools button { border: 1px solid #ccc; background: rgba(255,255,255,.95); border-radius: 16px; padding: 7px 12px; font-size: 14px; font-weight: 700; }
+  #mtools button.on { background: #1f6feb; color: #fff; border-color: #1f6feb; }
+  #mcross { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -92%); font-size: 36px; z-index: 3; pointer-events: none; }
+  #msheet { position: absolute; left: 8px; right: 8px; bottom: 8px; z-index: 4; background: #fff; border-radius: 14px; padding: 14px; box-shadow: 0 4px 20px rgba(0,0,0,.3); display: flex; flex-direction: column; gap: 8px; max-height: 70%; overflow-y: auto; }
+  #msheet[hidden], #mcross[hidden], #mapedit[hidden] { display: none; }
+  #msheet input, #msheet select { width: 100%; padding: 10px; font-size: 16px; border: 1px solid #ccc; border-radius: 8px; }
+  #msheet .r { display: flex; gap: 8px; } #msheet .r button { flex: 1; border: 0; border-radius: 10px; padding: 12px; font-size: 15px; font-weight: 700; color: #fff; background: #1f6feb; }
+  #msheet .r button.g { background: #868e96; } #msheet .r button.red { background: #e5484d; } #msheet .r button.ok { background: #2f9e44; }
+  #mtoast { position: absolute; top: 56px; left: 50%; transform: translateX(-50%); z-index: 5; background: #222; color: #fff; padding: 8px 14px; border-radius: 16px; font-size: 14px; }
+  #mtoast[hidden] { display: none; }
 </style>
 </head>
 <body>
@@ -54,13 +68,21 @@
     <div class="tabs" id="tabs"></div>
   </header>
   <main id="list"></main>
+  <section id="mapedit" hidden>
+    <div id="amap"></div>
+    <div id="mtools"><button id="mAdd">＋ 새 가게</button><button id="mHid">숨긴 가게 보기</button></div>
+    <div id="mcross" hidden>📍</div>
+    <div id="mtoast" hidden></div>
+    <div id="msheet" hidden></div>
+  </section>
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.js"></script>
 <script src="data.js"></script>
 <script>
 const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
-const TABS = [["pending", "대기"], ["approved", "승인됨"], ["hidden", "숨김"]];
+const TABS = [["pending", "대기"], ["approved", "승인됨"], ["hidden", "숨김"], ["map", "지도 수정"]];
 let tab = "pending", rows = [];
 const $ = id => document.getElementById(id);
 const esc = s => String(s == null ? "" : s).replace(/[&<>"']/g, c => ({ "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;" }[c]));
@@ -84,7 +106,7 @@ function start() {
   for (const [k, label] of TABS) {
     const b = document.createElement("button");
     b.className = "tab" + (k === tab ? " on" : ""); b.dataset.k = k; b.textContent = label;
-    b.onclick = () => { tab = k; document.querySelectorAll(".tab").forEach(t => t.classList.toggle("on", t.dataset.k === k)); draw(); };
+    b.onclick = () => { tab = k; document.querySelectorAll(".tab").forEach(t => t.classList.toggle("on", t.dataset.k === k)); draw(); if (k === "map") openMapEdit(); };
     $("tabs").appendChild(b);
   }
   load();
@@ -100,7 +122,9 @@ async function load() {
 
 function draw() {
   const counts = {}; rows.forEach(r => counts[r.status] = (counts[r.status] || 0) + 1);
-  document.querySelectorAll(".tab").forEach(t => { const k = t.dataset.k; t.textContent = TABS.find(x => x[0] === k)[1] + " " + (counts[k] || 0); });
+  document.querySelectorAll(".tab").forEach(t => { const k = t.dataset.k; t.textContent = TABS.find(x => x[0] === k)[1] + (k === "map" ? "" : " " + (counts[k] || 0)); });
+  $("list").hidden = tab === "map"; $("mapedit").hidden = tab !== "map";
+  if (tab === "map") return;
   const list = rows.filter(r => r.status === tab);
   const box = $("list");
   if (!list.length) { box.innerHTML = '<div class="empty">없어요</div>'; return; }
@@ -132,6 +156,99 @@ async function act(r, a) {
   if (res.error) { alert("처리 실패: " + res.error.message); return; }
   load();
 }
+
+// ================= 지도 수정 (가게 이름·위치·없어진 가게·새 가게) =================
+const SHOP_CATS = ["음식점", "카페", "숙박", "편의점/마트", "주차장", "기타"];
+const shopColor = cat => /카페|커피/.test(cat) ? "#8d5524" : /음식|식당|한식|분식|치킨|중식|일식|양식/.test(cat) ? "#f76b15" : /숙박|모텔|펜션|호텔/.test(cat) ? "#8e4ec6" : /편의점|마트|슈퍼|소매/.test(cat) ? "#2f9e44" : /주차/.test(cat) ? "#1f6feb" : "#6b7280";
+let amap = null, SH = new Map(), showHidden = false, selId = null, mode = "none";
+function toast(t) { const el = $("mtoast"); el.textContent = t; el.hidden = false; clearTimeout(toast.t); toast.t = setTimeout(() => el.hidden = true, 1800); }
+
+async function loadShopData() {
+  SH = new Map();
+  const [s, f] = await Promise.all([fetch("data/shops.json").then(r => r.json()).catch(() => []), fetch("data/shop_edits.json").then(r => r.ok ? r.json() : { edits: {}, added: [] }).catch(() => ({ edits: {}, added: [] }))]);
+  for (const x of s) SH.set(x.id, { id: x.id, name: x.name, category: x.category || "기타", coord: x.coord, hidden: false, isNew: false });
+  for (const x of (f.added || [])) SH.set(x.id, { id: x.id, name: x.name, category: x.category || "기타", coord: x.coord, hidden: false, isNew: false });
+  for (const [id, e] of Object.entries(f.edits || {})) { const o = SH.get(id); if (!o) continue; if (e.name) o.name = e.name; if (e.hidden) o.hidden = true; }
+  const { data, error } = await sb.from("shop_edits").select("*");
+  if (error) { toast("수정 내용 불러오기 실패: " + error.message); return; }
+  for (const r of data) {
+    const o = SH.get(r.id) || { id: r.id, isNew: !!r.is_new };
+    if (r.name) o.name = r.name; if (r.category) o.category = r.category;
+    if (r.lon != null && r.lat != null) o.coord = [r.lon, r.lat];
+    o.hidden = !!r.hidden; if (r.is_new) o.isNew = true; SH.set(r.id, o);
+  }
+}
+function shopGeo() {
+  const feats = [];
+  for (const o of SH.values()) {
+    if (!o.coord || (o.hidden && !showHidden)) continue;
+    feats.push({ type: "Feature", geometry: { type: "Point", coordinates: o.coord }, properties: { id: o.id, name: o.name + (o.hidden ? " (숨김)" : ""), color: o.hidden ? "#bbbbbb" : o.isNew ? "#e5484d" : shopColor(o.category) } });
+  }
+  return { type: "FeatureCollection", features: feats };
+}
+function redrawShops() { const src = amap && amap.getSource("sh"); if (src) src.setData(shopGeo()); }
+
+async function openMapEdit() {
+  if (!amap) {
+    amap = new maplibregl.Map({ container: "amap", style: "https://tiles.openfreemap.org/styles/liberty", center: JEONGEUP_CENTER, zoom: 16.3, maxZoom: 20 });
+    amap.addControl(new maplibregl.NavigationControl({ showCompass: false }), "bottom-right");
+    amap.addControl(new maplibregl.GeolocateControl({ trackUserLocation: false }), "bottom-right");
+    amap.on("load", async () => {
+      for (const l of amap.getStyle().layers) if (l["source-layer"] === "poi") amap.setLayoutProperty(l.id, "visibility", "none");
+      await loadShopData();
+      amap.addSource("sh", { type: "geojson", data: shopGeo() });
+      amap.addLayer({ id: "sh-dot", type: "circle", source: "sh", paint: { "circle-radius": ["interpolate", ["linear"], ["zoom"], 14, 4, 18, 9], "circle-color": ["get", "color"], "circle-stroke-color": "#fff", "circle-stroke-width": 1.5 } });
+      amap.addLayer({ id: "sh-label", type: "symbol", source: "sh", minzoom: 16, layout: { "text-field": ["get", "name"], "text-font": ["Noto Sans Regular"], "text-size": 12, "text-offset": [0, 1.2], "text-anchor": "top", "text-max-width": 8 }, paint: { "text-color": "#1b1b1b", "text-halo-color": "#fff", "text-halo-width": 1.4 } });
+      amap.on("click", e => {
+        if (mode !== "none") return;
+        const pt = e.point, f = amap.queryRenderedFeatures([[pt.x - 14, pt.y - 14], [pt.x + 14, pt.y + 14]], { layers: ["sh-dot"] });
+        const ids = [...new Set(f.map(x => x.properties.id))];
+        if (ids.length) openSheet(ids);
+      });
+    });
+  } else { amap.resize(); }
+}
+const optHtml = cur => { const l = SHOP_CATS.includes(cur) ? SHOP_CATS : [cur].concat(SHOP_CATS); return l.map(c => `<option${c === cur ? " selected" : ""}>${esc(c)}</option>`).join(""); };
+function closeSheet() { $("msheet").hidden = true; $("mcross").hidden = true; mode = "none"; selId = null; }
+function openSheet(ids) {
+  mode = "none"; $("mcross").hidden = true;
+  const sh = $("msheet"); sh.hidden = false; selId = ids[0];
+  const o = SH.get(selId);
+  sh.innerHTML = (ids.length > 1 ? `<div style="font-size:13px;color:#1f6feb;font-weight:700">이 위치에 가게 ${ids.length}곳 · 고칠 가게 선택</div><select id="mpick">${ids.map(i => `<option value="${esc(i)}">${esc(SH.get(i).name)}</option>`).join("")}</select>` : "") +
+    `<div style="font-size:12px;color:#666">${o.isNew ? "새로 추가한 가게" : "가게 정보"}</div>` +
+    `<input id="mname" value="${esc(o.name)}" maxlength="40"><select id="mcat">${optHtml(o.category)}</select>` +
+    `<div class="r"><button id="mSave" class="ok">저장</button><button id="mMove">위치 옮기기</button></div>` +
+    `<div class="r"><button id="mGone" class="${o.hidden ? "ok" : "red"}">${o.hidden ? "되살리기" : "없어진 가게(숨기기)"}</button><button id="mClose" class="g">닫기</button></div>`;
+  if (ids.length > 1) $("mpick").onchange = e => openSheet([e.target.value].concat(ids.filter(i => i !== e.target.value)));
+  $("mClose").onclick = closeSheet;
+  $("mSave").onclick = () => save(selId, { name: $("mname").value.trim() || o.name, category: $("mcat").value }, "저장됨");
+  $("mGone").onclick = () => save(selId, { hidden: !o.hidden }, o.hidden ? "되살렸어요" : "숨겼어요 (지도에서 사라져요)");
+  $("mMove").onclick = () => { amap.flyTo({ center: o.coord, zoom: 18.5, duration: 600 }); startMove(selId); };
+}
+function startMove(id) {
+  mode = "move"; $("mcross").hidden = false;
+  const sh = $("msheet"), o = SH.get(id);
+  sh.innerHTML = `<b>${esc(o.name)}</b><div style="font-size:14px">지도를 움직여 📍 끝을 새 위치에 맞춘 뒤 <b>여기로 이동</b>을 누르세요</div><div class="r"><button id="mHere" class="ok">여기로 이동</button><button id="mCancel" class="g">취소</button></div>`;
+  $("mCancel").onclick = closeSheet;
+  $("mHere").onclick = () => { const c = amap.getCenter(); save(id, { coord: [c.lng, c.lat] }, "위치를 옮겼어요"); };
+}
+$("mAdd").onclick = () => {
+  mode = "add"; $("mcross").hidden = false; const sh = $("msheet"); sh.hidden = false;
+  sh.innerHTML = `<b>새 가게 추가</b><div style="font-size:14px">지도를 움직여 📍 끝을 가게 위치에 맞추세요</div><input id="mnn" placeholder="가게 이름" maxlength="40"><select id="mnc">${optHtml("음식점")}</select><div class="r"><button id="mDo" class="ok">여기에 추가</button><button id="mX" class="g">취소</button></div>`;
+  $("mX").onclick = closeSheet;
+  $("mDo").onclick = () => { const nm = $("mnn").value.trim(); if (!nm) { toast("가게 이름을 써 주세요"); return; } const c = amap.getCenter();
+    save("n-" + Date.now(), { name: nm, category: $("mnc").value, coord: [c.lng, c.lat], isNew: true, hidden: false }, "추가했어요"); };
+};
+$("mHid").onclick = () => { showHidden = !showHidden; $("mHid").classList.toggle("on", showHidden); redrawShops(); };
+
+async function save(id, patch, okMsg) {
+  const o = Object.assign(SH.get(id) || { id, hidden: false, isNew: false, category: "기타" }, patch);
+  const row = { id, name: o.name, category: o.category, lon: o.coord[0], lat: o.coord[1], hidden: !!o.hidden, is_new: !!o.isNew, updated_at: new Date().toISOString() };
+  const { error } = await sb.from("shop_edits").upsert(row);
+  if (error) { toast("저장 실패: " + error.message); alert("저장 실패: " + error.message + "\n(표 만들기 SQL을 먼저 실행했는지, 관리자 계정으로 로그인했는지 확인하세요)"); return; }
+  SH.set(id, o); redrawShops(); toast(okMsg); closeSheet();
+}
+
 init();
 </script>
 <script>if("serviceWorker"in navigator&&!["localhost","127.0.0.1"].includes(location.hostname))navigator.serviceWorker.register("sw.js");</script>
