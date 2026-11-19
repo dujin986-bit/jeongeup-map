@@ -688,30 +688,44 @@ const WX_PRESET = {
 })();
 
 
-// ---------- 신호등 (위치는 OSM 실제 데이터, 색 변화는 방송 모드 연출) ----------
+// ---------- 신호등 (위치는 공공데이터, 색 변화는 방송 모드 연출) ----------
+function sigBox(lon, lat, dm, props) {          // 가로세로 dm(미터) 크기 정사각형 기둥 폴리곤
+  const dLat = dm / 111000, dLon = dLat / Math.cos(lat * Math.PI / 180);
+  return { type: "Feature", properties: props, geometry: { type: "Polygon", coordinates: [[
+    [lon - dLon, lat - dLat], [lon + dLon, lat - dLat], [lon + dLon, lat + dLat], [lon - dLon, lat + dLat], [lon - dLon, lat - dLat]]] } };
+}
 async function loadSignals() {
   try {
     const res = await fetch("data/signals.json?" + Date.now());
     if (!res.ok) return;
     const pts = await res.json();
     if (!pts.length) return;
-    const feats = pts.map((c, i) => ({ type: "Feature", geometry: { type: "Point", coordinates: c },
-      properties: { ph: (i * 7) % 30, st: "idle" } }));
+    const feats = [], lamps = [];
+    pts.forEach((c, i) => {
+      const [lon, lat] = c, ph = (i * 7) % 30;
+      feats.push(sigBox(lon, lat, 0.18, { kind: "pole", b: 0, h: 4.6 }));              // 기둥
+      feats.push(sigBox(lon, lat, 0.5, { kind: "box", b: 4.6, h: 6.3 }));              // 신호등 상자
+      const lamp = sigBox(lon, lat, 0.56, { kind: "lamp", b: 5.2, h: 6.3, st: "idle", ph });  // 불빛
+      feats.push(lamp); lamps.push(lamp);
+    });
     const gj = { type: "FeatureCollection", features: feats };
     map.addSource("signals", { type: "geojson", data: gj });
     map.addLayer({
-      id: "signals-dot", type: "circle", source: "signals", minzoom: 14.5,
+      id: "signals-3d", type: "fill-extrusion", source: "signals", minzoom: 15.5,
       paint: {
-        "circle-radius": ["interpolate", ["linear"], ["zoom"], 14.5, 2.5, 17, 5, 19, 8],
-        "circle-color": ["match", ["get", "st"], "g", "#2ecc71", "y", "#f1c40f", "r", "#e74c3c", "#3b3f46"],
-        "circle-stroke-color": "#ffffff", "circle-stroke-width": 1.2,
-        "circle-pitch-alignment": "map",
+        "fill-extrusion-base": ["get", "b"], "fill-extrusion-height": ["get", "h"],
+        "fill-extrusion-color": ["case",
+          ["==", ["get", "kind"], "pole"], "#707680",
+          ["==", ["get", "kind"], "box"], "#1c1e22",
+          ["==", ["get", "st"], "g"], "#2ecc71", ["==", ["get", "st"], "y"], "#f1c40f",
+          ["==", ["get", "st"], "r"], "#ff3b30", "#2a2d33"],
+        "fill-extrusion-opacity": 1,
       },
     });
     if (LIVE) {                                     // 연출: 30초 주기 (초록14 / 노랑2 / 빨강14)
       const tick = () => {
         const t = Math.floor(Date.now() / 1000);
-        for (const f of feats) {
+        for (const f of lamps) {
           const k = (t + f.properties.ph) % 30;
           f.properties.st = k < 14 ? "g" : k < 16 ? "y" : "r";
         }
