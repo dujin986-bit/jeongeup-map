@@ -64,8 +64,9 @@ function addMarker(item, isLandmark) {
   if (isLandmark) el.style.outline = "2px solid #fff";
   const when = item.ts ? `<br><small>${timeAgo(item.ts)} · ${new Date(item.ts).toLocaleString("ko-KR")}</small>` : "";
   const popup = new maplibregl.Popup({ offset: 20 }).setHTML(
-    `<strong>${esc(item.name || item.title)}</strong> <small>(${c.label})</small><br>${esc(item.desc || "")}${when}` + (item.photo ? `<a href="${esc(item.photo)}" target="_blank" rel="noopener"><img class="pop-photo" src="${esc(item.photo)}" loading="lazy"></a>` : "") + navLinks(item.name || item.title, item.coord[0], item.coord[1])
+    `<strong>${esc(item.name || item.title)}</strong> <small>(${c.label})</small><br>${esc(item.desc || "")}${when}` + (item.photo ? `<a href="${esc(item.photo)}" target="_blank" rel="noopener"><img class="pop-photo" src="${esc(item.photo)}" loading="lazy"></a>` : "") + navLinks(item.name || item.title, item.coord[0], item.coord[1]) + (item.id && item.ts ? `<div class="shop-act">${rxHtml("report", item.id)}</div>` : "")
   );
+  popup.on("open", () => hydrateRx(popup.getElement()));
   el.addEventListener("click", () => playFx(item.cat, el));      // 클릭 연출 (1~2초)
   const m = new maplibregl.Marker({ element: el }).setLngLat(item.coord).setPopup(popup).addTo(map);
   m._item = item; markers.push(m);
@@ -392,11 +393,12 @@ async function loadShops() {
       if (!list.length) return;
       const rows = list.map((p, i) =>
         `<div class="shop-row" data-i="${i}"><strong>${esc(p.name)}</strong><br>${esc(p.category)}<br>` +
-        `<small>${esc(p.address)}</small>` + navLinks(p.name, p.lon, p.lat) + (IS_LOCAL ? `<div class="edit-row">` +
+        `<small>${esc(p.address)}</small>` + navLinks(p.name, p.lon, p.lat) + `<div class="shop-act">${rxHtml("shop", p.id)}<button class="fix-btn" data-id="${esc(p.id)}" data-name="${esc(p.name)}">✏ 정보가 틀렸어요</button></div>` + (IS_LOCAL ? `<div class="edit-row">` +
         `<button data-a="rename">이름 수정</button><button data-a="hide">없는 가게</button></div>` : "") + `</div>`).join("");
       const head = list.length > 1 ? `<div class="shop-head">이 위치에 가게 ${list.length}곳</div>` : "";
       const pop = new maplibregl.Popup({ offset: 10, maxWidth: "300px" }).setLngLat(e.lngLat)
         .setHTML(`${head}<div class="shop-list">${rows}</div>`).addTo(map);
+      hydrateRx(pop.getElement());
       pop.getElement().querySelectorAll(".shop-row").forEach(row => {
         const p = list[Number(row.dataset.i)];
         if (!IS_LOCAL) return;
@@ -1222,13 +1224,14 @@ function renderComm() {
     const card = document.createElement("div"); card.className = "comm-card";
     card.innerHTML = `<div class="comm-meta"><span class="feed-dot" style="background:${c.color}"></span>${c.label} · ${timeAgo(r.ts)}</div>` +
       `<div class="comm-title">${esc(r.title)}</div>` + (r.desc ? `<div class="comm-desc">${esc(r.desc)}</div>` : "") + (r.photo ? `<a href="${esc(r.photo)}" target="_blank" rel="noopener"><img class="comm-photo" src="${esc(r.photo)}" loading="lazy"></a>` : "") +
-      `<button class="chip comm-go">📍 지도에서 보기</button>`;
+      `<div class="shop-act">${rxHtml("report", r.id)}<button class="chip comm-go">📍 지도에서 보기</button></div>`;
     card.querySelector(".comm-go").onclick = () => {
       closeComm();
       focusReport(r);
     };
     commBody.appendChild(card);
   }
+  hydrateRx(commBody);
 }
 function openComm() { renderComm(); commEl.hidden = false; requestAnimationFrame(() => commEl.classList.add("open")); document.body.style.overflow = "hidden"; fetchReports(); }
 function closeComm() { commEl.classList.remove("open"); setTimeout(() => { commEl.hidden = true; }, 220); document.body.style.overflow = ""; }
@@ -1443,6 +1446,8 @@ function setEditMode(on) {
     edEl("ed-add").onclick = edAddNew;
     edEl("ed-hid").onclick = () => { editShowHidden = !editShowHidden; edEl("ed-hid").classList.toggle("on", editShowHidden); if (map.getSource("shops")) edRefresh(); };
     edEl("ed-end").onclick = () => setEditMode(false);
+    const focusId = new URLSearchParams(location.search).get("shop");
+    if (focusId) { let tries = 0; const tryOpen = () => { const s = shopInfo(focusId); if (!s) { if (++tries < 15) setTimeout(tryOpen, 800); return; } setEditMode(true); map.flyTo({ center: s.coord, zoom: 18, duration: 800 }); setTimeout(() => openEditSheet([focusId]), 900); }; setTimeout(tryOpen, 1500); return; }
     if (/[?&]edit=1/.test(location.search)) { const go = () => setEditMode(true); if (map.getSource("shops")) go(); else map.once("idle", go); }
   } catch (e) {}
 })();
@@ -1571,4 +1576,53 @@ function openFoodVote() {
     if (!res.children.length) res.innerHTML = "<small>검색 결과가 없어요</small>";
   };
   q.oninput = draw; draw(); q.focus();
+}
+
+
+// ===== 👍/👎 반응 (한 사람당 하나, 다시 누르면 취소) + "정보가 틀렸어요" 수정 요청 =====
+const rxMine = () => { try { return JSON.parse(localStorage.getItem("rx") || "{}"); } catch (e) { return {}; } };
+const rxSave = o => { try { localStorage.setItem("rx", JSON.stringify(o)); } catch (e) {} };
+const rxHdr = { apikey: SUPABASE_KEY, Authorization: "Bearer " + SUPABASE_KEY, "Content-Type": "application/json" };
+function rxHtml(type, id) { return `<span class="rx" data-t="${type}" data-id="${esc(id)}"><button class="rx-b" data-v="1">👍 <i>0</i></button><button class="rx-b" data-v="-1">👎 <i>0</i></button></span>`; }
+async function hydrateRx(root) {
+  const els = [...root.querySelectorAll(".rx")]; if (!els.length) return;
+  const mine = rxMine();
+  els.forEach(el => el.querySelectorAll(".rx-b").forEach(b => b.classList.toggle("mine", mine[el.dataset.t + ":" + el.dataset.id] === +b.dataset.v)));
+  for (const t of ["shop", "report"]) {
+    const ids = [...new Set(els.filter(e => e.dataset.t === t).map(e => e.dataset.id))]; if (!ids.length) continue;
+    try {
+      const r = await fetch(SUPABASE_URL + "/rest/v1/rpc/reaction_counts", { method: "POST", headers: rxHdr, body: JSON.stringify({ p_type: t, p_ids: ids }) });
+      if (!r.ok) continue;
+      const map_ = {}; (await r.json()).forEach(x => map_[x.item_id] = x);
+      els.filter(e => e.dataset.t === t).forEach(e => { const c = map_[e.dataset.id] || { up: 0, down: 0 }; const i = e.querySelectorAll("i"); i[0].textContent = c.up; i[1].textContent = c.down; });
+    } catch (e) {}
+  }
+}
+document.addEventListener("click", async e => {
+  const b = e.target.closest(".rx-b");
+  if (b) {
+    const el = b.closest(".rx"), key = el.dataset.t + ":" + el.dataset.id, mine = rxMine(), v = +b.dataset.v, cur = mine[key] || 0, nv = cur === v ? 0 : v;
+    const i = el.querySelectorAll("i");
+    if (cur) i[cur === 1 ? 0 : 1].textContent = Math.max(0, +i[cur === 1 ? 0 : 1].textContent - 1);
+    if (nv) i[nv === 1 ? 0 : 1].textContent = +i[nv === 1 ? 0 : 1].textContent + 1;
+    if (nv) mine[key] = nv; else delete mine[key]; rxSave(mine);
+    el.querySelectorAll(".rx-b").forEach(x => x.classList.toggle("mine", +x.dataset.v === nv));
+    try { await fetch(SUPABASE_URL + "/rest/v1/rpc/react", { method: "POST", headers: rxHdr, body: JSON.stringify({ p_type: el.dataset.t, p_id: el.dataset.id, p_voter: voterId(), p_val: nv }) }); } catch (err) {}
+    return;
+  }
+  const f = e.target.closest(".fix-btn");
+  if (f) openFix(f.dataset.id, f.dataset.name);
+});
+function openFix(id, name) {
+  const m = document.getElementById("notice-modal");
+  m.innerHTML = `<div class="nm"><b>${esc(name)}</b><div style="margin:6px 0;color:#555;font-size:14px">어떤 점이 틀렸나요?</div>
+    <select id="fx-kind" style="width:100%;padding:10px;font-size:16px;margin-bottom:8px;background:#fff;color:#222"><option>가게 이름이 틀려요</option><option>위치가 틀려요</option><option>없어진 가게예요</option><option>그 밖에 틀려요</option></select>
+    <input id="fx-note" maxlength="100" placeholder="올바른 이름·내용 (선택)" style="width:100%;padding:10px;font-size:16px;border:1px solid #ccc;border-radius:8px;margin-bottom:10px;background:#fff;color:#222">
+    <div style="display:flex;gap:8px"><button id="nm-x" style="flex:1">닫기</button><button id="fx-send" style="flex:2;background:#1f6feb">보내기</button></div></div>`;
+  m.hidden = false; document.getElementById("nm-x").onclick = () => m.hidden = true;
+  document.getElementById("fx-send").onclick = async () => {
+    const r = await fetch(SUPABASE_URL + "/rest/v1/shop_corrections", { method: "POST", headers: { ...rxHdr, Prefer: "return=minimal" },
+      body: JSON.stringify({ shop_id: id, shop_name: name, kind: document.getElementById("fx-kind").value, note: document.getElementById("fx-note").value.trim() || null }) });
+    m.hidden = true; alert(r.ok ? "알려주셔서 고마워요! 확인 후 고칠게요 🙏" : "보내지 못했어요. 잠시 뒤 다시 해 주세요.");
+  };
 }

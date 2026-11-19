@@ -306,3 +306,11 @@ body.rp-pick #rp-pick { transform: translateY(0); }
 #rp-back { align-self: flex-start; border: 0; background: #eef4ff; color: #1f6feb; border-radius: 14px; padding: 7px 12px; font-size: 14px; font-weight: 700; }
 body.rp-pick #fab, body.rp-form #fab, body.rp-pick #hint, body.rp-form #hint { display: none !important; }
 body.live #rp-bar, body.live #rp-pick { display: none !important; }
+
+.shop-act { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; margin-top: 8px; }
+.rx { display: inline-flex; gap: 6px; }
+.rx-b { border: 1px solid #ccc; background: #fff; color: #333; border-radius: 14px; padding: 5px 10px; font-size: 14px; font-weight: 700; }
+.rx-b i { font-style: normal; }
+.rx-b.mine { background: #1f6feb; color: #fff; border-color: #1f6feb; }
+.rx-b[data-v="-1"].mine { background: #e5484d; border-color: #e5484d; }
+.fix-btn { border: 0; background: transparent; color: #888; font-size: 12px; text-decoration: underline; padding: 5px 2px; }
