@@ -11,7 +11,7 @@
 <meta name="apple-mobile-web-app-title" content="정읍지도">
 <link rel="apple-touch-icon" href="icons/user-apple-180.png">
 <link href="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.css" rel="stylesheet">
-<link rel="stylesheet" href="style.css?v=47">
+<link rel="stylesheet" href="style.css?v=48">
 </head>
 <body>
 <div id="map"></div>
@@ -45,7 +45,10 @@
   <div id="feed" hidden></div>
 </header>
 
+<div id="rp-bar"><button id="rp-x" class="rp-xb" onclick="document.getElementById('rp-cancel').click()">✕</button><div class="rp-slot"></div></div>
+<div id="rp-pick"><div id="rp-place"></div><div class="rp-r"><button id="rp-cancel">취소</button><button id="rp-go">여기로 정했어요 ▶</button></div></div>
 <div id="panel" hidden>
+  <button id="rp-back" type="button">↩ 위치 다시 고르기</button>
   <select id="mode"><option value="report">제보하기</option><option value="shop">가게 추가</option></select>
   <p id="pos"></p>
   <select id="cat"></select>
@@ -69,7 +72,7 @@
 <div id="ch-name" hidden></div>
 <a id="live-exit" href="./">방송 모드 끄기 (Esc)</a>
 <div id="tut" hidden><div id="tut-hole"></div><div id="tut-tip"><div id="tut-txt"></div><div id="tut-row"><span id="tut-n"></span><button id="tut-skip">건너뛰기</button><button id="tut-next">다음</button></div></div></div>
-<div id="ver">v47</div>
+<div id="ver">v48</div>
 <div id="comm" hidden>
   <div class="comm-top"><button id="comm-back" class="chip">← 지도</button><strong>정읍 이야기</strong><button id="comm-refresh" class="chip">🔄</button></div>
   <div id="comm-tabs"><button data-t="news" class="on">💬 소식</button><button data-t="job">💼 알바</button><button data-t="used">🛒 중고</button><button data-t="home">🏠 부동산</button></div>
@@ -83,7 +86,7 @@
 
 <script src="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="data.js?v=47"></script>
-<script src="app.js?v=47"></script>
+<script src="data.js?v=48"></script>
+<script src="app.js?v=48"></script>
 </body>
 </html>

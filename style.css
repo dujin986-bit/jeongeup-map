@@ -287,3 +287,22 @@ body.live #help-btn, body.live #tut { display: none !important; }
 #kk-bar button { border: 0; border-radius: 10px; padding: 9px 12px; font-size: 14px; font-weight: 700; }
 #kk-go { background: #ffe812; color: #3c1e1e; } #kk-x { background: transparent; color: #fff; padding: 9px 6px !important; }
 body.live #kk-bar { display: none !important; }
+
+/* 제보 흐름 (슬라이드) */
+#top { transition: transform .4s cubic-bezier(.4,0,.2,1); }
+body.rp-pick #top, body.rp-form #top { transform: translateY(-130%); }
+#rp-bar { position: fixed; top: 0; left: 0; right: 0; z-index: 6; display: flex; align-items: center; gap: 8px; padding: 8px 10px; background: rgba(255,255,255,.96); box-shadow: 0 1px 6px rgba(0,0,0,.2); transform: translateY(-160%); transition: transform .4s cubic-bezier(.4,0,.2,1); }
+body.has-notice #rp-bar { top: 32px; }
+body.rp-pick #rp-bar { transform: translateY(0); }
+.rp-slot { flex: 1; } .rp-slot #searchbox { max-width: none; width: 100%; }
+.rp-xb { border: 1px solid #ccc; background: #fff; color: #333; border-radius: 50%; width: 40px; height: 40px; font-size: 18px; font-weight: 700; }
+#rp-pick { position: fixed; left: 10px; right: 10px; bottom: 14px; z-index: 8; background: #fff; color: #222; border-radius: 16px; padding: 12px; box-shadow: 0 4px 20px rgba(0,0,0,.35); transform: translateY(160%); transition: transform .4s cubic-bezier(.4,0,.2,1); display: flex; flex-direction: column; gap: 10px; }
+body.rp-pick #rp-pick { transform: translateY(0); }
+#rp-place { font-size: 15px; font-weight: 700; text-align: center; }
+.rp-r { display: flex; gap: 8px; } .rp-r button { flex: 1; border: 0; border-radius: 12px; padding: 14px; font-size: 16px; font-weight: 800; background: #e9ecef; color: #444; }
+.rp-r #rp-go { flex: 2; background: #1f6feb; color: #fff; }
+#panel { transform: translate(-50%, 130%); transition: transform .4s cubic-bezier(.4,0,.2,1); max-height: 78vh; overflow-y: auto; bottom: 10px; }
+#panel.up { transform: translate(-50%, 0); }
+#rp-back { align-self: flex-start; border: 0; background: #eef4ff; color: #1f6feb; border-radius: 14px; padding: 7px 12px; font-size: 14px; font-weight: 700; }
+body.rp-pick #fab, body.rp-form #fab, body.rp-pick #hint, body.rp-form #hint { display: none !important; }
+body.live #rp-bar, body.live #rp-pick { display: none !important; }

@@ -466,17 +466,41 @@ function setPos(lngLat) {
   posEl.textContent = pendingPlace ? `📍 선택한 장소: ${pendingPlace.name}` :
     ((pickMode ? "👆 지도를 움직여 📍 핀 끝을 일어난 장소에 맞추세요" : "위치") + `: ${pending[1].toFixed(5)}, ${pending[0].toFixed(5)}`);
   posEl.style.fontWeight = pendingPlace ? "700" : "";
+  const rpl = document.getElementById("rp-place"); if (rpl) rpl.textContent = pendingPlace ? `📍 ${pendingPlace.name}` : "👆 지도를 움직여 📍 핀 끝을 일어난 장소에 맞추세요";
   const nm = document.getElementById("ch-name");
   if (nm) { nm.textContent = pendingPlace ? pendingPlace.name : ""; nm.hidden = !(pickMode && pendingPlace); }
 }
+// ---- 제보 흐름: ① 헤더가 위로 올라가고 지도 전체 화면에서 핀 맞추기 → ② 입력 창이 아래에서 올라옴 ----
+let rpStep = "none";                                   // none | pick | form
+const sbox = document.getElementById("searchbox"), sbHome = document.createComment("sb");
+sbox.before(sbHome);
+const rpBar = document.getElementById("rp-bar"), rpPick = document.getElementById("rp-pick");
+function rpSet(step) {
+  rpStep = step;
+  document.body.classList.toggle("rp-pick", step === "pick");
+  document.body.classList.toggle("rp-form", step === "form");
+  if (step === "pick") rpBar.querySelector(".rp-slot").appendChild(sbox);     // 검색칸만 위에 얇게 남김
+  else if (sbox.parentNode !== sbHome.parentNode) sbHome.after(sbox);
+}
+function showPanel(on) {
+  if (on) { panel.hidden = false; panel.getBoundingClientRect(); panel.classList.add("up"); }
+  else { panel.classList.remove("up"); setTimeout(() => { if (!panel.classList.contains("up")) panel.hidden = true; }, 350); }
+}
 function openPanel(lngLat, pick) {
   if (editMode) return;
-  pickMode = !!pick; crosshair.hidden = !pickMode;
   setPos(lngLat);
-  panel.hidden = false;
+  if (pick) { pickMode = true; crosshair.hidden = false; rpSet("pick"); setPos(map.getCenter()); }
+  else { pickMode = false; crosshair.hidden = true; rpSet("form"); showPanel(true); }   // 길게 누른 경우: 바로 입력
 }
-function closePanel() { if (typeof clearPhoto === "function") clearPhoto(); panel.hidden = true; pickMode = false; crosshair.hidden = true; const nm = document.getElementById("ch-name"); if (nm) nm.hidden = true; }
-map.on("move", () => { if (pickMode && !panel.hidden) setPos(map.getCenter()); });
+function closePanel() {
+  if (typeof clearPhoto === "function") clearPhoto();
+  showPanel(false); rpSet("none"); pickMode = false; crosshair.hidden = true;
+  const nm = document.getElementById("ch-name"); if (nm) nm.hidden = true;
+}
+document.getElementById("rp-go").onclick = () => { crosshair.hidden = true; const nm = document.getElementById("ch-name"); if (nm) nm.hidden = true; rpSet("form"); showPanel(true); };
+document.getElementById("rp-cancel").onclick = closePanel;
+document.getElementById("rp-back").onclick = () => { showPanel(false); pickMode = true; crosshair.hidden = false; rpSet("pick"); setPos(map.getCenter()); };
+map.on("move", () => { if (pickMode && rpStep === "pick") setPos(map.getCenter()); });
 document.getElementById("fab").onclick = () => openPanel(map.getCenter(), true);
 map.on("contextmenu", e => openPanel(e.lngLat));            // PC: 우클릭
 let pressTimer;                                              // 모바일: 길게 누르기
