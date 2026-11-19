@@ -68,6 +68,7 @@
     <div class="tabs" id="tabs"></div>
   </header>
   <main id="list"></main>
+  <section id="extra" hidden style="padding:12px"></section>
   <section id="mapedit" hidden>
     <div id="amap"></div>
     <div id="mtools"><button id="mAdd">＋ 새 가게</button><button id="mHid">숨긴 가게 보기</button></div>
@@ -82,7 +83,7 @@
 <script src="data.js"></script>
 <script>
 const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
-const TABS = [["pending", "대기"], ["approved", "승인됨"], ["hidden", "숨김"], ["map", "지도 수정 ↗"]];
+const TABS = [["pending", "대기"], ["approved", "승인됨"], ["hidden", "숨김"], ["notice", "공지"], ["log", "편집기록"], ["map", "지도 수정 ↗"]];
 let tab = "pending", rows = [];
 const $ = id => document.getElementById(id);
 const esc = s => String(s == null ? "" : s).replace(/[&<>"']/g, c => ({ "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;" }[c]));
@@ -100,13 +101,62 @@ $("loginBtn").onclick = async () => {
 };
 $("logout").onclick = async () => { await sb.auth.signOut(); showLogin(); };
 
+
+const sleep = ms => new Promise(r => setTimeout(r, ms));
+async function drawNotice() {
+  const box = $("extra");
+  if (!box.dataset.n) {
+    box.dataset.n = "1";
+    box.innerHTML = `<div class="card"><b>새 공지</b><textarea id="nBody" maxlength="120" placeholder="공지 내용 (한 줄로 짧게)" style="width:100%;height:70px;margin:8px 0;padding:8px;font-size:16px;border:1px solid #ccc;border-radius:8px"></textarea>
+      <div style="display:flex;gap:8px;margin-bottom:8px"><select id="nLevel" style="flex:1;padding:10px;font-size:16px"><option value="normal">📢 일반 (파랑)</option><option value="urgent">🚨 긴급 (빨강)</option></select>
+      <select id="nHours" style="flex:1;padding:10px;font-size:16px"><option value="6">6시간</option><option value="24" selected>하루</option><option value="72">3일</option><option value="168">7일</option></select></div>
+      <button class="act ok" id="nAdd" style="width:100%">등록</button></div><div id="nList"></div>`;
+    $("nAdd").onclick = async () => {
+      const body = $("nBody").value.trim(); if (!body) { alert("내용을 써 주세요"); return; }
+      const exp = new Date(Date.now() + Number($("nHours").value) * 3600000).toISOString();
+      const { error } = await sb.from("notices").insert({ body, level: $("nLevel").value, expires_at: exp });
+      if (error) { alert("등록 실패: " + error.message); return; }
+      $("nBody").value = ""; drawNotice();
+    };
+  }
+  const { data, error } = await sb.from("notices").select("*").order("created_at", { ascending: false }).limit(30);
+  const L = $("nList");
+  if (error) { L.innerHTML = '<div class="empty">불러오기 실패: ' + esc(error.message) + '<br>(공지 SQL을 실행했는지 확인하세요)</div>'; return; }
+  L.innerHTML = "";
+  for (const n of data) {
+    const live = new Date(n.expires_at) > new Date();
+    const el = document.createElement("div"); el.className = "card"; el.style.opacity = live ? 1 : .5;
+    el.innerHTML = `<div>${n.level === "urgent" ? "🚨 긴급" : "📢 일반"} · ${live ? "노출중 ~" : "만료 "}${new Date(n.expires_at).toLocaleString("ko-KR")}</div><div style="margin:6px 0">${esc(n.body)}</div><button class="act del" style="width:100%">삭제</button>`;
+    el.querySelector("button").onclick = async () => { if (!confirm("삭제할까요?")) return; await sb.from("notices").delete().eq("id", n.id); drawNotice(); };
+    L.appendChild(el);
+  }
+}
+async function drawLog() {
+  const box = $("extra"); delete box.dataset.n;
+  box.innerHTML = '<div class="empty">불러오는 중…</div>';
+  const { data, error } = await sb.from("shop_edit_log").select("*").order("logged_at", { ascending: false }).limit(60);
+  if (error) { box.innerHTML = '<div class="empty">불러오기 실패: ' + esc(error.message) + '<br>(SQL을 실행했는지 확인하세요)</div>'; return; }
+  if (!data.length) { box.innerHTML = '<div class="empty">아직 기록이 없어요 (가게를 고치면 이전 모습이 여기 쌓여요)</div>'; return; }
+  box.innerHTML = "";
+  for (const r of data) {
+    const el = document.createElement("div"); el.className = "card";
+    el.innerHTML = `<div style="font-size:12px;color:#666">${new Date(r.logged_at).toLocaleString("ko-KR")} · ${r.action === "DELETE" ? "삭제됨" : "수정됨"}</div><div style="margin:4px 0"><b>고치기 전:</b> ${esc(r.name)} (${esc(r.category || "")})${r.hidden ? " · 숨김" : ""}</div><button class="act ok" style="width:100%">이 상태로 되돌리기</button>`;
+    el.querySelector("button").onclick = async () => {
+      if (!confirm("이 모습으로 되돌릴까요?")) return;
+      const { error: e2 } = await sb.from("shop_edits").upsert({ id: r.shop_id, name: r.name, category: r.category, lon: r.lon, lat: r.lat, hidden: !!r.hidden, is_new: !!r.is_new, updated_at: new Date().toISOString() });
+      if (e2) alert("실패: " + e2.message); else { alert("되돌렸어요"); drawLog(); }
+    };
+    box.appendChild(el);
+  }
+}
+
 function start() {
   $("login").hidden = true; $("app").hidden = false;
   $("tabs").innerHTML = "";
   for (const [k, label] of TABS) {
     const b = document.createElement("button");
     b.className = "tab" + (k === tab ? " on" : ""); b.dataset.k = k; b.textContent = label;
-    b.onclick = () => { if (k === "map") { location.href = "./?edit=1"; return; } tab = k; document.querySelectorAll(".tab").forEach(t => t.classList.toggle("on", t.dataset.k === k)); draw(); if (k === "map") openMapEdit(); };
+    b.onclick = () => { if (k === "map") { location.href = "./?edit=1"; return; } tab = k; document.querySelectorAll(".tab").forEach(t => t.classList.toggle("on", t.dataset.k === k)); draw(); };
     $("tabs").appendChild(b);
   }
   load();
@@ -122,9 +172,11 @@ async function load() {
 
 function draw() {
   const counts = {}; rows.forEach(r => counts[r.status] = (counts[r.status] || 0) + 1);
-  document.querySelectorAll(".tab").forEach(t => { const k = t.dataset.k; t.textContent = TABS.find(x => x[0] === k)[1] + (k === "map" ? "" : " " + (counts[k] || 0)); });
-  $("list").hidden = tab === "map"; $("mapedit").hidden = tab !== "map";
-  if (tab === "map") return;
+  document.querySelectorAll(".tab").forEach(t => { const k = t.dataset.k; t.textContent = TABS.find(x => x[0] === k)[1] + (["pending","approved","hidden"].includes(k) ? " " + (counts[k] || 0) : ""); });
+  const ext = tab === "notice" || tab === "log";
+  $("list").hidden = ext; $("mapedit").hidden = true; $("extra").hidden = !ext;
+  if (tab === "notice") { drawNotice(); return; }
+  if (tab === "log") { drawLog(); return; }
   const list = rows.filter(r => r.status === tab);
   const box = $("list");
   if (!list.length) { box.innerHTML = '<div class="empty">없어요</div>'; return; }

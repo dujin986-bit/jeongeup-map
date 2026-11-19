@@ -222,3 +222,22 @@ body.live #edit-btn, body.live #ed-bar, body.live #ed-sheet { display: none !imp
 #ed-bar button { color: #222 !important; background: #fff !important; border: 2px solid #1f6feb !important; opacity: 1 !important; font-size: 15px; }
 #ed-bar button.on { color: #fff !important; background: #1f6feb !important; }
 #ed-bar #ed-end { background: #e5484d !important; border-color: #e5484d !important; color: #fff !important; }
+
+/* 헤더 정리 */
+.chip { white-space: nowrap; }
+#filters[hidden] { display: none; }
+#filters { width: 100%; order: 10; }
+/* 공지 띠 */
+#ticker { position: fixed; top: 0; left: 0; right: 0; height: 32px; z-index: 7; overflow: hidden; background: #1f6feb; color: #fff; display: flex; align-items: center; cursor: pointer; box-shadow: 0 1px 6px rgba(0,0,0,.3); }
+#ticker[hidden] { display: none; }
+#ticker.urgent { background: #d9232d; }
+#tk-in { white-space: nowrap; font-size: 15px; font-weight: 700; padding-left: 100%; animation: tkmove 20s linear infinite; will-change: transform; }
+#ticker:active #tk-in { animation-play-state: paused; }
+@keyframes tkmove { from { transform: translateX(0); } to { transform: translateX(-100%); } }
+body.has-notice #top { top: 32px; }
+#notice-modal { position: fixed; inset: 0; z-index: 20; background: rgba(0,0,0,.55); display: flex; align-items: center; justify-content: center; padding: 20px; }
+#notice-modal[hidden] { display: none; }
+#notice-modal .nm { background: #fff; color: #222; border-radius: 14px; padding: 16px; max-width: 420px; width: 100%; max-height: 70vh; overflow-y: auto; }
+#notice-modal .nm p { margin: 0 0 10px; padding: 8px 10px; border-left: 5px solid #1f6feb; background: #eef4ff; border-radius: 4px; font-size: 15px; }
+#notice-modal .nm p.u { border-color: #d9232d; background: #ffeeee; }
+#notice-modal .nm button { width: 100%; padding: 12px; border: 0; border-radius: 10px; background: #868e96; color: #fff; font-size: 15px; font-weight: 700; }

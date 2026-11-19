@@ -1119,7 +1119,7 @@ document.addEventListener("click", e => { if (!e.target.closest("#searchbox")) r
 // ===== 새로고침 버튼 + 앱으로 돌아올 때 자동 갱신 =====
 async function manualRefresh(btn) {
   const old = btn.textContent; btn.disabled = true; btn.textContent = "⏳";
-  const [ok] = await Promise.all([fetchReports(), fetchShopEdits()]);
+  const [ok] = await Promise.all([fetchReports(), fetchShopEdits(), fetchNotices()]);
   btn.textContent = ok ? "✓ 방금" : "⚠ 실패";
   setTimeout(() => { btn.textContent = old; btn.disabled = false; }, 1500);
 }
@@ -1370,3 +1370,36 @@ function setEditMode(on) {
     if (/[?&]edit=1/.test(location.search)) { const go = () => setEditMode(true); if (map.getSource("shops")) go(); else map.once("idle", go); }
   } catch (e) {}
 })();
+
+
+// ===== 헤더 필터 접기 =====
+(function () {
+  const b = document.getElementById("filter-btn"), f = document.getElementById("filters");
+  b.onclick = () => { f.hidden = !f.hidden; b.textContent = f.hidden ? "🎛 필터 ▾" : "🎛 필터 ▴"; };
+})();
+
+// ===== 공지사항 띠 (긴급=빨강, 일반=파랑 / 관리자 "공지" 탭에서 등록) =====
+let NOTICES = [];
+async function fetchNotices() {
+  try {
+    const now = new Date().toISOString();
+    const res = await fetch(SUPABASE_URL + "/rest/v1/notices?select=*&expires_at=gt." + encodeURIComponent(now) + "&order=created_at.desc", { headers: { apikey: SUPABASE_KEY, Authorization: "Bearer " + SUPABASE_KEY } });
+    if (!res.ok) return false;                       // 표가 아직 없으면 조용히 무시
+    NOTICES = await res.json(); renderTicker(); return true;
+  } catch (e) { return false; }
+}
+function renderTicker() {
+  const t = document.getElementById("ticker"), inn = document.getElementById("tk-in");
+  const list = NOTICES.slice().sort((x, y) => (y.level === "urgent") - (x.level === "urgent"));
+  if (!list.length) { t.hidden = true; document.body.classList.remove("has-notice"); return; }
+  const txt = list.map(n => (n.level === "urgent" ? "🚨 긴급  " : "📢 ") + n.body).join("      ·      ");
+  if (inn.textContent !== txt) { inn.textContent = txt; inn.style.animationDuration = Math.max(14, txt.length * 0.3) + "s"; }
+  t.classList.toggle("urgent", list.some(n => n.level === "urgent"));
+  t.hidden = false; document.body.classList.add("has-notice");
+}
+document.getElementById("ticker").onclick = () => {
+  const m = document.getElementById("notice-modal");
+  m.innerHTML = '<div class="nm">' + NOTICES.slice().sort((x, y) => (y.level === "urgent") - (x.level === "urgent")).map(n => `<p class="${n.level === "urgent" ? "u" : ""}">${n.level === "urgent" ? "🚨 " : "📢 "}${esc(n.body)}</p>`).join("") + '<button id="nm-x">닫기</button></div>';
+  m.hidden = false; document.getElementById("nm-x").onclick = () => m.hidden = true;
+};
+fetchNotices(); setInterval(fetchNotices, 60000);
