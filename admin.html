@@ -109,11 +109,11 @@ async function drawNotice() {
     box.dataset.n = "1";
     box.innerHTML = `<div class="card"><b>새 공지</b><textarea id="nBody" maxlength="120" placeholder="공지 내용 (한 줄로 짧게)" style="width:100%;height:70px;margin:8px 0;padding:8px;font-size:16px;border:1px solid #ccc;border-radius:8px"></textarea>
       <div style="display:flex;gap:8px;margin-bottom:8px"><select id="nLevel" style="flex:1;padding:10px;font-size:16px"><option value="normal">📢 일반 (파랑)</option><option value="urgent">🚨 긴급 (빨강)</option></select>
-      <select id="nHours" style="flex:1;padding:10px;font-size:16px"><option value="6">6시간</option><option value="24" selected>하루</option><option value="72">3일</option><option value="168">7일</option></select></div>
+      <select id="nHours" style="flex:1;padding:10px;font-size:16px">${Array.from({length:24},(_,i)=>{const m=(i+1)*30,h=Math.floor(m/60),mm=m%60;return `<option value="${m}"${m===60?" selected":""}>${(h?h+"시간":"")+(h&&mm?" ":"")+(mm?mm+"분":"")}</option>`}).join("")}</select></div>
       <button class="act ok" id="nAdd" style="width:100%">등록</button></div><div id="nList"></div>`;
     $("nAdd").onclick = async () => {
       const body = $("nBody").value.trim(); if (!body) { alert("내용을 써 주세요"); return; }
-      const exp = new Date(Date.now() + Number($("nHours").value) * 3600000).toISOString();
+      const exp = new Date(Date.now() + Number($("nHours").value) * 60000).toISOString();
       const { error } = await sb.from("notices").insert({ body, level: $("nLevel").value, expires_at: exp });
       if (error) { alert("등록 실패: " + error.message); return; }
       $("nBody").value = ""; drawNotice();
