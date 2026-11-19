@@ -808,3 +808,24 @@ qEl.addEventListener("input", doSearch);
 qEl.addEventListener("focus", doSearch);
 qEl.addEventListener("keydown", e => { if (e.key === "Enter") { const r = resEl.querySelector(".res-row"); if (r) r.click(); } });
 document.addEventListener("click", e => { if (!e.target.closest("#searchbox")) resEl.hidden = true; });
+
+// ===== PWA: 서비스워커 + 홈 화면 추가 안내 =====
+(function () {
+  if (IS_LOCAL) return;
+  if ("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js").catch(() => {});
+  if (LIVE) return;
+  const ua = navigator.userAgent;
+  const standalone = matchMedia("(display-mode: standalone)").matches || navigator.standalone;
+  if (standalone || /KAKAOTALK|Instagram|FBAN|FBAV|NAVER\(inapp/i.test(ua)) return;
+  try { if (localStorage.getItem("pwa-dismiss")) return; } catch (e) {}
+  const bar = document.createElement("div");
+  bar.style.cssText = "position:fixed;left:8px;right:8px;bottom:8px;z-index:50;background:#1f6feb;color:#fff;padding:10px 12px;border-radius:10px;font-size:13px;display:none;align-items:center;gap:8px;box-shadow:0 2px 10px rgba(0,0,0,.3)";
+  bar.innerHTML = '<span id="pwa-msg" style="flex:1"></span><button id="pwa-go" style="display:none;background:#fff;color:#1f6feb;border:0;border-radius:6px;padding:6px 10px;font-weight:700">설치</button><button id="pwa-x" style="background:none;border:0;color:#fff;font-size:18px">✕</button>';
+  document.body.appendChild(bar);
+  const msg = bar.querySelector("#pwa-msg"), go = bar.querySelector("#pwa-go");
+  bar.querySelector("#pwa-x").onclick = () => { bar.style.display = "none"; try { localStorage.setItem("pwa-dismiss", "1"); } catch (e) {} };
+  let ev = null;
+  addEventListener("beforeinstallprompt", e => { e.preventDefault(); ev = e; msg.textContent = "앱처럼 홈 화면에 추가할 수 있어요"; go.style.display = ""; bar.style.display = "flex"; });
+  go.onclick = () => { if (ev) { ev.prompt(); bar.style.display = "none"; } };
+  if (/iPhone|iPad/.test(ua)) { msg.textContent = "공유 버튼(□↑) → '홈 화면에 추가'를 누르면 앱처럼 쓸 수 있어요"; bar.style.display = "flex"; }
+})();
