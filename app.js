@@ -600,15 +600,15 @@ setInterval(fetchReports, 30000);   // 실시간 알림이 안 올 때를 위한
 
 // ---------- 지형 + 색감 ----------
 // ---------- 건물 낮/밤 + 아파트 창문 줄무늬 ----------
-const APT_PATTERN_ZOOM = 17;   // 창문 패턴은 가까이서만 (성능)
+const APT_PATTERN_ZOOM = 16.5;   // 창문 패턴은 가까이서만 (성능)
 const APT_WALL = ["#f2e3c6", "#cfe0f1", "#e9d2d2", "#d5e6d0", "#e0dbee"];
 const BLD_DAY = ["interpolate", ["linear"], ["coalesce", ["get", "height"], 6],
   0, "#eadcc0", 8, "#e2c29e", 15, "#d4a283", 25, "#c8bdb2", 40, "#c4cad2", 70, "#b3bcc9"];   // 저층=베이지·테라코타, 고층=쿨실버
 const BLD_NIGHT = ["interpolate", ["linear"], ["coalesce", ["get", "height"], 6],
-  0, "#50565e", 10, "#4e545c", 25, "#495159", 45, "#444d58", 70, "#404a56"];   // 딥 슬레이트·차콜
+  0, "#5c5659", 8, "#59545a", 15, "#565359", 25, "#4f5664", 40, "#485a74", 70, "#42597c"];   // 저층=따뜻한 차콜, 고층=푸른 슬레이트   // 딥 슬레이트·차콜
 const APT_FAR_DAY = ["match", ["%", ["floor", ["/", ["to-number", ["coalesce", ["get", "id"], "0"], 0], 1000]], 5],
   0, APT_WALL[0], 1, APT_WALL[1], 2, APT_WALL[2], 3, APT_WALL[3], APT_WALL[4]];
-const APT_FAR_NIGHT = "#58616b";
+const APT_FAR_NIGHT = "#4a5c7a";
 const BLD_NIGHT_DS = ["interpolate", ["linear"], ["coalesce", ["get", "height"], 6],
   0, "#2e334d", 10, "#2b3050", 25, "#282d52", 45, "#252a54", 70, "#222758"];
 function hex2rgb(h) { const n = parseInt(h.slice(1), 16); return [n >> 16 & 255, n >> 8 & 255, n & 255]; }
@@ -730,7 +730,7 @@ function setBuildingNight(on) {
   if (on) ensureNightLights();
   const shopsOn = !(document.getElementById("shop-chip") && !document.getElementById("shop-chip").classList.contains("on"));   // 상가 필터가 꺼져 있으면 후광도 숨김
   for (const id of ["night-road-glow", "night-road-core", "shops-glow"]) { try { if (map.getLayer(id)) map.setLayoutProperty(id, "visibility", on && (id !== "shops-glow" || shopsOn) ? "visible" : "none"); } catch (e) {} }
-  try { map.setLight(on ? { anchor: "viewport", position: [1.4, 210, 45], intensity: 0.4, color: "#c4cfe2" } : { anchor: "viewport", position: [1.4, 210, 45], intensity: 0.55, color: "#fff4e0" }); } catch (e) {}
+  try { map.setLight(on ? { anchor: "viewport", position: [1.4, 210, 62], intensity: 0.5, color: "#cdd8ee" } : { anchor: "viewport", position: [1.4, 210, 45], intensity: 0.55, color: "#fff4e0" }); } catch (e) {}
   for (const l of map.getStyle().layers) {
     try {
       if (/^local-.*-3d$/.test(l.id)) map.setPaintProperty(l.id, "fill-extrusion-color", on ? (DARKSTYLE ? BLD_NIGHT_DS : BLD_NIGHT) : BLD_DAY);
@@ -919,16 +919,16 @@ function applyWeather(next) {
 }
 
 let wxMoving = false;
-map.on("movestart", () => { wxMoving = true; try { wxCanvas.style.transition = "opacity .15s"; wxCanvas.style.opacity = "0"; } catch (e) {} });
-map.on("moveend", () => { wxMoving = false; try { wxCanvas.style.transition = "opacity .5s"; wxCanvas.style.opacity = "1"; } catch (e) {} });
+map.on("movestart", () => { wxMoving = true; });
+map.on("moveend", () => { wxMoving = false; });
 function wxDraw(t) {
-  if (wxMoving) { requestAnimationFrame(wxDraw); return; }   // 지도를 움직이는 동안 날씨 효과는 쉼 (성능)
   wxCtx.clearRect(0, 0, wxCanvas.width, wxCanvas.height);
-  const w = wxCanvas.width, h = wxCanvas.height;
+  const w = wxCanvas.width, h = wxCanvas.height, step = wxMoving ? 2 : 1;   // 지도를 움직이는 동안은 입자 절반만 (성능)
   if (wx.kind === "rain" || wx.kind === "storm") {
     wxCtx.strokeStyle = wx.night ? "rgba(190,205,235,0.55)" : "rgba(120,140,170,0.6)";
     wxCtx.lineWidth = 1.2; wxCtx.beginPath();
-    for (const p of wxParticles) {
+    for (let i = 0; i < wxParticles.length; i += step) {
+      const p = wxParticles[i];
       const len = 12 + 16 * p.v, sp = 14 + 14 * p.v;
       wxCtx.moveTo(p.x, p.y); wxCtx.lineTo(p.x - 3, p.y + len);
       p.y += sp; p.x -= 1.2;
@@ -937,7 +937,8 @@ function wxDraw(t) {
     wxCtx.stroke();
   } else if (wx.kind === "snow") {
     wxCtx.fillStyle = "rgba(255,255,255,0.85)";
-    for (const p of wxParticles) {
+    for (let i = 0; i < wxParticles.length; i += step) {
+      const p = wxParticles[i];
       const r = 1.5 + 2.5 * p.v;
       wxCtx.beginPath(); wxCtx.arc(p.x + Math.sin(t / 900 + p.ph) * 12, p.y, r, 0, 6.28); wxCtx.fill();
       p.y += 1.2 + 1.8 * p.v;
