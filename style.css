@@ -385,3 +385,15 @@ body.searching .res-empty { font-size: 17px; padding: 16px; }
 #comm .chip:active, #comm .rx-b:active, #comm-tabs button:active { transform: scale(.97); }
 .soon { color: #e6e8ec; } .soon-d { color: #9aa1ad; }
 .soon-b { background: rgba(245,183,49,.12); color: #f5b731; }
+
+/* ===== v71: 관공서 배지 ===== */
+.office-pin { display: flex; align-items: center; gap: 6px; background: #14306b; color: #fff; border: 2px solid #fff; border-radius: 22px; padding: 6px 12px 6px 8px; box-shadow: 0 2px 8px rgba(0,0,0,.45); cursor: pointer; z-index: 5; max-width: 220px; }
+.office-pin::after { content: ""; position: absolute; left: 50%; bottom: -9px; transform: translateX(-50%); border: 6px solid transparent; border-top-color: #14306b; border-bottom: 0; }
+.op-ic { font-size: 18px; line-height: 1; }
+.op-nm { font-size: 16px; font-weight: 800; letter-spacing: -.3px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.office-popup .maplibregl-popup-content { min-width: 230px; padding: 14px 16px; border-top: 5px solid #14306b; }
+.op-type { display: inline-block; background: #14306b; color: #fff; font-size: 12px; font-weight: 700; border-radius: 10px; padding: 2px 9px; }
+.op-title { font-size: 20px; font-weight: 800; margin: 6px 0 4px; color: #14306b; }
+.op-addr { font-size: 15px; color: #333; margin-bottom: 6px; }
+.op-tel { display: block; text-align: center; background: #14306b; color: #fff !important; font-size: 17px; font-weight: 800; border-radius: 10px; padding: 10px; margin: 6px 0; text-decoration: none; }
+.op-note { font-size: 12px; color: #8a5a00; background: #fff3d6; border-radius: 8px; padding: 6px 8px; margin: 6px 0; }

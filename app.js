@@ -54,6 +54,9 @@ for (const [key, c] of Object.entries(CATEGORIES)) {
   filtersEl.appendChild(b);
   catSel.add(new Option(c.label, key));
 }
+let showOffices = true;
+{ const ob = document.createElement("button"); ob.className = "chip on"; ob.textContent = "🏛 관공서"; ob.style.flex = "none";
+  ob.onclick = () => { showOffices = !showOffices; ob.classList.toggle("on"); render(); }; filtersEl.insertBefore(ob, filtersEl.firstChild); }
 if (!IS_LOCAL) { catSel.add(new Option("🛠 가게 정보 수정", "__fix")); catSel.add(new Option("➕ 없는 가게 알려주기", "__newshop")); }
 
 // ---------- 마커 ----------
@@ -72,6 +75,18 @@ function addMarker(item, isLandmark) {
   const m = new maplibregl.Marker({ element: el }).setLngLat(item.coord).setPopup(popup).addTo(map);
   m._item = item; markers.push(m);
 }
+function addOffice(o) {                    // 관공서: 큰 남색 배지 + 굵은 이름
+  const el = document.createElement("div");
+  el.className = "office-pin";
+  el.innerHTML = `<span class="op-ic">🏛</span><span class="op-nm">${esc(o.name)}</span>`;
+  const popup = new maplibregl.Popup({ offset: 24, className: "office-popup" }).setHTML(
+    `<div class="op-type">${esc(o.type)}</div><div class="op-title">${esc(o.name)}</div><div class="op-addr">📍 ${esc(o.addr)}</div>` +
+    (o.tel ? `<a class="op-tel" href="tel:${esc(o.tel)}">📞 ${esc(o.tel)}</a>` : "") +
+    (o.approx ? `<div class="op-note">위치가 대략적이에요. 정확하지 않으면 🛠 정보 수정으로 알려주세요.</div>` : "") +
+    navLinks(o.name, o.coord[0], o.coord[1]));
+  const m = new maplibregl.Marker({ element: el, anchor: "bottom" }).setLngLat(o.coord).setPopup(popup).addTo(map);
+  m._item = { name: o.name, coord: o.coord }; markers.push(m);
+}
 function navLinks(name, lon, lat) {         // 길찾기/지도 링크 (카카오·네이버, 키 필요 없음)
   const nm = String(name || "").replace(/[,]/g, " ");
   return `<div class="nav-links"><a href="https://map.kakao.com/link/to/${encodeURIComponent(nm)},${lat},${lon}" target="_blank" rel="noopener">🚗 길찾기</a>` +
@@ -82,6 +97,7 @@ function esc(s) { return String(s).replace(/[&<>"']/g, ch => ({ "&":"&amp;","<":
 function render() {
   markers.forEach(m => m.remove()); markers = [];
   LANDMARKS.filter(l => activeCats.has(l.cat)).forEach(l => addMarker(l, true));
+  if (showOffices) OFFICES.forEach(addOffice);
   reports.filter(r => activeCats.has(r.cat)).forEach(r => addMarker(r, false));
   renderFeed();
   if (typeof renderComm === "function" && commEl && !commEl.hidden) renderComm();
@@ -462,6 +478,7 @@ function nearestPlace(lng, lat) {
   for (const p of PLACES_IDX) take(p.name, p.coord, 40, "장소");
   for (const n of NAMED) take(n.name, n.coord, 60, "건물");
   for (const l of LANDMARKS) take(l.name, l.coord, 60, "명소");
+  for (const o of OFFICES) take(o.name, o.coord, 60, "관공서");
   return best;
 }
 function setPos(lngLat) {
@@ -1114,6 +1131,7 @@ function searchIndex() {
   for (const p of PLACES_IDX) out.push({ name: p.name, sub: p.address ? p.address.replace("전북특별자치도 ", "") : "", addr: p.address || "", coord: p.coord, kind: "장소" });
   for (const n of NAMED) out.push({ name: n.name, sub: "건물", addr: "", coord: n.coord, kind: "건물" });
   for (const l of LANDMARKS) out.push({ name: l.name, sub: "명소", addr: "", coord: l.coord, kind: "명소" });
+  for (const o of OFFICES) out.push({ name: o.name, sub: "관공서 · " + o.addr, addr: o.addr, coord: o.coord, kind: "관공서" });
   return out;
 }
 // ---------- 도로명 주소 검색 (상가 주소의 번호로 위치를 추정) ----------

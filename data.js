@@ -16,9 +16,15 @@ const EXPIRE_HOURS = { traffic: 6, wait: 3, incident: 24, event: 72, info: 72 };
 
 // 큰 틀: 주요 거점 (이후 구역별로 채워나갈 곳)
 const LANDMARKS = [
-  { name: "정읍시청",   coord: [126.8560, 35.5700], cat: "info",  desc: "시내 중심" },
-  { name: "정읍역",     coord: [126.8447, 35.5766], cat: "info",  desc: "KTX/SRT 정차역 (좌표 보정 필요)" },
   { name: "내장산국립공원", coord: [126.8886, 35.4896], cat: "event", desc: "단풍 명소. 성수기 도로 정체 구간 (좌표 보정 필요)" },
+];
+
+// 관공서 (지도에 크게 표시). approx:true 는 위치가 대략적이라는 뜻 → 팝업에 안내. 전화번호는 확인된 것만 넣을 것
+const OFFICES = [
+  { name: "정읍시청",       type: "시청",   coord: [126.8560, 35.5700], addr: "정읍시 시내 중심", approx: true },
+  { name: "정읍시보건소",   type: "보건소", coord: [126.8539, 35.5773], addr: "정읍시 수성1로 61", approx: true },
+  { name: "정읍역",         type: "역",     coord: [126.8424, 35.5755], addr: "정읍시 연지동 343-414", approx: false },
+  { name: "내장산동 주민센터 내장출장소", type: "주민센터", coord: [126.89089, 35.53468], addr: "정읍시 대석1길 13-16", approx: false },
 ];
 
 // 구역 로드맵 (진행 상황 표시용)
