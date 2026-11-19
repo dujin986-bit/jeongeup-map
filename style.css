@@ -254,3 +254,11 @@ body.has-notice #top { top: 32px; }
 #tut-row button { border: 0; border-radius: 10px; padding: 10px 16px; font-size: 15px; font-weight: 700; }
 #tut-skip { background: #e9ecef; color: #555; } #tut-next { background: #1f6feb; color: #fff; }
 body.live #help-btn, body.live #tut { display: none !important; }
+
+#photo-row { display: flex; flex-direction: column; gap: 6px; }
+#photo-row[hidden] { display: none; }
+#photo-btn { padding: 10px; font-size: 15px; font-weight: 700; border: 1px dashed #1f6feb; background: #eef4ff; color: #1f6feb; border-radius: 8px; }
+#photo-prev { max-width: 100%; max-height: 140px; object-fit: cover; border-radius: 8px; }
+#photo-row small { color: #888; font-size: 12px; }
+.pop-photo { display: block; width: 100%; max-width: 220px; max-height: 160px; object-fit: cover; border-radius: 8px; margin-top: 6px; }
+.comm-photo { display: block; width: 100%; max-height: 220px; object-fit: cover; border-radius: 10px; margin: 6px 0; }

@@ -64,7 +64,7 @@ function addMarker(item, isLandmark) {
   if (isLandmark) el.style.outline = "2px solid #fff";
   const when = item.ts ? `<br><small>${timeAgo(item.ts)} · ${new Date(item.ts).toLocaleString("ko-KR")}</small>` : "";
   const popup = new maplibregl.Popup({ offset: 20 }).setHTML(
-    `<strong>${esc(item.name || item.title)}</strong> <small>(${c.label})</small><br>${esc(item.desc || "")}${when}` + navLinks(item.name || item.title, item.coord[0], item.coord[1])
+    `<strong>${esc(item.name || item.title)}</strong> <small>(${c.label})</small><br>${esc(item.desc || "")}${when}` + (item.photo ? `<a href="${esc(item.photo)}" target="_blank" rel="noopener"><img class="pop-photo" src="${esc(item.photo)}" loading="lazy"></a>` : "") + navLinks(item.name || item.title, item.coord[0], item.coord[1])
   );
   el.addEventListener("click", () => playFx(item.cat, el));      // 클릭 연출 (1~2초)
   const m = new maplibregl.Marker({ element: el }).setLngLat(item.coord).setPopup(popup).addTo(map);
@@ -118,7 +118,7 @@ function renderFeed() {
     const c = CATEGORIES[r.cat];
     const row = document.createElement("div");
     row.className = "feed-row";
-    row.innerHTML = `<span class="feed-dot" style="background:${c.color}"></span><div><div class="feed-title">${esc(r.title)}</div>` +
+    row.innerHTML = `<span class="feed-dot" style="background:${c.color}"></span><div><div class="feed-title">${r.photo ? "📷 " : ""}${esc(r.title)}</div>` +
       `<div class="feed-meta">${c.label} · ${timeAgo(r.ts)}${r.desc ? " · " + esc(r.desc) : ""}</div></div>`;
     row.onclick = () => {
       if (!LIVE) box.hidden = true;
@@ -475,7 +475,7 @@ function openPanel(lngLat, pick) {
   setPos(lngLat);
   panel.hidden = false;
 }
-function closePanel() { panel.hidden = true; pickMode = false; crosshair.hidden = true; const nm = document.getElementById("ch-name"); if (nm) nm.hidden = true; }
+function closePanel() { if (typeof clearPhoto === "function") clearPhoto(); panel.hidden = true; pickMode = false; crosshair.hidden = true; const nm = document.getElementById("ch-name"); if (nm) nm.hidden = true; }
 map.on("move", () => { if (pickMode && !panel.hidden) setPos(map.getCenter()); });
 document.getElementById("fab").onclick = () => openPanel(map.getCenter(), true);
 map.on("contextmenu", e => openPanel(e.lngLat));            // PC: 우클릭
@@ -487,6 +487,7 @@ document.getElementById("cancel").onclick = closePanel;
 const modeSel = document.getElementById("mode");
 function syncMode() {
   const shop = modeSel.value === "shop";
+  document.getElementById("photo-row").hidden = shop;
   document.getElementById("cat").hidden = shop;
   document.getElementById("shopcat").hidden = !shop;
   document.getElementById("title").placeholder = shop ? "가게 이름" : "제목 (예: 내장산 입구 정체)";
@@ -517,34 +518,43 @@ document.getElementById("save").onclick = async () => {
   if (Date.now() - last < 30000) { alert("제보는 30초에 한 번만 보낼 수 있어요."); return; }
   const btn = document.getElementById("save"); btn.disabled = true;
   try {
+    let photoUrl = "";
+    if (photoBlob) {
+      btn.textContent = "사진 올리는 중…";
+      const name = Date.now() + "-" + Math.random().toString(36).slice(2, 8) + ".jpg";
+      const up = await fetch(SUPABASE_URL + "/storage/v1/object/report-photos/" + name, { method: "POST",
+        headers: { apikey: SUPABASE_KEY, Authorization: "Bearer " + SUPABASE_KEY, "Content-Type": "image/jpeg" }, body: photoBlob });
+      if (!up.ok) throw new Error("사진 올리기 실패 (" + up.status + "). 사진 없이 다시 시도해 보세요.");
+      photoUrl = SUPABASE_URL + "/storage/v1/object/public/report-photos/" + name;
+    }
     const res = await fetch(SUPABASE_URL + "/rest/v1/reports", {
       method: "POST",
       headers: { apikey: SUPABASE_KEY, Authorization: "Bearer " + SUPABASE_KEY,
                  "Content-Type": "application/json", Prefer: "return=minimal" },
       body: JSON.stringify({ category: catSel.value, title: title.slice(0, 60),
         description: ((document.getElementById("desc").value.trim() + (pendingPlace ? "\n📍 " + pendingPlace.name : "")).trim()).slice(0, 300),
-        lon: pending[0], lat: pending[1] }),
+        lon: pending[0], lat: pending[1], ...(photoUrl ? { photo_url: photoUrl } : {}) }),
     });
     if (!res.ok) throw new Error("제보 전송 실패 (" + res.status + ")");
     try { localStorage.setItem("jeongeup-last-report", String(Date.now())); } catch {}
-    document.getElementById("title").value = ""; document.getElementById("desc").value = "";
+    document.getElementById("title").value = ""; document.getElementById("desc").value = ""; clearPhoto();
     closePanel();
     alert("제보가 접수됐어요! 확인 후 지도에 표시됩니다.");
   } catch (err) { alert(err.message); }
-  btn.disabled = false;
+  btn.disabled = false; btn.textContent = "등록";
 };
 
 // 승인된 제보를 서버에서 받아옴 (15초마다 갱신)
 const knownIds = new Set(); let started = false;
 async function fetchReports() {
   try {
-    const res = await fetch(SUPABASE_URL + "/rest/v1/reports?select=id,category,title,description,lon,lat,created_at&order=created_at.desc&limit=200",
+    const res = await fetch(SUPABASE_URL + "/rest/v1/reports?select=*&order=created_at.desc&limit=200",
       { headers: { apikey: SUPABASE_KEY, Authorization: "Bearer " + SUPABASE_KEY } });
     if (!res.ok) return false;
     const rows = await res.json();
     const next = rows.filter(r => CATEGORIES[r.category] && (Date.now() - new Date(r.created_at)) < (EXPIRE_HOURS[r.category] || 72) * 3600e3).map(r => ({
       id: r.id, title: r.title, desc: r.description || "", cat: r.category,
-      coord: [r.lon, r.lat], ts: r.created_at }));
+      coord: [r.lon, r.lat], ts: r.created_at, photo: r.photo_url || "" }));
     // 새로 승인된 제보 감지 (방송 모드: 그 위치로 카메라 이동). 첫 로딩은 제외
     const fresh = next.filter(r => !knownIds.has(r.id));
     const firstLoad = !started; started = true;
@@ -1145,7 +1155,7 @@ function renderComm() {
     const c = CATEGORIES[r.cat];
     const card = document.createElement("div"); card.className = "comm-card";
     card.innerHTML = `<div class="comm-meta"><span class="feed-dot" style="background:${c.color}"></span>${c.label} · ${timeAgo(r.ts)}</div>` +
-      `<div class="comm-title">${esc(r.title)}</div>` + (r.desc ? `<div class="comm-desc">${esc(r.desc)}</div>` : "") +
+      `<div class="comm-title">${esc(r.title)}</div>` + (r.desc ? `<div class="comm-desc">${esc(r.desc)}</div>` : "") + (r.photo ? `<a href="${esc(r.photo)}" target="_blank" rel="noopener"><img class="comm-photo" src="${esc(r.photo)}" loading="lazy"></a>` : "") +
       `<button class="chip comm-go">📍 지도에서 보기</button>`;
     card.querySelector(".comm-go").onclick = () => {
       closeComm();
@@ -1437,3 +1447,20 @@ fetchNotices(); setInterval(fetchNotices, 60000);
   let done = false; try { done = localStorage.getItem("tut_done") === "1"; } catch (e) {}
   if (!done && !LIVE && !/[?&]edit=1/.test(location.search)) setTimeout(start, 1800);
 })();
+
+
+// ===== 제보 사진 첨부 (폰에서 1280px로 줄여 올림) =====
+let photoBlob = null;
+function clearPhoto() { photoBlob = null; const p = document.getElementById("photo-prev"); p.hidden = true; p.removeAttribute("src"); document.getElementById("photo").value = ""; document.getElementById("photo-btn").textContent = "📷 사진 첨부 (선택)"; }
+document.getElementById("photo-btn").onclick = () => document.getElementById("photo").click();
+document.getElementById("photo").onchange = async e => {
+  const f = e.target.files[0]; if (!f) return;
+  try {
+    const bmp = await createImageBitmap(f), k = Math.min(1, 1280 / Math.max(bmp.width, bmp.height));
+    const c = document.createElement("canvas"); c.width = Math.round(bmp.width * k); c.height = Math.round(bmp.height * k);
+    c.getContext("2d").drawImage(bmp, 0, 0, c.width, c.height);
+    photoBlob = await new Promise(r => c.toBlob(r, "image/jpeg", 0.75));
+    const p = document.getElementById("photo-prev"); p.src = URL.createObjectURL(photoBlob); p.hidden = false;
+    document.getElementById("photo-btn").textContent = "📷 사진 바꾸기";
+  } catch (err) { alert("사진을 불러오지 못했어요. 다른 사진으로 해 보세요."); clearPhoto(); }
+};

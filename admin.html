@@ -188,6 +188,7 @@ function draw() {
       `<div class="meta">${esc(c.label)} · ${new Date(r.created_at).toLocaleString("ko-KR")} · ` +
       `<a href="https://www.openstreetmap.org/?mlat=${r.lat}&mlon=${r.lon}#map=17/${r.lat}/${r.lon}" target="_blank" rel="noopener">위치 보기</a></div>` +
       (r.description ? `<div class="desc">${esc(r.description)}</div>` : "") +
+      (r.photo_url ? `<a href="${esc(r.photo_url)}" target="_blank" rel="noopener"><img src="${esc(r.photo_url)}" style="width:100%;max-height:260px;object-fit:cover;border-radius:10px;margin:6px 0"></a>` : "") +
       `<div class="btns">` +
       (r.status !== "approved" ? `<button class="act ok" data-a="approved">승인</button>` : "") +
       (r.status !== "hidden" ? `<button class="act hide" data-a="hidden">숨김</button>` : "") +
@@ -201,6 +202,7 @@ async function act(r, a) {
   let res;
   if (a === "delete") {
     if (!confirm("이 제보를 완전히 삭제할까요? (되돌릴 수 없어요)")) return;
+    if (r.photo_url) { const nm = r.photo_url.split("/report-photos/")[1]; if (nm) await sb.storage.from("report-photos").remove([nm]); }
     res = await sb.from("reports").delete().eq("id", r.id);
   } else {
     res = await sb.from("reports").update({ status: a }).eq("id", r.id);

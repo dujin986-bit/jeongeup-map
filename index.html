@@ -11,7 +11,7 @@
 <meta name="apple-mobile-web-app-title" content="정읍지도">
 <link rel="apple-touch-icon" href="icons/user-apple-180.png">
 <link href="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.css" rel="stylesheet">
-<link rel="stylesheet" href="style.css?v=40">
+<link rel="stylesheet" href="style.css?v=41">
 </head>
 <body>
 <div id="map"></div>
@@ -52,6 +52,7 @@
   <select id="shopcat" hidden>
     <option>음식점</option><option>카페</option><option>숙박</option><option>편의점/마트</option><option>주차장</option><option>기타</option>
   </select>
+  <div id="photo-row"><input type="file" id="photo" accept="image/*" hidden><button type="button" id="photo-btn">📷 사진 첨부 (선택)</button><img id="photo-prev" hidden><small>사람 얼굴·차량 번호판은 나오지 않게 찍어 주세요</small></div>
   <input id="title" placeholder="제목 (예: 내장산 입구 정체)" maxlength="40">
   <textarea id="desc" placeholder="내용 (선택)" maxlength="200"></textarea>
   <div class="row">
@@ -68,7 +69,7 @@
 <div id="ch-name" hidden></div>
 <a id="live-exit" href="./">방송 모드 끄기 (Esc)</a>
 <div id="tut" hidden><div id="tut-hole"></div><div id="tut-tip"><div id="tut-txt"></div><div id="tut-row"><span id="tut-n"></span><button id="tut-skip">건너뛰기</button><button id="tut-next">다음</button></div></div></div>
-<div id="ver">v40</div>
+<div id="ver">v41</div>
 <div id="comm" hidden>
   <div class="comm-top"><button id="comm-back" class="chip">← 지도</button><strong>정읍 이야기</strong><button id="comm-refresh" class="chip">🔄</button></div>
   <div id="comm-body"></div>
@@ -81,7 +82,7 @@
 
 <script src="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="data.js?v=40"></script>
-<script src="app.js?v=40"></script>
+<script src="data.js?v=41"></script>
+<script src="app.js?v=41"></script>
 </body>
 </html>
