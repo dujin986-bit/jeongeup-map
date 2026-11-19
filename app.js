@@ -601,12 +601,12 @@ setInterval(fetchReports, 30000);   // 실시간 알림이 안 올 때를 위한
 const APT_PATTERN_ZOOM = 16;
 const APT_WALL = ["#f2e3c6", "#cfe0f1", "#e9d2d2", "#d5e6d0", "#e0dbee"];
 const BLD_DAY = ["interpolate", ["linear"], ["coalesce", ["get", "height"], 6],
-  0, "#e8dcc8", 10, "#e3c9a8", 25, "#d9a98a", 45, "#c98a7a", 70, "#a96f86"];
+  0, "#eadcc0", 8, "#e2c29e", 15, "#d4a283", 25, "#c8bdb2", 40, "#c4cad2", 70, "#b3bcc9"];   // 저층=베이지·테라코타, 고층=쿨실버
 const BLD_NIGHT = ["interpolate", ["linear"], ["coalesce", ["get", "height"], 6],
-  0, "#8d92b8", 10, "#868cb8", 25, "#7f86b6", 45, "#787fb6", 70, "#7279b8"];
+  0, "#5d636b", 10, "#5a6169", 25, "#555e69", 45, "#4f5b68", 70, "#4a5766"];   // 딥 슬레이트·차콜
 const APT_FAR_DAY = ["match", ["%", ["floor", ["/", ["to-number", ["coalesce", ["get", "id"], "0"], 0], 1000]], 5],
   0, APT_WALL[0], 1, APT_WALL[1], 2, APT_WALL[2], 3, APT_WALL[3], APT_WALL[4]];
-const APT_FAR_NIGHT = "#8e96c0";
+const APT_FAR_NIGHT = "#68737f";
 const BLD_NIGHT_DS = ["interpolate", ["linear"], ["coalesce", ["get", "height"], 6],
   0, "#2e334d", 10, "#2b3050", 25, "#282d52", 45, "#252a54", 70, "#222758"];
 function hex2rgb(h) { const n = parseInt(h.slice(1), 16); return [n >> 16 & 255, n >> 8 & 255, n & 255]; }
@@ -667,12 +667,12 @@ function setBuildingNight(on) {
   if (!bldReady) return;
   try {                                   // 땅·길·물·글씨까지 한꺼번에 어둡게 (건물만 어두워 보이던 문제)
     const cv = map.getCanvas(); cv.style.transition = "filter 1.5s ease";
-    cv.style.filter = on && !DARKSTYLE ? "brightness(0.5) contrast(1.2) saturate(0.8) hue-rotate(8deg)" : "none";
+    cv.style.filter = on && !DARKSTYLE ? "brightness(0.74) contrast(1.06) saturate(0.88)" : "none";   // 약하게: 라벨이 어두워지지 않도록
   } catch (e) {}
   document.body.classList.toggle("night", !!on);
   if (on) ensureNightLights();
   for (const id of ["night-road-glow", "night-road-core", "shops-glow"]) { try { if (map.getLayer(id)) map.setLayoutProperty(id, "visibility", on ? "visible" : "none"); } catch (e) {} }
-  try { map.setLight(on ? { anchor: "viewport", position: [1.4, 210, 45], intensity: 0.25, color: "#9fb0ff" } : { anchor: "viewport", position: [1.4, 210, 45], intensity: 0.55, color: "#fff4e0" }); } catch (e) {}
+  try { map.setLight(on ? { anchor: "viewport", position: [1.4, 210, 45], intensity: 0.32, color: "#b9c6dc" } : { anchor: "viewport", position: [1.4, 210, 45], intensity: 0.55, color: "#fff4e0" }); } catch (e) {}
   for (const l of map.getStyle().layers) {
     try {
       if (/^local-.*-3d$/.test(l.id)) map.setPaintProperty(l.id, "fill-extrusion-color", on ? (DARKSTYLE ? BLD_NIGHT_DS : BLD_NIGHT) : BLD_DAY);
