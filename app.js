@@ -1318,8 +1318,9 @@ function tickExp() {
 function startExp() { stopExp(); tickExp(); expTimer = setInterval(tickExp, 60000); }
 function stopExp() { if (expTimer) { clearInterval(expTimer); expTimer = 0; } }
 document.addEventListener("visibilitychange", () => { if (document.hidden) stopExp(); else if (commEl && !commEl.hidden) startExp(); });
-function openComm() { renderComm(); commEl.hidden = false; startExp(); requestAnimationFrame(() => commEl.classList.add("open")); document.body.style.overflow = "hidden"; fetchReports(); }
-function closeComm() { stopExp(); commEl.classList.remove("open"); setTimeout(() => { commEl.hidden = true; }, 220); document.body.style.overflow = ""; }
+let commPushed = false, ignorePop = false, jgReady = false;   // 커뮤니티 전용 뒤로가기 기록
+function openComm() { if (jgReady && !commPushed) { try { history.pushState({ jg: 2 }, ""); commPushed = true; } catch (e) {} } renderComm(); commEl.hidden = false; startExp(); requestAnimationFrame(() => commEl.classList.add("open")); document.body.style.overflow = "hidden"; fetchReports(); }
+function closeComm(fromPop) { if (commPushed && fromPop !== true) { commPushed = false; ignorePop = true; try { history.back(); } catch (e) { ignorePop = false; } } stopExp(); commEl.classList.remove("open"); setTimeout(() => { commEl.hidden = true; }, 220); document.body.style.overflow = ""; }
 if (commEl) {
   document.getElementById("comm-btn").onclick = openComm;
   document.getElementById("comm-back").onclick = closeComm;
@@ -1742,12 +1743,14 @@ function openFix(id, name) {
   function initHistory() {
     if (armedInit) return; armedInit = true;
     ["pointerup", "touchend", "click", "keydown"].forEach(t => removeEventListener(t, initHistory, true));
-    try { history.pushState({ jg: 1 }, ""); } catch (e) {}
+    try { history.pushState({ jg: 1 }, ""); jgReady = true; } catch (e) {}
   }
   try { history.replaceState({ jg: 0 }, ""); } catch (e) { return; }
   ["pointerup", "touchend", "click", "keydown"].forEach(t => addEventListener(t, initHistory, { capture: true, passive: true }));
   addEventListener("popstate", () => {
+    if (ignorePop) { ignorePop = false; return; }
     if (!armedInit) return;
+    if (commPushed && !commEl.hidden) { commPushed = false; closeComm(true); return; }   // 커뮤니티 기록 한 칸 소비
     if (closeTop()) { history.pushState({ jg: 1 }, ""); return; }
     if (armed) { armed = false; clearTimeout(timer); toast.hidden = true; history.back(); return; }   // 두 번째: 종료
     armed = true; toast.hidden = false;
