@@ -25,15 +25,15 @@
 - 관리자 페이지(`admin.html`): 제보 승인, 공지, 날씨(수동), 편집기록(되돌리기), 수정요청
 - PWA 설치 버튼, 카카오톡 안 접속 시 외부 브라우저 안내 띠, 첫 방문 튜토리얼(❓로 다시 보기)
 
-## Supabase SQL (모두 `sql/` 폴더) — 실행 여부 확인 필요
+## Supabase SQL (모두 `sql/` 폴더) — 전부 실행 완료(2026-11-20)
 | 파일 | 내용 | 실행 여부 |
 |---|---|---|
 | shop_edits.sql | 가게 수정 표 | 실행함 |
-| notices_and_grants.sql | 가게 권한 GRANT, 공지, 편집기록 | **사용자에게 확인** |
-| report_photos.sql | 제보 사진 칸과 저장소 | **확인** |
+| notices_and_grants.sql | 가게 권한 GRANT, 공지, 편집기록 | 실행함 (사용자 확인) |
+| report_photos.sql | 제보 사진 칸과 저장소 | 실행함 (사용자 확인) |
 | food_votes.sql | 맛집 투표 | 실행함(투표 동작 확인됨) |
-| weather_override.sql | 수동 날씨 | **확인** |
-| reactions_and_corrections.sql | 👍/👎, 수정 요청 | **확인** |
+| weather_override.sql | 수동 날씨 | 실행함 (사용자 확인) |
+| reactions_and_corrections.sql | 👍/👎, 수정 요청 | 실행함 (사용자 확인) |
 
 ## 다음에 할 일
 **★ 지금 대기 중: 지도 디자인 고도화 (사용자가 지시서를 줬고 검토까지 끝남, 아직 "작업해" 전)**
