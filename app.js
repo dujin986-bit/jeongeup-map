@@ -765,7 +765,7 @@ if (LIVE) {
 // ---------- 검색 (가게·아파트·장소·주소) ----------
 const NAMED = [];
 let PLACES_IDX = [];
-fetch("data/places.json").then(r => r.ok ? r.json() : []).then(l => { PLACES_IDX = l; }).catch(() => {});
+fetch("data/places.json").then(r => r.ok ? r.json() : []).then(l => { PLACES_IDX = l; ROAD_IDX = null; }).catch(() => {});
 const qEl = document.getElementById("q"), resEl = document.getElementById("results");
 let searchPin = null;
 const norm = t => String(t || "").toLowerCase().replace(/\s+/g, "");
@@ -783,6 +783,40 @@ function searchIndex() {
   for (const l of LANDMARKS) out.push({ name: l.name, sub: "명소", addr: "", coord: l.coord, kind: "명소" });
   return out;
 }
+// ---------- 도로명 주소 검색 (상가 주소의 번호로 위치를 추정) ----------
+const ROAD_RE = /([가-힣0-9]+(?:대로|로|길))\s*(\d+)(?:\s*[-의]\s*(\d+))?\s*(?:번지|번길)?/;
+let ROAD_IDX = null;
+function buildRoadIdx() {
+  ROAD_IDX = {};
+  const add = (addr, coord) => {
+    const m = String(addr || "").match(ROAD_RE); if (!m || !coord) return;
+    (ROAD_IDX[m[1]] = ROAD_IDX[m[1]] || []).push({ n: +m[2], coord });
+  };
+  for (const s of (typeof SHOPS !== "undefined" ? SHOPS : []).concat(EDITS.added || [])) add(s.address, s.coord);
+  for (const p of PLACES_IDX) add(p.address, p.coord);
+  for (const k in ROAD_IDX) ROAD_IDX[k].sort((x, y) => x.n - y.n);
+}
+function roadSearch(raw) {
+  const m = String(raw).replace(/전북특별자치도|전라북도|정읍시/g, "").match(ROAD_RE);
+  if (!m) return null;
+  if (!ROAD_IDX) buildRoadIdx();
+  const list = ROAD_IDX[m[1]]; if (!list || !list.length) return null;
+  const n = +m[2], par = n % 2;
+  const same = list.filter(x => x.n % 2 === par), pool = same.length ? same : list;
+  const exact = pool.find(x => x.n === n);
+  let coord, approx = true;
+  if (exact) { coord = exact.coord; approx = false; }
+  else {
+    let lo = null, hi = null;
+    for (const x of pool) { if (x.n < n) lo = x; else if (x.n > n && !hi) hi = x; }
+    if (lo && hi && hi.n - lo.n <= 80) { const t = (n - lo.n) / (hi.n - lo.n); coord = [lo.coord[0] + (hi.coord[0] - lo.coord[0]) * t, lo.coord[1] + (hi.coord[1] - lo.coord[1]) * t]; }
+    else { const nr = pool.reduce((b, x) => Math.abs(x.n - n) < Math.abs(b.n - n) ? x : b); if (Math.abs(nr.n - n) > 30) return null; coord = nr.coord; }
+  }
+  // 근처 이름 있는 건물(아파트 등) 안내
+  let near = null, bd = 150;
+  for (const b of NAMED) { const d = Math.hypot((b.coord[0] - coord[0]) * 91000, (b.coord[1] - coord[1]) * 111000); if (d < bd) { bd = d; near = b.name; } }
+  return { name: `${m[1]} ${m[2]}${m[3] ? "-" + m[3] : ""}`, sub: (approx ? "대략적인 위치" : "주소") + (near ? " · 근처: " + near : ""), addr: "", coord, kind: "주소" };
+}
 function doSearch() {
   const q = norm(qEl.value);
   if (q.length < 1) { resEl.hidden = true; return; }
@@ -795,6 +829,7 @@ function doSearch() {
   }
   scored.sort((x, y) => y[0] - x[0]);
   const top = scored.slice(0, 8).map(x => x[1]);
+  const rs = roadSearch(qEl.value); if (rs) top.unshift(rs);
   resEl.innerHTML = top.length ? "" : '<div class="res-empty">검색 결과가 없어요</div>';
   for (const it of top) {
     const row = document.createElement("div"); row.className = "res-row";
