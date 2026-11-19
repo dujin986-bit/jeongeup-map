@@ -19,9 +19,10 @@ for page in range(1, 31):
     for r in rows:
         code = str(r.get("region_cd", ""))
         name = r.get("locatadd_nm", "")
-        if code.startswith("45180") and len(code) == 10 and code[5:8] != "000" and "정읍시" in name:
-            out[code] = name.split("정읍시")[-1].strip()
-    print("page", page, "rows", len(rows), "누적", len(out))
+        # 전북특별자치도 출범으로 코드가 45180→52180 으로 바뀜. 건물 데이터(옛 코드 4518…)와 맞추려고 둘 다 저장
+        if code[:5] in ("45180", "52180") and len(code) == 10 and code[5:8] != "000" and "정읍시" in name:
+            out["45180" + code[5:]] = name.split("정읍시")[-1].strip()
+    print("page", page, "rows", len(rows), "누적", len(out), rows[0].get("region_cd") if rows else "")
     if len(rows) < 100:
         break
 path = os.path.join(ROOT, "data", "dongs.json")
