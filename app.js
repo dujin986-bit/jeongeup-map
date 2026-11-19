@@ -1720,7 +1720,7 @@ function openFix(id, name) {
 (function backNav() {
   if (LIVE) return;
   let armed = false, timer = null;
-  const toast = document.createElement("div"); toast.id = "exit-toast"; toast.hidden = true; toast.textContent = "한 번 더 누르면 종료돼요";
+  const toast = document.createElement("div"); toast.id = "exit-toast"; toast.hidden = true; toast.textContent = "두 번 터치 시 앱이 종료됩니다";
   document.body.appendChild(toast);
   const vis = id => { const e = document.getElementById(id); return e && !e.hidden; };
   function closeTop() {
@@ -1737,15 +1737,15 @@ function openFix(id, name) {
     } catch (e) {}
     return false;
   }
-  // 크롬은 사용자 조작 없이 쌓은 기록은 뒤로가기 때 건너뛴다 → 첫 터치 때 쌓는다
+  // 크롬은 사용자 조작(손가락을 뗄 때 pointerup/click) 없이 쌓은 기록은 뒤로가기 때 건너뛴다 → 첫 터치를 뗄 때 쌓는다
   let armedInit = false;
   function initHistory() {
     if (armedInit) return; armedInit = true;
-    ["pointerdown", "touchstart", "keydown"].forEach(t => removeEventListener(t, initHistory, true));
+    ["pointerup", "touchend", "click", "keydown"].forEach(t => removeEventListener(t, initHistory, true));
     try { history.pushState({ jg: 1 }, ""); } catch (e) {}
   }
   try { history.replaceState({ jg: 0 }, ""); } catch (e) { return; }
-  ["pointerdown", "touchstart", "keydown"].forEach(t => addEventListener(t, initHistory, { capture: true, passive: true }));
+  ["pointerup", "touchend", "click", "keydown"].forEach(t => addEventListener(t, initHistory, { capture: true, passive: true }));
   addEventListener("popstate", () => {
     if (!armedInit) return;
     if (closeTop()) { history.pushState({ jg: 1 }, ""); return; }
