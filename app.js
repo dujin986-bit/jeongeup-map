@@ -400,17 +400,37 @@ const panel = document.getElementById("panel");
 let pending = null;
 let pickMode = false;
 const crosshair = document.getElementById("crosshair");
+// 핀이 가게·장소·건물 위에 놓이면 그 이름을 보여준다 (가게 30m, 장소 40m, 이름 있는 건물 60m 이내 가장 가까운 것)
+let pendingPlace = null;
+function nearestPlace(lng, lat) {
+  const dist = c => Math.hypot((c[0] - lng) * 91000, (c[1] - lat) * 111000);
+  let best = null;
+  const take = (name, c, lim, kind) => { if (!name || !c) return; const d = dist(c); if (d <= lim && (!best || d < best.d)) best = { name, d, kind }; };
+  for (const s of (typeof SHOPS !== "undefined" ? SHOPS : []).concat(EDITS.added || [])) {
+    const e = (EDITS.edits || {})[s.id] || {}; if (e.hidden) continue;
+    take(e.name || s.name, s.coord, 30, "상가");
+  }
+  for (const p of PLACES_IDX) take(p.name, p.coord, 40, "장소");
+  for (const n of NAMED) take(n.name, n.coord, 60, "건물");
+  for (const l of LANDMARKS) take(l.name, l.coord, 60, "명소");
+  return best;
+}
 function setPos(lngLat) {
   pending = [lngLat.lng, lngLat.lat];
-  document.getElementById("pos").textContent = (pickMode ? "📍 표시된 위치 · 지도를 움직여 맞추세요" : "위치") +
-    `: ${pending[1].toFixed(5)}, ${pending[0].toFixed(5)}`;
+  pendingPlace = nearestPlace(pending[0], pending[1]);
+  const posEl = document.getElementById("pos");
+  posEl.textContent = pendingPlace ? `📍 선택한 장소: ${pendingPlace.name}` :
+    ((pickMode ? "📍 표시된 위치 · 지도를 움직여 맞추세요" : "위치") + `: ${pending[1].toFixed(5)}, ${pending[0].toFixed(5)}`);
+  posEl.style.fontWeight = pendingPlace ? "700" : "";
+  const nm = document.getElementById("ch-name");
+  if (nm) { nm.textContent = pendingPlace ? pendingPlace.name : ""; nm.hidden = !(pickMode && pendingPlace); }
 }
 function openPanel(lngLat, pick) {
   pickMode = !!pick; crosshair.hidden = !pickMode;
   setPos(lngLat);
   panel.hidden = false;
 }
-function closePanel() { panel.hidden = true; pickMode = false; crosshair.hidden = true; }
+function closePanel() { panel.hidden = true; pickMode = false; crosshair.hidden = true; const nm = document.getElementById("ch-name"); if (nm) nm.hidden = true; }
 map.on("move", () => { if (pickMode && !panel.hidden) setPos(map.getCenter()); });
 document.getElementById("fab").onclick = () => openPanel(map.getCenter(), true);
 map.on("contextmenu", e => openPanel(e.lngLat));            // PC: 우클릭
@@ -457,7 +477,7 @@ document.getElementById("save").onclick = async () => {
       headers: { apikey: SUPABASE_KEY, Authorization: "Bearer " + SUPABASE_KEY,
                  "Content-Type": "application/json", Prefer: "return=minimal" },
       body: JSON.stringify({ category: catSel.value, title: title.slice(0, 60),
-        description: document.getElementById("desc").value.trim().slice(0, 300),
+        description: ((document.getElementById("desc").value.trim() + (pendingPlace ? "\n📍 " + pendingPlace.name : "")).trim()).slice(0, 300),
         lon: pending[0], lat: pending[1] }),
     });
     if (!res.ok) throw new Error("제보 전송 실패 (" + res.status + ")");
