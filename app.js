@@ -669,7 +669,7 @@ const ROAD_ORIG = {};
 function roadTier(id) { return /(motorway|trunk|primary)/.test(id) ? 1 : /(secondary|tertiary)/.test(id) ? 2 : 3; }
 const ROAD_DAY = { 1: "#b4b4b9", 2: "#cacace", 3: "#e3e2df" };
 const ROAD_DAY_CASE = { 1: "#8f8a84", 2: "#a9a49e", 3: "#c4c0ba" };
-const ROAD_NIGHT = { 1: "#6a7280", 2: "#5d6573", 3: "#4f5662" };
+const ROAD_NIGHT = { 1: "#b8c0cd", 2: "#a9b2c0", 3: "#98a1af" };   // 밤 땅(#8e97a5)보다 밝게
 const ROAD_NIGHT_CASE = "#2b313c";
 function setupRoads() {
   try {
@@ -692,6 +692,7 @@ function applyRoadTone(on) {
       if (casing) map.setPaintProperty(l.id, "line-color", on ? ROAD_NIGHT_CASE : ROAD_DAY_CASE[t]);
       else map.setPaintProperty(l.id, "line-color", on ? ROAD_NIGHT[t] : ROAD_DAY[t]);
     }
+    map.setPaintProperty("background", "background-color", on ? "#8e97a5" : "#f4efe4");   // 밤 땅: 보라 없이 푸른 슬레이트
     if (map.getLayer("road-centerline")) map.setPaintProperty("road-centerline", "line-color", on ? "#f0c850" : "#e2b52f");
   } catch (e) {}
 }
@@ -704,7 +705,7 @@ function applyLabelTone(on) {          // 밤: 밝은 글씨 + 어두운 halo (�
       const o = LABEL_ORIG[l.id];
       map.setPaintProperty(l.id, "text-color", on ? "#eef2f8" : o[0]);
       map.setPaintProperty(l.id, "text-halo-color", on ? "#131a27" : o[1]);
-      map.setPaintProperty(l.id, "text-halo-width", on ? 1.3 : o[2]);
+      map.setPaintProperty(l.id, "text-halo-width", on ? 0.9 : o[2]);
     }
   } catch (e) {}
 }
@@ -887,7 +888,7 @@ function wxSeed() {
 
 function wxTintColor() {
   if (wx.kind === "fog") return "rgba(235,238,242," + (0.08 + 0.12 * wx.i) + ")";
-  if (wx.night) return "rgba(8,18,60," + (wx.kind === "clear" ? 0.22 : 0.3) + ")";
+  if (wx.night) return "rgba(10,22,44," + (wx.kind === "clear" ? 0.22 : 0.3) + ")";
   if (wx.kind === "storm") return "rgba(30,36,50,0.28)";
   if (wx.kind === "rain") return "rgba(55,65,80," + (0.06 + 0.1 * wx.i) + ")";
   if (wx.kind === "cloud") return "rgba(90,98,110," + (0.02 + 0.07 * wx.i) + ")";
