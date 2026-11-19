@@ -611,39 +611,37 @@ const APT_FAR_NIGHT = "#76818e";
 const BLD_NIGHT_DS = ["interpolate", ["linear"], ["coalesce", ["get", "height"], 6],
   0, "#2e334d", 10, "#2b3050", 25, "#282d52", 45, "#252a54", 70, "#222758"];
 function hex2rgb(h) { const n = parseInt(h.slice(1), 16); return [n >> 16 & 255, n >> 8 & 255, n & 255]; }
-// 16x16 타일 = 2층 x 2칸 창문 격자. 낮: 유리 반사(위가 밝음)+프레임 음영, 밤: 일부 칸만 따뜻한 불빛
+// 32x16 타일 = 2층 x 4칸 창문 격자. 낮: 옅은 유리(벽색 유지)+프레임 음영, 밤: 약 30% 칸만 따뜻한 불빛
 function windowTile(wall, glass, mix, lit, litColors) {
-  const W = 16, d = new Uint8Array(W * W * 4), wr = hex2rgb(wall), gr = hex2rgb(glass);
+  const W = 32, Hh = 16, d = new Uint8Array(W * Hh * 4), wr = hex2rgb(wall), gr = hex2rgb(glass);
   const px = (x, y, c) => { const o = (y * W + x) * 4; d[o] = c[0]; d[o + 1] = c[1]; d[o + 2] = c[2]; d[o + 3] = 255; };
   const sh = (c, k) => c.map(v => Math.round(v * k));
-  for (let y = 0; y < W; y++) for (let x = 0; x < W; x++) px(x, y, y % 8 === 7 ? sh(wr, 0.9) : wr);   // 벽 + 층 구분선
-  for (let fy = 0; fy < 2; fy++) for (let fx = 0; fx < 2; fx++) {
-    const x0 = fx * 8 + 1, y0 = fy * 8 + 1, idx = fy * 2 + fx;       // 유리 6x5, 프레임 1px
+  for (let y = 0; y < Hh; y++) for (let x = 0; x < W; x++) px(x, y, y % 8 === 7 ? sh(wr, 0.9) : wr);   // 벽 + 층 구분선
+  for (let fy = 0; fy < 2; fy++) for (let fx = 0; fx < 4; fx++) {
+    const x0 = fx * 8 + 1, y0 = fy * 8 + 1, idx = fy * 4 + fx;       // 유리 6x5, 프레임 1px
     for (let y = y0 - 1; y <= y0 + 5; y++) for (let x = x0 - 1; x <= x0 + 6; x++) {
-      const edge = x === x0 - 1 || x === x0 + 6 || y === y0 - 1 || y === y0 + 5;
-      if (y < 0 || x < 0 || x >= W || y >= W) continue;
-      if (edge) { px(x, y, sh(wr, 0.78)); continue; }
+      if (y < 0 || x < 0 || x >= W || y >= Hh) continue;
+      if (x === x0 - 1 || x === x0 + 6 || y === y0 - 1 || y === y0 + 5) { px(x, y, sh(wr, 0.8)); continue; }
       let c;
       if (lit && lit[idx]) c = litColors[idx % litColors.length];
       else {
-        const t = (y - y0) / 4, m = mix * (1.15 - 0.4 * t);              // 위쪽이 하늘을 더 반사
+        const m = mix * (1.15 - 0.3 * (y - y0) / 4);                  // 위쪽이 살짝 더 반사
         c = wr.map((v, k) => Math.round(v * (1 - m) + gr[k] * m));
-        if (!lit && x - x0 + (y - y0) === 3) c = c.map(v => Math.min(255, v + 18));   // 대각 반사 하이라이트
       }
       px(x, y, c);
     }
   }
-  return { width: W, height: W, data: d };
+  return { width: W, height: Hh, data: d };
 }
-const NIGHT_LIT = [[1, 0, 0, 1], [0, 1, 0, 0], [1, 0, 1, 0], [0, 0, 1, 1], [0, 1, 1, 0]];
-const NIGHT_LIT_COLORS = [[[255, 214, 130], [255, 232, 170]], [[255, 196, 104], [250, 220, 150]], [[255, 222, 150], [255, 200, 110]], [[250, 205, 120], [255, 235, 180]], [[255, 210, 125], [245, 225, 160]]];
+const NIGHT_LIT = [[0, 1, 0, 0, 1, 0, 0, 0], [1, 0, 0, 0, 0, 0, 1, 0], [0, 0, 1, 0, 0, 1, 0, 1], [0, 0, 0, 1, 1, 0, 0, 0], [1, 0, 0, 0, 0, 1, 0, 0]];
+const NIGHT_LIT_COLORS = [[[255, 232, 160], [255, 214, 128]], [[255, 220, 140], [255, 238, 180]], [[255, 226, 150], [255, 206, 118]], [[255, 236, 170], [255, 218, 134]], [[255, 214, 126], [255, 232, 164]]];
 function makeWindowImage(wall, band, alpha) { return windowTile(wall, band, alpha, null, null); }
-function makeNightImage(wall, i) { return windowTile(wall, "#2a3346", 0.55, NIGHT_LIT[i % 5], NIGHT_LIT_COLORS[i % 5]); }
+function makeNightImage(wall, i) { return windowTile(wall, "#222b3c", 0.5, NIGHT_LIT[i % 5], NIGHT_LIT_COLORS[i % 5]); }
 function addAptImages() {
   const dark = (h, k) => "#" + hex2rgb(h).map(v => Math.round(v * k).toString(16).padStart(2, "0")).join("");
   APT_WALL.forEach((w, i) => {
     try {
-      map.addImage(`apt${i}-day`, makeWindowImage(w, "#7f98b0", 0.5));
+      map.addImage(`apt${i}-day`, makeWindowImage(w, "#8fa6bc", 0.28));
       map.addImage(`apt${i}-night`, makeNightImage(dark(w, 0.45), i));
     } catch (e) {}
   });
