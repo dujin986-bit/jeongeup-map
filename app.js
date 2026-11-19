@@ -1091,6 +1091,17 @@ document.addEventListener("click", e => { if (!e.target.closest("#searchbox")) r
   const inapp = /KAKAOTALK|Instagram|FBAN|FBAV|Threads|NAVER\(inapp|DaumApps|Line\//i.test(ua);
   const ios = /iPhone|iPad|iPod/.test(ua), android = /Android/.test(ua);
   const url = location.origin + location.pathname;
+  const KAKAO_OPEN = "kakaotalk://web/openExternal?url=" + encodeURIComponent(url);
+  if (/KAKAOTALK/i.test(ua)) {            // 카톡 안에서 열면 안내 띠 → 외부 브라우저(크롬/사파리)로 열기
+    let hid = false; try { hid = sessionStorage.getItem("kk_bar") === "1"; } catch (e) {}
+    if (!hid) {
+      const bar = document.createElement("div"); bar.id = "kk-bar";
+      bar.innerHTML = '<span>🌐 크롬·사파리로 열면 앱처럼 <b>설치</b>할 수 있어요</span><button id="kk-go">브라우저로 열기</button><button id="kk-x" aria-label="닫기">✕</button>';
+      document.body.appendChild(bar);
+      document.getElementById("kk-go").onclick = () => { location.href = KAKAO_OPEN; };
+      document.getElementById("kk-x").onclick = () => { bar.remove(); try { sessionStorage.setItem("kk_bar", "1"); } catch (e) {} };
+    }
+  }
   btn.hidden = false;
   let ev = null;
   addEventListener("beforeinstallprompt", e => { e.preventDefault(); ev = e; });
@@ -1112,6 +1123,7 @@ document.addEventListener("click", e => { if (!e.target.closest("#searchbox")) r
     if (ev) { ev.prompt(); try { await ev.userChoice; } catch (e) {} ev = null; return; }            // 안드로이드 크롬: 바로 설치창
     if (inapp) {
       const acts = [];
+      if (/KAKAOTALK/i.test(ua)) acts.push(["브라우저로 열기", () => { location.href = KAKAO_OPEN; }]);
       if (android) acts.push(["크롬으로 열기", () => { location.href = "intent://" + url.replace(/^https?:\/\//, "") + "#Intent;scheme=https;package=com.android.chrome;end"; }]);
       acts.push(["주소 복사", copy]);
       show(`<b>📲 앱으로 설치하기</b><p>지금 열린 화면(인스타·스레드·카카오톡 등)에서는 설치가 안 돼요.</p>` +
