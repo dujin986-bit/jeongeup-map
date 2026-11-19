@@ -487,10 +487,10 @@ const APT_WALL = ["#f2e3c6", "#cfe0f1", "#e9d2d2", "#d5e6d0", "#e0dbee"];
 const BLD_DAY = ["interpolate", ["linear"], ["coalesce", ["get", "height"], 6],
   0, "#e8dcc8", 10, "#e3c9a8", 25, "#d9a98a", 45, "#c98a7a", 70, "#a96f86"];
 const BLD_NIGHT = ["interpolate", ["linear"], ["coalesce", ["get", "height"], 6],
-  0, "#70748f", 10, "#686d90", 25, "#60668f", 45, "#5a608f", 70, "#555b92"];
+  0, "#8d92b8", 10, "#868cb8", 25, "#7f86b6", 45, "#787fb6", 70, "#7279b8"];
 const APT_FAR_DAY = ["match", ["%", ["floor", ["/", ["to-number", ["coalesce", ["get", "id"], "0"], 0], 1000]], 5],
   0, APT_WALL[0], 1, APT_WALL[1], 2, APT_WALL[2], 3, APT_WALL[3], APT_WALL[4]];
-const APT_FAR_NIGHT = "#6a7099";
+const APT_FAR_NIGHT = "#8e96c0";
 const BLD_NIGHT_DS = ["interpolate", ["linear"], ["coalesce", ["get", "height"], 6],
   0, "#2e334d", 10, "#2b3050", 25, "#282d52", 45, "#252a54", 70, "#222758"];
 function hex2rgb(h) { const n = parseInt(h.slice(1), 16); return [n >> 16 & 255, n >> 8 & 255, n & 255]; }
@@ -531,18 +531,18 @@ function ensureNightLights() {
       const firstExt = map.getStyle().layers.find(l => l.type === "fill-extrusion");
       const flt = ["in", ["get", "class"], ["literal", ["motorway", "trunk", "primary", "secondary", "tertiary", "minor", "street", "residential", "service"]]];
       const w = k => ["interpolate", ["linear"], ["zoom"], 13, ["*", k, 2], 17, ["*", k, 11]];
-      const kk = ["match", ["get", "class"], ["motorway", "trunk", "primary"], 1.8, ["secondary", "tertiary"], 1.3, 0.8];
+      const kk = ["match", ["get", "class"], ["motorway", "trunk", "primary"], 1.2, ["secondary", "tertiary"], 0.8, 0.4];
       map.addLayer({ id: "night-road-glow", type: "line", source: vecSrc(), "source-layer": "transportation", minzoom: 13, filter: flt,
         layout: { visibility: "none", "line-cap": "round", "line-join": "round" },
-        paint: { "line-color": "#ffae4d", "line-width": w(kk), "line-blur": 6, "line-opacity": 0.55 } }, firstExt && firstExt.id);
+        paint: { "line-color": "#ffb85c", "line-width": w(kk), "line-blur": 3, "line-opacity": 0.3 } }, firstExt && firstExt.id);
       map.addLayer({ id: "night-road-core", type: "line", source: vecSrc(), "source-layer": "transportation", minzoom: 14, filter: flt,
         layout: { visibility: "none", "line-cap": "round", "line-join": "round" },
-        paint: { "line-color": "#ffe3a6", "line-width": ["interpolate", ["linear"], ["zoom"], 14, 0.4, 18, 2.2], "line-opacity": 0.6 } }, firstExt && firstExt.id);
+        paint: { "line-color": "#ffd98a", "line-width": ["interpolate", ["linear"], ["zoom"], 14, 0.5, 18, 2.4], "line-opacity": 0.85 } }, firstExt && firstExt.id);
     }
     if (map.getSource("shops") && !map.getLayer("shops-glow")) {
       map.addLayer({ id: "shops-glow", type: "circle", source: "shops", minzoom: 14,
         layout: { visibility: "none" },
-        paint: { "circle-radius": ["interpolate", ["linear"], ["zoom"], 14, 7, 18, 22], "circle-color": ["get", "color"], "circle-blur": 1, "circle-opacity": 0.55 } }, "shops-dot");
+        paint: { "circle-radius": ["interpolate", ["linear"], ["zoom"], 14, 4, 18, 13], "circle-color": "#ffcf7a", "circle-blur": 0.7, "circle-opacity": 0.9 } }, "shops-dot");
     }
   } catch (e) {}
 }
@@ -551,7 +551,7 @@ function setBuildingNight(on) {
   if (!bldReady) return;
   try {                                   // 땅·길·물·글씨까지 한꺼번에 어둡게 (건물만 어두워 보이던 문제)
     const cv = map.getCanvas(); cv.style.transition = "filter 1.5s ease";
-    cv.style.filter = on && !DARKSTYLE ? "brightness(0.68) contrast(1.15) saturate(0.9) hue-rotate(8deg)" : "none";
+    cv.style.filter = on && !DARKSTYLE ? "brightness(0.5) contrast(1.2) saturate(0.8) hue-rotate(8deg)" : "none";
   } catch (e) {}
   document.body.classList.toggle("night", !!on);
   if (on) ensureNightLights();
