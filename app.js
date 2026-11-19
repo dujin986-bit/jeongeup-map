@@ -46,7 +46,7 @@ function addMarker(item, isLandmark) {
   el.className = "pin";
   el.style.background = c.color;
   if (isLandmark) el.style.outline = "2px solid #fff";
-  const when = item.ts ? `<br><small>${new Date(item.ts).toLocaleString("ko-KR")}</small>` : "";
+  const when = item.ts ? `<br><small>${timeAgo(item.ts)} · ${new Date(item.ts).toLocaleString("ko-KR")}</small>` : "";
   const popup = new maplibregl.Popup({ offset: 20 }).setHTML(
     `<strong>${esc(item.name || item.title)}</strong> <small>(${c.label})</small><br>${esc(item.desc || "")}${when}` + navLinks(item.name || item.title, item.coord[0], item.coord[1])
   );
@@ -441,7 +441,7 @@ async function fetchReports() {
       { headers: { apikey: SUPABASE_KEY, Authorization: "Bearer " + SUPABASE_KEY } });
     if (!res.ok) return;
     const rows = await res.json();
-    const next = rows.filter(r => CATEGORIES[r.category]).map(r => ({
+    const next = rows.filter(r => CATEGORIES[r.category] && (Date.now() - new Date(r.created_at)) < (EXPIRE_HOURS[r.category] || 72) * 3600e3).map(r => ({
       id: r.id, title: r.title, desc: r.description || "", cat: r.category,
       coord: [r.lon, r.lat], ts: r.created_at }));
     // 새로 승인된 제보 감지 (방송 모드: 그 위치로 카메라 이동). 첫 로딩은 제외

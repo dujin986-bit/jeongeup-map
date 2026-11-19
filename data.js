@@ -11,6 +11,9 @@ const CATEGORIES = {
   info:    { label: "생활정보", color: "#1f6feb" },
 };
 
+// 제보 자동 만료 (시간 단위). 지나면 지도·목록에서 자동으로 사라짐 (DB에는 남음)
+const EXPIRE_HOURS = { traffic: 6, wait: 3, incident: 24, event: 72, info: 72 };
+
 // 큰 틀: 주요 거점 (이후 구역별로 채워나갈 곳)
 const LANDMARKS = [
   { name: "정읍시청",   coord: [126.8560, 35.5700], cat: "info",  desc: "시내 중심" },
