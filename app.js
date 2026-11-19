@@ -1143,8 +1143,24 @@ addEventListener("pageshow", autoRefresh);
 
 // ===== 커뮤니티 화면 (제보 피드 + 오늘의 주제) =====
 const commEl = document.getElementById("comm"), commBody = document.getElementById("comm-body");
+let commTab = "news";
+const SOON = {
+  job: ["💼", "알바 구인·구직", "급하게 사람이 필요할 때, 일자리를 찾을 때.<br>정읍 동네 알바를 지도에서 바로 찾는 곳이에요."],
+  used: ["🛒", "중고 거래", "이웃끼리 편하게 사고파는 곳.<br>가까운 동네 물건을 지도에서 바로 찾아요."],
+  home: ["🏠", "부동산", "정읍 아파트·상가·원룸 정보를<br>3D 지도 위에서 한눈에 볼 수 있어요."],
+};
+document.querySelectorAll("#comm-tabs button").forEach(b => b.onclick = () => {
+  commTab = b.dataset.t;
+  document.querySelectorAll("#comm-tabs button").forEach(x => x.classList.toggle("on", x === b));
+  commBody.scrollTop = 0; renderComm();
+});
 function renderComm() {
   if (!commBody) return;
+  if (commTab !== "news") {
+    const s = SOON[commTab];
+    commBody.innerHTML = `<div class="soon"><div class="soon-ic">${s[0]}</div><div class="soon-t">${s[1]}</div><div class="soon-d">${s[2]}</div><div class="soon-b">🛠 곧 열려요 · 업데이트 예정</div></div>`;
+    return;
+  }
   let html = `<div class="comm-topic" id="food-card"><b>🍚 오늘의 맛집 TOP 3</b><div id="food-list">불러오는 중…</div><button id="food-vote" class="chip">투표하기</button><div id="food-yday"></div></div>`;
   html += `<div class="comm-note">💬 이야기 글쓰기는 곧 열려요. 지금은 지도 제보로 참여할 수 있어요.</div>`;
   html += `<div class="comm-head">실시간 제보 ${reports.length}건</div>`;
