@@ -152,3 +152,8 @@ body.live #live-exit:hover, body.live:hover #live-exit.show { opacity: 1; }
 .res-row small { color: #666; font-size: 12px; margin-top: 2px; }
 .res-empty { padding: 12px 14px; color: #888; font-size: 14px; }
 body.live #searchbox { display: none !important; }
+
+/* 길찾기 링크 */
+.nav-links { display: flex; gap: 6px; margin-top: 8px; flex-wrap: wrap; }
+.nav-links a { font-size: 13px; padding: 5px 10px; border-radius: 14px; background: #eef3fd; color: #1f6feb;
+  text-decoration: none; font-weight: 700; }

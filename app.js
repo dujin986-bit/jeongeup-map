@@ -48,10 +48,15 @@ function addMarker(item, isLandmark) {
   if (isLandmark) el.style.outline = "2px solid #fff";
   const when = item.ts ? `<br><small>${new Date(item.ts).toLocaleString("ko-KR")}</small>` : "";
   const popup = new maplibregl.Popup({ offset: 20 }).setHTML(
-    `<strong>${esc(item.name || item.title)}</strong> <small>(${c.label})</small><br>${esc(item.desc || "")}${when}`
+    `<strong>${esc(item.name || item.title)}</strong> <small>(${c.label})</small><br>${esc(item.desc || "")}${when}` + navLinks(item.name || item.title, item.coord[0], item.coord[1])
   );
   const m = new maplibregl.Marker({ element: el }).setLngLat(item.coord).setPopup(popup).addTo(map);
   m._item = item; markers.push(m);
+}
+function navLinks(name, lon, lat) {         // 길찾기/지도 링크 (카카오·네이버, 키 필요 없음)
+  const nm = String(name || "").replace(/[,]/g, " ");
+  return `<div class="nav-links"><a href="https://map.kakao.com/link/to/${encodeURIComponent(nm)},${lat},${lon}" target="_blank" rel="noopener">🚗 길찾기</a>` +
+         `<a href="https://map.naver.com/p/search/${encodeURIComponent("정읍 " + nm)}" target="_blank" rel="noopener">네이버지도</a></div>`;
 }
 function esc(s) { return String(s).replace(/[&<>"']/g, ch => ({ "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;" }[ch])); }
 
@@ -262,7 +267,7 @@ function shopFeatures() {
     const e = (EDITS.edits || {})[s.id] || {};
     if (e.hidden) continue;
     out.push({ type: "Feature", geometry: { type: "Point", coordinates: s.coord },
-      properties: { id: s.id, name: e.name || s.name, category: s.category, address: s.address,
+      properties: { id: s.id, name: e.name || s.name, category: s.category, address: s.address, lon: s.coord[0], lat: s.coord[1],
                     color: shopColor(s.category) } });
   }
   return out;
@@ -308,7 +313,7 @@ async function loadShops() {
       if (!list.length) return;
       const rows = list.map((p, i) =>
         `<div class="shop-row" data-i="${i}"><strong>${esc(p.name)}</strong><br>${esc(p.category)}<br>` +
-        `<small>${esc(p.address)}</small>` + (IS_LOCAL ? `<div class="edit-row">` +
+        `<small>${esc(p.address)}</small>` + navLinks(p.name, p.lon, p.lat) + (IS_LOCAL ? `<div class="edit-row">` +
         `<button data-a="rename">이름 수정</button><button data-a="hide">없는 가게</button></div>` : "") + `</div>`).join("");
       const head = list.length > 1 ? `<div class="shop-head">이 위치에 가게 ${list.length}곳</div>` : "";
       const pop = new maplibregl.Popup({ offset: 10, maxWidth: "300px" }).setLngLat(e.lngLat)
@@ -795,7 +800,7 @@ function goTo(it) {
   map.flyTo({ center: it.coord, zoom: 18, pitch: 60, duration: 1500, essential: true });
   if (searchPin) searchPin.remove();
   const pop = new maplibregl.Popup({ offset: 24, closeOnClick: true })
-    .setHTML(`<strong>${esc(it.name)}</strong><br><small>${esc(it.sub)}</small>`);
+    .setHTML(`<strong>${esc(it.name)}</strong><br><small>${esc(it.sub)}</small>` + navLinks(it.name, it.coord[0], it.coord[1]));
   searchPin = new maplibregl.Marker({ color: "#e5484d" }).setLngLat(it.coord).setPopup(pop).addTo(map);
   setTimeout(() => searchPin && !searchPin.getPopup().isOpen() && searchPin.togglePopup(), 1500);
 }
