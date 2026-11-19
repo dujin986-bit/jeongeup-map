@@ -130,3 +130,12 @@ body.live #fab, body.live #crosshair { display: none !important; }
 #sim-note { position: fixed; left: 18px; bottom: 100px; z-index: 5; background: rgba(0,0,0,.55); color: #fff;
   font-size: 13px; padding: 4px 10px; border-radius: 12px; }
 #sim-note[hidden] { display: none; }
+
+/* 방송 모드 끄기: 평소엔 안 보이고 마우스를 올리면 나타남 */
+#live-exit { display: none; }
+body.live #live-exit {
+  display: block; position: fixed; right: 14px; bottom: 60px; z-index: 7; text-decoration: none;
+  background: rgba(0,0,0,.75); color: #fff; padding: 10px 16px; border-radius: 20px; font-size: 15px;
+  opacity: 0; transition: opacity .2s;
+}
+body.live #live-exit:hover, body.live:hover #live-exit.show { opacity: 1; }

@@ -736,3 +736,11 @@ async function loadSignals() {
     }
   } catch (e) { /* 파일 없음: 무시 */ }
 }
+
+
+// 방송 모드 끄기: Esc 키, 마우스가 움직이면 잠깐 버튼 표시
+if (LIVE) {
+  addEventListener("keydown", e => { if (e.key === "Escape") location.href = location.pathname; });
+  const ex = document.getElementById("live-exit"); let hideT;
+  addEventListener("mousemove", () => { ex.classList.add("show"); clearTimeout(hideT); hideT = setTimeout(() => ex.classList.remove("show"), 2500); });
+}
