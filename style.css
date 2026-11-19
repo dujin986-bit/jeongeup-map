@@ -203,3 +203,19 @@ body.live #install-btn, body.live #install-modal { display: none !important; }
 .im-row button:first-child:not(:last-child) { background: #1f6feb; color: #fff; border-color: #1f6feb; }
 
 body.live #snd-btn { display: none !important; }
+
+/* 관리자 편집 모드 */
+#edit-btn { border-color: #e5484d; color: #e5484d; font-weight: 700; }
+#edit-btn.on { background: #e5484d; color: #fff; }
+#edit-btn[hidden], #ed-bar[hidden], #ed-toast[hidden], #ed-sheet[hidden] { display: none; }
+body.editing #fab { display: none; }
+#ed-bar { position: fixed; left: 8px; bottom: 28px; z-index: 6; display: flex; gap: 6px; flex-wrap: wrap; max-width: 70vw; }
+#ed-bar button { border: 1px solid #ccc; background: rgba(255,255,255,.96); border-radius: 16px; padding: 8px 12px; font-size: 14px; font-weight: 700; }
+#ed-bar button.on { background: #1f6feb; color: #fff; border-color: #1f6feb; }
+#ed-toast { position: fixed; left: 50%; bottom: 120px; transform: translateX(-50%); z-index: 9; background: #222; color: #fff; padding: 8px 14px; border-radius: 16px; font-size: 14px; }
+#ed-sheet { position: fixed; left: 8px; right: 8px; bottom: 8px; z-index: 8; background: #fff; color: #222; border-radius: 14px; padding: 14px; box-shadow: 0 4px 20px rgba(0,0,0,.35); display: flex; flex-direction: column; gap: 8px; max-height: 65vh; overflow-y: auto; font-size: 14px; }
+#ed-sheet input, #ed-sheet select { width: 100%; padding: 10px; font-size: 16px; border: 1px solid #ccc; border-radius: 8px; }
+.ed-h { font-size: 13px; color: #1f6feb; font-weight: 700; }
+.ed-r { display: flex; gap: 8px; } .ed-r button { flex: 1; border: 0; border-radius: 10px; padding: 12px; font-size: 15px; font-weight: 700; color: #fff; background: #1f6feb; }
+.ed-r button.g { background: #868e96; } .ed-r button.red { background: #e5484d; } .ed-r button.ok { background: #2f9e44; }
+body.live #edit-btn, body.live #ed-bar, body.live #ed-sheet { display: none !important; }

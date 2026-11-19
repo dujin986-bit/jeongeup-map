@@ -296,6 +296,7 @@ function shopColor(cat) {
 let SHOPS = [];
 let EDITS = { edits: {}, added: [] };   // 이름 수정/숨김 (data/shop_edits.json, tools/serve.py 가 저장) + 관리자 화면 수정(Supabase)
 let EDITS_FILE = { edits: {}, added: [] }, REMOTE_ROWS = [];
+let editMode = false, editShowHidden = false;   // 관리자 편집 모드(로그인한 관리자만)
 function mergeRemote() {                // 파일 수정 위에 관리자 화면(Supabase)의 수정을 덮어씀
   const E = { edits: { ...(EDITS_FILE.edits || {}) }, added: [...(EDITS_FILE.added || [])] };
   for (const r of REMOTE_ROWS) {
@@ -335,11 +336,11 @@ function shopFeatures() {
   const out = [];
   for (const s of SHOPS.concat(EDITS.added || [])) {
     const e = (EDITS.edits || {})[s.id] || {};
-    if (e.hidden) continue;
+    if (e.hidden && !(editMode && editShowHidden)) continue;
     const co = e.coord || s.coord, cat = e.category || s.category;
     out.push({ type: "Feature", geometry: { type: "Point", coordinates: co },
-      properties: { id: s.id, name: e.name || s.name, category: cat, address: s.address, lon: co[0], lat: co[1],
-                    color: shopColor(cat) } });
+      properties: { id: s.id, name: (e.name || s.name) + (e.hidden ? " (숨김)" : ""), category: cat, address: s.address, lon: co[0], lat: co[1],
+                    color: e.hidden ? "#bbbbbb" : shopColor(cat) } });
   }
   return out;
 }
@@ -373,6 +374,12 @@ async function loadShops() {
                 "text-offset": [0, 1.1], "text-anchor": "top", "text-max-width": 8 },
       paint: { "text-color": "#1b1b1b", "text-halo-color": "#fff", "text-halo-width": 1.4 } });
     map.on("click", "shops-dot", e => {
+      if (editMode) {                                   // 관리자 편집 모드: 팝업 대신 수정 창
+        const pt0 = e.point, f0 = map.queryRenderedFeatures([[pt0.x - 12, pt0.y - 12], [pt0.x + 12, pt0.y + 12]], { layers: ["shops-dot"] });
+        const ids = [...new Set(f0.map(x => x.properties.id))];
+        if (ids.length) openEditSheet(ids);
+        return;
+      }
       // 같은 위치에 겹친 가게도 모두 찾는다 (건물 하나에 여러 가게가 있는 경우)
       const pt = e.point;
       const found = map.queryRenderedFeatures([[pt.x - 8, pt.y - 8], [pt.x + 8, pt.y + 8]], { layers: ["shops-dot"] });
@@ -463,6 +470,7 @@ function setPos(lngLat) {
   if (nm) { nm.textContent = pendingPlace ? pendingPlace.name : ""; nm.hidden = !(pickMode && pendingPlace); }
 }
 function openPanel(lngLat, pick) {
+  if (editMode) return;
   pickMode = !!pick; crosshair.hidden = !pickMode;
   setPos(lngLat);
   panel.hidden = false;
@@ -1286,3 +1294,79 @@ thunderLoop();
 })();
 
 setInterval(fetchShopEdits, 60000);   // 관리자가 고친 가게 정보를 1분마다 반영
+
+
+// ===== 관리자 편집 모드: 일반 지도 그대로에서 가게 이름·위치·숨김·새 가게 수정 (저장: Supabase shop_edits, 관리자만) =====
+const EDIT_CATS = ["음식점", "카페", "숙박", "편의점/마트", "주차장", "기타"];
+let sbAdmin = null, edState = "none", edSel = null;
+const edEl = id => document.getElementById(id);
+function edToast(t) { const el = edEl("ed-toast"); el.textContent = t; el.hidden = false; clearTimeout(edToast.t); edToast.t = setTimeout(() => el.hidden = true, 2200); }
+function shopInfo(id) {
+  const s = SHOPS.concat(EDITS.added || []).find(x => x.id === id); if (!s) return null;
+  const e = (EDITS.edits || {})[id] || {};
+  return { id, name: e.name || s.name, category: e.category || s.category || "기타", coord: e.coord || s.coord, hidden: !!e.hidden };
+}
+function edRefresh() {
+  const feats = shopFeatures(); map.getSource("shops").setData({ type: "FeatureCollection", features: feats });
+  const chip = document.getElementById("shop-chip"); if (chip) chip.textContent = `상가 ${feats.length}`;
+}
+async function edSave(id, patch, msg) {
+  const cur = shopInfo(id) || { id, hidden: false, category: "기타" };
+  const o = Object.assign(cur, patch);
+  const prev = REMOTE_ROWS.find(r => r.id === id);
+  const row = { id, name: o.name, category: o.category, lon: o.coord[0], lat: o.coord[1], hidden: !!o.hidden, is_new: !!(patch.isNew || (prev && prev.is_new)), updated_at: new Date().toISOString() };
+  const { error } = await sbAdmin.from("shop_edits").upsert(row);
+  if (error) { edToast("저장 실패: " + error.message); alert("저장 실패: " + error.message + "\n(관리자 계정으로 로그인했는지 확인하세요)"); return; }
+  REMOTE_ROWS = REMOTE_ROWS.filter(r => r.id !== id).concat([row]); REMOTE_JSON = "";
+  mergeRemote(); edRefresh(); edToast(msg); edClose();
+}
+function edClose() { edEl("ed-sheet").hidden = true; crosshair.hidden = true; edState = "none"; edSel = null; }
+const edOpts = cur => (EDIT_CATS.includes(cur) ? EDIT_CATS : [cur].concat(EDIT_CATS)).map(c => `<option${c === cur ? " selected" : ""}>${esc(c)}</option>`).join("");
+function openEditSheet(ids) {
+  edState = "sheet"; crosshair.hidden = true; edSel = ids[0];
+  const o = shopInfo(edSel); if (!o) return;
+  const sh = edEl("ed-sheet"); sh.hidden = false;
+  sh.innerHTML = (ids.length > 1 ? `<div class="ed-h">이 위치에 가게 ${ids.length}곳 · 고칠 가게를 고르세요</div><select id="ed-pick">${ids.map(i => `<option value="${esc(i)}">${esc((shopInfo(i) || {}).name || i)}</option>`).join("")}</select>` : "") +
+    `<input id="ed-name" value="${esc(o.name)}" maxlength="40"><select id="ed-cat">${edOpts(o.category)}</select>` +
+    `<div class="ed-r"><button id="ed-save" class="ok">저장</button><button id="ed-move">위치 옮기기</button></div>` +
+    `<div class="ed-r"><button id="ed-gone" class="${o.hidden ? "ok" : "red"}">${o.hidden ? "되살리기" : "없어진 가게(숨기기)"}</button><button id="ed-x" class="g">닫기</button></div>`;
+  if (ids.length > 1) edEl("ed-pick").onchange = e => openEditSheet([e.target.value].concat(ids.filter(i => i !== e.target.value)));
+  edEl("ed-x").onclick = edClose;
+  edEl("ed-save").onclick = () => edSave(edSel, { name: edEl("ed-name").value.trim() || o.name, category: edEl("ed-cat").value }, "저장됨");
+  edEl("ed-gone").onclick = () => edSave(edSel, { hidden: !o.hidden }, o.hidden ? "되살렸어요" : "숨겼어요 (지도에서 사라져요)");
+  edEl("ed-move").onclick = () => {
+    edState = "move"; crosshair.hidden = false; const id = edSel;
+    map.flyTo({ center: o.coord, zoom: Math.max(map.getZoom(), 18), duration: 600 });
+    edEl("ed-sheet").innerHTML = `<b>${esc(o.name)}</b><div>지도를 움직여 📍 끝을 새 위치에 맞춘 뒤 <b>여기로 이동</b>을 누르세요</div><div class="ed-r"><button id="ed-here" class="ok">여기로 이동</button><button id="ed-x2" class="g">취소</button></div>`;
+    edEl("ed-x2").onclick = edClose;
+    edEl("ed-here").onclick = () => { const c = map.getCenter(); edSave(id, { coord: [c.lng, c.lat] }, "위치를 옮겼어요"); };
+  };
+}
+function edAddNew() {
+  edState = "add"; crosshair.hidden = false; const sh = edEl("ed-sheet"); sh.hidden = false;
+  sh.innerHTML = `<b>새 가게 추가</b><div>지도를 움직여 📍 끝을 가게 위치에 맞추세요</div><input id="ed-nn" placeholder="가게 이름" maxlength="40"><select id="ed-nc">${edOpts("음식점")}</select><div class="ed-r"><button id="ed-do" class="ok">여기에 추가</button><button id="ed-x3" class="g">취소</button></div>`;
+  edEl("ed-x3").onclick = edClose;
+  edEl("ed-do").onclick = () => { const nm = edEl("ed-nn").value.trim(); if (!nm) { edToast("가게 이름을 써 주세요"); return; } const c = map.getCenter();
+    edSave("n-" + Date.now(), { name: nm, category: edEl("ed-nc").value, coord: [c.lng, c.lat], isNew: true, hidden: false }, "추가했어요"); };
+}
+function setEditMode(on) {
+  editMode = !!on; document.body.classList.toggle("editing", editMode);
+  edEl("edit-btn").classList.toggle("on", editMode); edEl("edit-btn").textContent = editMode ? "✏️ 편집 끝내기" : "✏️ 편집";
+  edEl("ed-bar").hidden = !editMode; if (!editMode) { edClose(); editShowHidden = false; edEl("ed-hid").classList.remove("on"); }
+  if (map.getSource("shops")) edRefresh();
+}
+(async function adminInit() {
+  try {
+    if (!window.supabase || LIVE || IS_LOCAL) return;
+    sbAdmin = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+    const { data } = await sbAdmin.auth.getSession();
+    const u = data && data.session && data.session.user;
+    if (!u || u.email !== ADMIN_EMAIL) return;             // 관리자가 아니면 편집 버튼 자체가 안 보임 (서버에서도 막힘)
+    edEl("edit-btn").hidden = false;
+    edEl("edit-btn").onclick = () => setEditMode(!editMode);
+    edEl("ed-add").onclick = edAddNew;
+    edEl("ed-hid").onclick = () => { editShowHidden = !editShowHidden; edEl("ed-hid").classList.toggle("on", editShowHidden); if (map.getSource("shops")) edRefresh(); };
+    edEl("ed-end").onclick = () => setEditMode(false);
+    if (/[?&]edit=1/.test(location.search)) { const go = () => setEditMode(true); if (map.getSource("shops")) go(); else map.once("idle", go); }
+  } catch (e) {}
+})();

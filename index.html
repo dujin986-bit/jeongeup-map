@@ -11,7 +11,7 @@
 <meta name="apple-mobile-web-app-title" content="정읍지도">
 <link rel="apple-touch-icon" href="icons/user-apple-180.png">
 <link href="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.css" rel="stylesheet">
-<link rel="stylesheet" href="style.css?v=34">
+<link rel="stylesheet" href="style.css?v=35">
 </head>
 <body>
 <div id="map"></div>
@@ -28,6 +28,7 @@
   <button id="feed-btn" class="chip on feedbtn">제보 0</button>
   <button id="refresh-btn" class="chip" title="새로고침">🔄</button>
   <button id="comm-btn" class="chip">💬 커뮤니티</button>
+  <button id="edit-btn" class="chip" hidden>✏️ 편집</button>
   <button id="install-btn" class="chip" hidden>📲 앱 설치</button>
   <button id="snd-btn" class="chip" title="배경음">🔇</button>
   <button id="night-btn" class="chip">🌙 밤</button>
@@ -62,17 +63,20 @@
 <div id="crosshair" hidden>📍</div>
 <div id="ch-name" hidden></div>
 <a id="live-exit" href="./">방송 모드 끄기 (Esc)</a>
-<div id="ver">v34</div>
+<div id="ver">v35</div>
 <div id="comm" hidden>
   <div class="comm-top"><button id="comm-back" class="chip">← 지도</button><strong>정읍 이야기</strong><button id="comm-refresh" class="chip">🔄</button></div>
   <div id="comm-body"></div>
 </div>
 <div id="install-modal" hidden><div id="install-box"></div></div>
+<div id="ed-bar" hidden><button id="ed-add">＋ 새 가게</button><button id="ed-hid">숨긴 가게 보기</button><button id="ed-end">편집 끝</button></div>
+<div id="ed-toast" hidden></div>
+<div id="ed-sheet" hidden></div>
 <div id="hint">＋ 제보하기 버튼을 누르거나 지도를 길게 누르세요</div>
 
 <script src="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="data.js?v=34"></script>
-<script src="app.js?v=34"></script>
+<script src="data.js?v=35"></script>
+<script src="app.js?v=35"></script>
 </body>
 </html>

@@ -44,3 +44,6 @@ const WEATHER_POINT = { lat: 35.57, lon: 126.856 };   // 날씨를 가져올 기
 
 // 커뮤니티 화면 상단 "이번 주 주제" (바꾸려면 이 줄만 고치면 됨. 비우면 숨김)
 const COMM_TOPIC = "내장산 단풍, 지금 어디가 제일 예뻐요?";
+
+// 관리자 이메일 (화면에 편집 버튼을 보여 주는 용도. 실제 쓰기 권한은 서버(RLS)에서 따로 막는다)
+const ADMIN_EMAIL = "dujin986@gmail.com";

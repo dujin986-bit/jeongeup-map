@@ -82,7 +82,7 @@
 <script src="data.js"></script>
 <script>
 const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
-const TABS = [["pending", "대기"], ["approved", "승인됨"], ["hidden", "숨김"], ["map", "지도 수정"]];
+const TABS = [["pending", "대기"], ["approved", "승인됨"], ["hidden", "숨김"], ["map", "지도 수정 ↗"]];
 let tab = "pending", rows = [];
 const $ = id => document.getElementById(id);
 const esc = s => String(s == null ? "" : s).replace(/[&<>"']/g, c => ({ "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;" }[c]));
@@ -106,7 +106,7 @@ function start() {
   for (const [k, label] of TABS) {
     const b = document.createElement("button");
     b.className = "tab" + (k === tab ? " on" : ""); b.dataset.k = k; b.textContent = label;
-    b.onclick = () => { tab = k; document.querySelectorAll(".tab").forEach(t => t.classList.toggle("on", t.dataset.k === k)); draw(); if (k === "map") openMapEdit(); };
+    b.onclick = () => { if (k === "map") { location.href = "./?edit=1"; return; } tab = k; document.querySelectorAll(".tab").forEach(t => t.classList.toggle("on", t.dataset.k === k)); draw(); if (k === "map") openMapEdit(); };
     $("tabs").appendChild(b);
   }
   load();
