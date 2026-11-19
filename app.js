@@ -606,12 +606,12 @@ function wxSeed() {
 }
 
 function wxTintColor() {
-  if (wx.kind === "fog") return "rgba(235,238,242," + (0.3 + 0.3 * wx.i) + ")";
-  if (wx.night) return "rgba(8,18,60," + (wx.kind === "clear" ? 0.38 : 0.5) + ")";
-  if (wx.kind === "storm") return "rgba(30,36,50,0.45)";
-  if (wx.kind === "rain") return "rgba(55,65,80," + (0.15 + 0.2 * wx.i) + ")";
-  if (wx.kind === "cloud") return "rgba(90,98,110," + (0.06 + 0.16 * wx.i) + ")";
-  if (wx.kind === "snow") return "rgba(235,242,255,0.14)";
+  if (wx.kind === "fog") return "rgba(235,238,242," + (0.08 + 0.12 * wx.i) + ")";
+  if (wx.night) return "rgba(8,18,60," + (wx.kind === "clear" ? 0.22 : 0.3) + ")";
+  if (wx.kind === "storm") return "rgba(30,36,50,0.28)";
+  if (wx.kind === "rain") return "rgba(55,65,80," + (0.06 + 0.1 * wx.i) + ")";
+  if (wx.kind === "cloud") return "rgba(90,98,110," + (0.02 + 0.07 * wx.i) + ")";
+  if (wx.kind === "snow") return "rgba(235,242,255,0.06)";
   return "transparent";
 }
 
