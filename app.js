@@ -1715,8 +1715,17 @@ function openFix(id, name) {
     } catch (e) {}
     return false;
   }
-  try { history.replaceState({ jg: 0 }, ""); history.pushState({ jg: 1 }, ""); } catch (e) { return; }
+  // 크롬은 사용자 조작 없이 쌓은 기록은 뒤로가기 때 건너뛴다 → 첫 터치 때 쌓는다
+  let armedInit = false;
+  function initHistory() {
+    if (armedInit) return; armedInit = true;
+    ["pointerdown", "touchstart", "keydown"].forEach(t => removeEventListener(t, initHistory, true));
+    try { history.pushState({ jg: 1 }, ""); } catch (e) {}
+  }
+  try { history.replaceState({ jg: 0 }, ""); } catch (e) { return; }
+  ["pointerdown", "touchstart", "keydown"].forEach(t => addEventListener(t, initHistory, { capture: true, passive: true }));
   addEventListener("popstate", () => {
+    if (!armedInit) return;
     if (closeTop()) { history.pushState({ jg: 1 }, ""); return; }
     if (armed) { armed = false; clearTimeout(timer); toast.hidden = true; history.back(); return; }   // 두 번째: 종료
     armed = true; toast.hidden = false;
