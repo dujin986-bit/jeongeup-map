@@ -21,7 +21,7 @@ if (DARKSTYLE) {
 let VEC_SRC_CACHE = null;
 function vecSrc() {                // 스타일의 벡터 타일 소스 이름 (liberty=openmaptiles, CARTO=carto 등)
   if (VEC_SRC_CACHE) return VEC_SRC_CACHE;
-  const s = map.getStyle().sources;
+  const s = map.getStyle().sources || {};
   VEC_SRC_CACHE = s.openmaptiles ? "openmaptiles" : (Object.keys(s).find(k => s[k].type === "vector") || "openmaptiles");
   return VEC_SRC_CACHE;
 }
