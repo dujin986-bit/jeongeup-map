@@ -116,6 +116,7 @@ map.on("load", () => {
       },
     });
   }
+  try { map.setLight({ anchor: "viewport", position: [1.4, 210, 45], intensity: 0.55, color: "#fff4e0" }); } catch (e) {}   // 면 음영
   setupTerrain();
   setupColors();
   setupBasePoi();
@@ -157,7 +158,8 @@ async function loadLocalBuildings() {
       map.addLayer({
         id: `${src}-3d`, type: "fill-extrusion", source: src, minzoom: 14,
         paint: {
-          "fill-extrusion-color": HEIGHT_COLOR,
+          "fill-extrusion-color": APT_COLOR,
+          "fill-extrusion-vertical-gradient": true,
           // 층수 정보가 없는 건물(height 0)은 기본 6m로 표시
           "fill-extrusion-height": ["case", [">", ["get", "height"], 0], ["get", "height"], 6],
           "fill-extrusion-opacity": 0.92,
@@ -459,7 +461,14 @@ setInterval(fetchReports, 30000);   // 실시간 알림이 안 올 때를 위한
 
 
 // ---------- 지형 + 색감 ----------
-const HEIGHT_COLOR = ["interpolate", ["linear"], ["coalesce", ["get", "height"], 6],
+// 아파트 추정: 이름에 '아파트' 포함 또는 높이 24m(8층) 이상 → 건물마다 파스텔톤을 섞어 단지 느낌
+const IS_APT = ["any", [">=", ["coalesce", ["get", "height"], 0], 24], [">", ["index-of", "아파트", ["coalesce", ["get", "name"], ""]], -1]];
+const APT_PICK = ["%", ["floor", ["/", ["to-number", ["coalesce", ["get", "id"], "0"], 0], 1000]], 5];
+const APT_COLOR = ["case", IS_APT,
+  ["match", APT_PICK, 0, "#f2e3c6", 1, "#cfe0f1", 2, "#e9d2d2", 3, "#d5e6d0", "#e0dbee"],
+  ["interpolate", ["linear"], ["coalesce", ["get", "height"], 6],
+    0, "#e8dcc8", 10, "#e3c9a8", 25, "#d9a98a", 45, "#c98a7a", 70, "#a96f86"]];
+const HEIGHT_COLOR_OLD = ["interpolate", ["linear"], ["coalesce", ["get", "height"], 6],
   0, "#e8dcc8", 10, "#e3c9a8", 25, "#d9a98a", 45, "#c98a7a", 70, "#a96f86"];
 
 function setupTerrain() {
@@ -518,7 +527,7 @@ function setupColors() {
   // 기본 지도(오픈스트리트) 건물도 같은 톤으로
   for (const l of map.getStyle().layers) {
     if (l.type === "fill-extrusion" && !l.id.startsWith("local-")) {
-      set(l.id, "fill-extrusion-color", HEIGHT_COLOR.map((v, i) => i === 2 ? ["coalesce", ["get", "render_height"], 6] : v));
+      set(l.id, "fill-extrusion-color", HEIGHT_COLOR_OLD.map((v, i) => i === 2 ? ["coalesce", ["get", "render_height"], 6] : v));
     }
   }
 }
