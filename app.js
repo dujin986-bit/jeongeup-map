@@ -771,6 +771,7 @@ function applyWeather(next) {
   if (nightForce !== null) next = { ...next, night: nightForce };
   wx = next;
   setBuildingNight(wx.night);
+  if (typeof updateAmbience === "function") updateAmbience();
   wxTint.style.backgroundColor = wxTintColor();
   wxSeed();
   const b = document.getElementById("wx-badge");
@@ -1191,3 +1192,58 @@ function playFx(cat, el) {
   }
   requestAnimationFrame(frame);
 }
+
+
+// ===== 배경 환경음 (🔊 버튼, 기본 꺼짐): 바람 + 날씨에 따른 빗소리·천둥, 파일 없이 코드로 합성 =====
+let AC = null, amb = null, sndOn = false;
+function noiseBuffer(ctx, color) {
+  const len = ctx.sampleRate * 3, buf = ctx.createBuffer(1, len, ctx.sampleRate), d = buf.getChannelData(0);
+  let b0 = 0, last = 0;
+  for (let i = 0; i < len; i++) {
+    const w = Math.random() * 2 - 1;
+    if (color === "brown") { last = (last + 0.02 * w) / 1.02; d[i] = last * 3.5; }
+    else { b0 = 0.97 * b0 + 0.03 * w; d[i] = w * 0.5 + b0 * 0.5; }
+  }
+  return buf;
+}
+function startAmbience() {
+  if (!AC) {
+    AC = new (window.AudioContext || window.webkitAudioContext)();
+    const master = AC.createGain(); master.gain.value = 0; master.connect(AC.destination);
+    const mk = (color, build) => { const s = AC.createBufferSource(); s.buffer = noiseBuffer(AC, color); s.loop = true; const g = AC.createGain(); g.gain.value = 0; build(s, g); s.start(); return g; };
+    const wind = mk("brown", (s, g) => { const f = AC.createBiquadFilter(); f.type = "lowpass"; f.frequency.value = 500; s.connect(f); f.connect(g); g.connect(master);
+      const lfo = AC.createOscillator(); lfo.frequency.value = 0.07; const lg = AC.createGain(); lg.gain.value = 0.03; lfo.connect(lg); lg.connect(g.gain); lfo.start(); });
+    const rain = mk("white", (s, g) => { const h = AC.createBiquadFilter(); h.type = "highpass"; h.frequency.value = 900; const l = AC.createBiquadFilter(); l.type = "lowpass"; l.frequency.value = 7500; s.connect(h); h.connect(l); l.connect(g); g.connect(master); });
+    amb = { master, wind, rain, thunderT: 0 };
+  }
+  AC.resume && AC.resume();
+  updateAmbience();
+}
+function updateAmbience() {
+  if (!amb || !sndOn) return;
+  const t = AC.currentTime, rainy = wx.kind === "rain" || wx.kind === "storm", i = wx.i || 0.5;
+  amb.master.gain.setTargetAtTime(0.5, t, 0.8);
+  amb.wind.gain.setTargetAtTime(wx.kind === "snow" ? 0.05 : (wx.night ? 0.06 : 0.09) + (wx.kind === "storm" ? 0.08 : 0), t, 1.5);
+  amb.rain.gain.setTargetAtTime(rainy ? 0.04 + 0.16 * i : 0, t, 1.5);
+}
+function thunderLoop() {                       // 천둥번개 날씨에서만, 가끔 낮게 울리는 소리
+  if (sndOn && AC && wx.kind === "storm" && !document.hidden) {
+    const t = AC.currentTime, s = AC.createBufferSource(); s.buffer = noiseBuffer(AC, "brown");
+    const f = AC.createBiquadFilter(); f.type = "lowpass"; f.frequency.value = 160; const g = AC.createGain();
+    g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(0.5, t + 0.15); g.gain.exponentialRampToValueAtTime(0.001, t + 2.6);
+    s.connect(f); f.connect(g); g.connect(amb.master); s.start(t); s.stop(t + 2.8);
+  }
+  setTimeout(thunderLoop, 9000 + Math.random() * 12000);
+}
+thunderLoop();
+(function sndBtn() {
+  const b = document.getElementById("snd-btn"); if (!b || LIVE) return;
+  const label = () => { b.textContent = sndOn ? "🔊" : "🔇"; b.classList.toggle("on", sndOn); };
+  b.onclick = () => {
+    sndOn = !sndOn; try { localStorage.setItem("snd", sndOn ? "1" : "0"); } catch (e) {}
+    if (sndOn) startAmbience(); else if (amb) amb.master.gain.setTargetAtTime(0, AC.currentTime, 0.3);
+    label();
+  };
+  document.addEventListener("visibilitychange", () => { if (!AC) return; if (document.hidden) AC.suspend(); else if (sndOn) AC.resume(); });
+  label();
+})();

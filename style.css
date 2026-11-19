@@ -201,3 +201,5 @@ body.live #install-btn, body.live #install-modal { display: none !important; }
 .im-row { display: flex; gap: 8px; margin-top: 12px; }
 .im-row button { flex: 1; padding: 10px; border-radius: 10px; border: 1px solid #ccc; background: #f4f5f7; font-size: 14px; }
 .im-row button:first-child:not(:last-child) { background: #1f6feb; color: #fff; border-color: #1f6feb; }
+
+body.live #snd-btn { display: none !important; }
