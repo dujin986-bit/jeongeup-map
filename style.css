@@ -126,3 +126,7 @@ body.live #fab, body.live #crosshair { display: none !important; }
   #panel { width: 96vw; bottom: 10px; }
   #hint { display: none; }
 }
+
+#sim-note { position: fixed; left: 18px; bottom: 100px; z-index: 5; background: rgba(0,0,0,.55); color: #fff;
+  font-size: 13px; padding: 4px 10px; border-radius: 12px; }
+#sim-note[hidden] { display: none; }

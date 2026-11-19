@@ -115,7 +115,7 @@ map.on("load", () => {
   setupColors();
   setupBasePoi();
   loadBoundary();
-  loadLocalBuildings().then(loadShops);   // 건물 레이어 뒤에 올려야 가려지지 않음
+  loadLocalBuildings().then(() => { loadShops(); loadSignals(); });   // 건물 레이어 뒤에 올려야 가려지지 않음
   loadPlaces();
   render();
 });
@@ -686,3 +686,39 @@ const WX_PRESET = {
   sel.onchange = () => go(sel.value);
   if (q && WX_PRESET[q]) { sel.value = q; go(q); }
 })();
+
+
+// ---------- 신호등 (위치는 OSM 실제 데이터, 색 변화는 방송 모드 연출) ----------
+async function loadSignals() {
+  try {
+    const res = await fetch("data/signals.json?" + Date.now());
+    if (!res.ok) return;
+    const pts = await res.json();
+    if (!pts.length) return;
+    const feats = pts.map((c, i) => ({ type: "Feature", geometry: { type: "Point", coordinates: c },
+      properties: { ph: (i * 7) % 30, st: "idle" } }));
+    const gj = { type: "FeatureCollection", features: feats };
+    map.addSource("signals", { type: "geojson", data: gj });
+    map.addLayer({
+      id: "signals-dot", type: "circle", source: "signals", minzoom: 14.5,
+      paint: {
+        "circle-radius": ["interpolate", ["linear"], ["zoom"], 14.5, 2.5, 17, 5, 19, 8],
+        "circle-color": ["match", ["get", "st"], "g", "#2ecc71", "y", "#f1c40f", "r", "#e74c3c", "#3b3f46"],
+        "circle-stroke-color": "#ffffff", "circle-stroke-width": 1.2,
+        "circle-pitch-alignment": "map",
+      },
+    });
+    if (LIVE) {                                     // 연출: 30초 주기 (초록14 / 노랑2 / 빨강14)
+      const tick = () => {
+        const t = Math.floor(Date.now() / 1000);
+        for (const f of feats) {
+          const k = (t + f.properties.ph) % 30;
+          f.properties.st = k < 14 ? "g" : k < 16 ? "y" : "r";
+        }
+        map.getSource("signals").setData(gj);
+      };
+      tick(); setInterval(tick, 2000);
+      document.getElementById("sim-note").hidden = false;
+    }
+  } catch (e) { /* 파일 없음: 무시 */ }
+}
