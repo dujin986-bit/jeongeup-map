@@ -711,7 +711,7 @@ async function loadSignals() {
     const gj = { type: "FeatureCollection", features: feats };
     map.addSource("signals", { type: "geojson", data: gj });
     map.addLayer({
-      id: "signals-3d", type: "fill-extrusion", source: "signals", minzoom: 15.5,
+      id: "signals-3d", type: "fill-extrusion", source: "signals", minzoom: 16.3,
       paint: {
         "fill-extrusion-base": ["get", "b"], "fill-extrusion-height": ["get", "h"],
         "fill-extrusion-color": ["case",
