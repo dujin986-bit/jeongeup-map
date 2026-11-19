@@ -646,7 +646,7 @@ function ensureNightLights() {
   try {
     if (!map.getLayer("night-road-glow")) {
       const firstExt = map.getStyle().layers.find(l => l.type === "fill-extrusion");
-      const flt = ["in", ["get", "class"], ["literal", ["motorway", "trunk", "primary", "secondary", "tertiary", "minor", "street", "residential", "service"]]];
+      const flt = ["in", ["get", "class"], ["literal", ["motorway", "trunk", "primary", "secondary", "tertiary"]]];
       const w = k => ["interpolate", ["linear"], ["zoom"], 13, ["*", k, 2], 17, ["*", k, 11]];
       const kk = ["match", ["get", "class"], ["motorway", "trunk", "primary"], 1.2, ["secondary", "tertiary"], 0.8, 0.4];
       map.addLayer({ id: "night-road-glow", type: "line", source: vecSrc(), "source-layer": "transportation", minzoom: 13, filter: flt,
@@ -667,17 +667,18 @@ function ensureNightLights() {
 // ---------- 도로 톤 + 큰 도로 중앙선 + 밤 라벨 ----------
 const ROAD_ORIG = {};
 function roadTier(id) { return /(motorway|trunk|primary)/.test(id) ? 1 : /(secondary|tertiary)/.test(id) ? 2 : 3; }
-const ROAD_DAY = { 1: "#c4c4c8", 2: "#d2d2d5", 3: "#e3e2df" };
+const ROAD_DAY = { 1: "#b4b4b9", 2: "#cacace", 3: "#e3e2df" };
+const ROAD_DAY_CASE = { 1: "#8f8a84", 2: "#a9a49e", 3: "#c4c0ba" };
 const ROAD_NIGHT = { 1: "#6a7280", 2: "#5d6573", 3: "#4f5662" };
 const ROAD_NIGHT_CASE = "#2b313c";
 function setupRoads() {
   try {
     const firstExt = map.getStyle().layers.find(l => l.type === "fill-extrusion");
     if (!map.getLayer("road-centerline")) {
-      map.addLayer({ id: "road-centerline", type: "line", source: vecSrc(), "source-layer": "transportation", minzoom: 15,
-        filter: ["all", ["in", ["get", "class"], ["literal", ["motorway", "trunk", "primary", "secondary"]]], ["!=", ["get", "brunnel"], "tunnel"]],
+      map.addLayer({ id: "road-centerline", type: "line", source: vecSrc(), "source-layer": "transportation", minzoom: 14,
+        filter: ["all", ["in", ["get", "class"], ["literal", ["motorway", "trunk", "primary", "secondary"]]], ["!=", ["get", "brunnel"], "tunnel"], ["==", ["coalesce", ["get", "oneway"], 0], 0]],
         layout: { "line-cap": "butt", "line-join": "round" },
-        paint: { "line-color": "#e2b52f", "line-opacity": 0.9, "line-width": ["interpolate", ["linear"], ["zoom"], 15, 0.5, 18, 1.6, 20, 2.6] } }, firstExt && firstExt.id);
+        paint: { "line-color": "#e2b52f", "line-opacity": 0.9, "line-width": ["interpolate", ["linear"], ["zoom"], 14, 0.6, 16, 1.2, 18, 2.2, 20, 3.2] } }, firstExt && firstExt.id);
     }
   } catch (e) {}
   applyRoadTone(nightOn);
@@ -688,7 +689,7 @@ function applyRoadTone(on) {
       if (l.type !== "line" || !/^(road|bridge)_/.test(l.id) || /(tunnel|rail|oneway|arrow|path|pier|track|steps|ferry)/.test(l.id)) continue;
       if (!(l.id in ROAD_ORIG)) ROAD_ORIG[l.id] = map.getPaintProperty(l.id, "line-color");
       const casing = /casing/.test(l.id), t = roadTier(l.id);
-      if (casing) map.setPaintProperty(l.id, "line-color", on ? ROAD_NIGHT_CASE : ROAD_ORIG[l.id]);
+      if (casing) map.setPaintProperty(l.id, "line-color", on ? ROAD_NIGHT_CASE : ROAD_DAY_CASE[t]);
       else map.setPaintProperty(l.id, "line-color", on ? ROAD_NIGHT[t] : ROAD_DAY[t]);
     }
     if (map.getLayer("road-centerline")) map.setPaintProperty("road-centerline", "line-color", on ? "#f0c850" : "#e2b52f");
@@ -703,7 +704,7 @@ function applyLabelTone(on) {          // 밤: 밝은 글씨 + 어두운 halo (�
       const o = LABEL_ORIG[l.id];
       map.setPaintProperty(l.id, "text-color", on ? "#eef2f8" : o[0]);
       map.setPaintProperty(l.id, "text-halo-color", on ? "#131a27" : o[1]);
-      map.setPaintProperty(l.id, "text-halo-width", on ? 1.8 : o[2]);
+      map.setPaintProperty(l.id, "text-halo-width", on ? 1.3 : o[2]);
     }
   } catch (e) {}
 }
