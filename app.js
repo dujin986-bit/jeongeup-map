@@ -17,7 +17,8 @@ const STORE_KEY = "jeongeup-reports-v1";
 const load = () => { try { return JSON.parse(localStorage.getItem(STORE_KEY)) || []; } catch { return []; } };
 const store = (list) => { try { localStorage.setItem(STORE_KEY, JSON.stringify(list)); } catch {} };
 
-let reports = load();            // 시민 제보 (현재는 이 브라우저에만 저장. 이후 서버 연동)
+const IS_LOCAL = ["localhost", "127.0.0.1", "[::1]"].includes(location.hostname);   // 내 PC에서만 가게 수정 가능
+let reports = [];                // 시민 제보: 서버(Supabase)에서 승인된 것만 받아옴
 let activeCats = new Set(Object.keys(CATEGORIES));
 let markers = [];
 
@@ -269,13 +270,14 @@ async function loadShops() {
       if (!list.length) return;
       const rows = list.map((p, i) =>
         `<div class="shop-row" data-i="${i}"><strong>${esc(p.name)}</strong><br>${esc(p.category)}<br>` +
-        `<small>${esc(p.address)}</small><div class="edit-row">` +
-        `<button data-a="rename">이름 수정</button><button data-a="hide">없는 가게</button></div></div>`).join("");
+        `<small>${esc(p.address)}</small>` + (IS_LOCAL ? `<div class="edit-row">` +
+        `<button data-a="rename">이름 수정</button><button data-a="hide">없는 가게</button></div>` : "") + `</div>`).join("");
       const head = list.length > 1 ? `<div class="shop-head">이 위치에 가게 ${list.length}곳</div>` : "";
       const pop = new maplibregl.Popup({ offset: 10, maxWidth: "300px" }).setLngLat(e.lngLat)
         .setHTML(`${head}<div class="shop-list">${rows}</div>`).addTo(map);
       pop.getElement().querySelectorAll(".shop-row").forEach(row => {
         const p = list[Number(row.dataset.i)];
+        if (!IS_LOCAL) return;
         row.querySelector('[data-a="rename"]').onclick = async () => {
           const n = window.prompt("올바른 가게 이름", p.name);
           if (!n || !n.trim()) return;
@@ -337,6 +339,10 @@ function syncMode() {
   document.getElementById("desc").placeholder = shop ? "주소/설명 (선택)" : "내용 (선택)";
 }
 modeSel.onchange = syncMode;
+if (!IS_LOCAL) {                            // 공개 사이트에서는 제보만
+  modeSel.hidden = true;
+  document.getElementById("hint").textContent = "지도를 길게 누르면(PC는 우클릭) 우리 동네 소식을 제보할 수 있어요";
+}
 
 async function saveShop() {
   const name = document.getElementById("title").value.trim();
@@ -349,18 +355,46 @@ async function saveShop() {
   } catch (err) { alert(err.message); }
 }
 
-document.getElementById("save").onclick = () => {
+document.getElementById("save").onclick = async () => {
   if (modeSel.value === "shop") { saveShop(); return; }
   const title = document.getElementById("title").value.trim();
   if (!title || !pending) return;
-  reports.push({
-    title, desc: document.getElementById("desc").value.trim(),
-    cat: catSel.value, coord: pending, ts: Date.now(),
-  });
-  store(reports); render();
-  document.getElementById("title").value = ""; document.getElementById("desc").value = "";
-  panel.hidden = true;
+  const last = Number(localStorage.getItem("jeongeup-last-report") || 0);
+  if (Date.now() - last < 30000) { alert("제보는 30초에 한 번만 보낼 수 있어요."); return; }
+  const btn = document.getElementById("save"); btn.disabled = true;
+  try {
+    const res = await fetch(SUPABASE_URL + "/rest/v1/reports", {
+      method: "POST",
+      headers: { apikey: SUPABASE_KEY, Authorization: "Bearer " + SUPABASE_KEY,
+                 "Content-Type": "application/json", Prefer: "return=minimal" },
+      body: JSON.stringify({ category: catSel.value, title: title.slice(0, 60),
+        description: document.getElementById("desc").value.trim().slice(0, 300),
+        lon: pending[0], lat: pending[1] }),
+    });
+    if (!res.ok) throw new Error("제보 전송 실패 (" + res.status + ")");
+    try { localStorage.setItem("jeongeup-last-report", String(Date.now())); } catch {}
+    document.getElementById("title").value = ""; document.getElementById("desc").value = "";
+    panel.hidden = true;
+    alert("제보가 접수됐어요! 확인 후 지도에 표시됩니다.");
+  } catch (err) { alert(err.message); }
+  btn.disabled = false;
 };
+
+// 승인된 제보를 서버에서 받아옴 (15초마다 갱신)
+async function fetchReports() {
+  try {
+    const res = await fetch(SUPABASE_URL + "/rest/v1/reports?select=id,category,title,description,lon,lat,created_at&order=created_at.desc&limit=200",
+      { headers: { apikey: SUPABASE_KEY, Authorization: "Bearer " + SUPABASE_KEY } });
+    if (!res.ok) return;
+    const rows = await res.json();
+    reports = rows.filter(r => CATEGORIES[r.category]).map(r => ({
+      id: r.id, title: r.title, desc: r.description || "", cat: r.category,
+      coord: [r.lon, r.lat], ts: r.created_at }));
+    render();
+  } catch (e) {}
+}
+fetchReports();
+setInterval(fetchReports, 15000);
 
 
 // ---------- 지형 + 색감 ----------

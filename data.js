@@ -24,3 +24,7 @@ const ZONES = [
   { id: "downtown",   name: "시내 중심가", status: "todo" },
   { id: "residential",name: "주거지",      status: "todo" },
 ];
+
+// 제보 서버(Supabase). 공개해도 되는 publishable 키입니다. (secret 키는 절대 넣지 마세요)
+const SUPABASE_URL = "https://ljluvdikyjgniyuvgotk.supabase.co";
+const SUPABASE_KEY = "sb_publishable_5_Zs5kq3U3CGO1gWGDn7RQ_hyTRhybK";
