@@ -936,7 +936,11 @@ document.addEventListener("click", e => { if (!e.target.closest("#searchbox")) r
 // ===== PWA: 서비스워커 + 홈 화면 추가 안내 =====
 (function () {
   if (IS_LOCAL) return;
-  if ("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js").catch(() => {});
+  if ("serviceWorker" in navigator) {
+    const had = !!navigator.serviceWorker.controller;
+    navigator.serviceWorker.addEventListener("controllerchange", () => { if (had && !window.__reloaded) { window.__reloaded = true; location.reload(); } });   // 새 버전이 깔리면 한 번 자동 새로고침
+    navigator.serviceWorker.register("sw.js").catch(() => {});
+  }
   if (LIVE) return;
   const ua = navigator.userAgent;
   const standalone = matchMedia("(display-mode: standalone)").matches || navigator.standalone;
