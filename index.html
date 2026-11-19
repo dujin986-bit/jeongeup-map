@@ -9,12 +9,20 @@
 </head>
 <body>
 <div id="map"></div>
+<div id="wx-tint"></div>
+<canvas id="wx-canvas"></canvas>
 
 <header id="top">
   <strong>정읍 3D 지도</strong>
   <span id="viewers" class="viewers" hidden></span>
+  <span id="wx-badge" class="viewers wx" hidden></span>
   <nav id="filters"></nav>
   <button id="feed-btn" class="chip on feedbtn">제보 0</button>
+  <select id="wx-select" class="chip" hidden>
+    <option value="auto">날씨: 실시간</option><option value="clear">맑음</option><option value="cloud">흐림</option>
+    <option value="rain">비</option><option value="heavyrain">폭우</option><option value="snow">눈</option>
+    <option value="fog">안개</option><option value="night">밤</option><option value="storm">천둥번개</option>
+  </select>
   <a id="live-link" class="chip" href="?live=1" hidden>방송 모드</a>
   <div id="feed" hidden></div>
 </header>

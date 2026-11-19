@@ -102,3 +102,10 @@ body.live #feed {
   text-align: center; padding: 8px; font-size: 20px; font-weight: 700;
 }
 #tour-label[hidden], #live-url[hidden] { display: none; }
+
+/* 날씨 효과 */
+#wx-tint, #wx-canvas { position: fixed; inset: 0; width: 100%; height: 100%; z-index: 3; pointer-events: none; }
+#wx-tint { transition: background-color 2s ease; background-color: transparent; }
+.wx { color: #333; }
+body.live #wx-select { display: none !important; }
+#wx-select[hidden] { display: none; }

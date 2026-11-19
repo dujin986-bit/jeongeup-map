@@ -552,3 +552,126 @@ if (LIVE) {
   document.getElementById("live-url").hidden = false;
   map.on("load", () => { setTimeout(tourStep, 4000); setInterval(tourStep, 17000); });
 }
+
+
+// ---------- 날씨 효과 (비/눈/안개/밤/천둥번개) ----------
+const WX_CODE = (c) => {
+  if (c <= 1) return { kind: "clear", label: "맑음", i: 0 };
+  if (c === 2) return { kind: "cloud", label: "구름 조금", i: 0.3 };
+  if (c === 3) return { kind: "cloud", label: "흐림", i: 0.6 };
+  if (c === 45 || c === 48) return { kind: "fog", label: "안개", i: 0.7 };
+  if (c >= 51 && c <= 57) return { kind: "rain", label: "이슬비", i: 0.25 };
+  if (c === 61) return { kind: "rain", label: "약한 비", i: 0.4 };
+  if (c === 63 || c === 66) return { kind: "rain", label: "비", i: 0.6 };
+  if (c === 65 || c === 67) return { kind: "rain", label: "강한 비", i: 0.9 };
+  if (c === 71 || c === 77) return { kind: "snow", label: "약한 눈", i: 0.35 };
+  if (c === 73) return { kind: "snow", label: "눈", i: 0.6 };
+  if (c === 75) return { kind: "snow", label: "폭설", i: 0.9 };
+  if (c === 80) return { kind: "rain", label: "소나기", i: 0.5 };
+  if (c === 81) return { kind: "rain", label: "소나기", i: 0.7 };
+  if (c === 82) return { kind: "rain", label: "폭우", i: 1 };
+  if (c === 85) return { kind: "snow", label: "눈", i: 0.5 };
+  if (c === 86) return { kind: "snow", label: "폭설", i: 0.9 };
+  if (c >= 95) return { kind: "storm", label: "천둥번개", i: c === 95 ? 0.8 : 1 };
+  return { kind: "cloud", label: "흐림", i: 0.4 };
+};
+const WX_ICON = { clear: "☀️", cloud: "☁️", rain: "🌧", snow: "❄️", fog: "🌫", storm: "⛈" };
+
+let wx = { kind: "clear", label: "맑음", i: 0, night: false, temp: null };
+const wxCanvas = document.getElementById("wx-canvas"), wxCtx = wxCanvas.getContext("2d");
+const wxTint = document.getElementById("wx-tint");
+let wxParticles = [], wxFlash = 0, wxNextFlash = 0;
+function wxResize() { wxCanvas.width = innerWidth; wxCanvas.height = innerHeight; wxSeed(); }
+addEventListener("resize", wxResize);
+
+function wxSeed() {
+  const scale = (innerWidth * innerHeight) / (1920 * 1080);
+  let n = 0;
+  if (wx.kind === "rain" || wx.kind === "storm") n = (200 + 900 * wx.i) * scale;
+  if (wx.kind === "snow") n = (100 + 500 * wx.i) * scale;
+  n = Math.max(0, Math.round(n));
+  while (wxParticles.length < n) wxParticles.push({ x: Math.random() * innerWidth, y: Math.random() * innerHeight, v: Math.random(), ph: Math.random() * 6.28 });
+  wxParticles.length = n;
+}
+
+function wxTintColor() {
+  if (wx.kind === "fog") return "rgba(235,238,242," + (0.3 + 0.3 * wx.i) + ")";
+  if (wx.night) return "rgba(8,18,60," + (wx.kind === "clear" ? 0.38 : 0.5) + ")";
+  if (wx.kind === "storm") return "rgba(30,36,50,0.45)";
+  if (wx.kind === "rain") return "rgba(55,65,80," + (0.15 + 0.2 * wx.i) + ")";
+  if (wx.kind === "cloud") return "rgba(90,98,110," + (0.06 + 0.16 * wx.i) + ")";
+  if (wx.kind === "snow") return "rgba(235,242,255,0.14)";
+  return "transparent";
+}
+
+function applyWeather(next) {
+  wx = next;
+  wxTint.style.backgroundColor = wxTintColor();
+  wxSeed();
+  const b = document.getElementById("wx-badge");
+  b.textContent = `${wx.night && wx.kind === "clear" ? "🌙" : WX_ICON[wx.kind]} 정읍 ${wx.temp != null ? Math.round(wx.temp) + "°C · " : ""}${wx.night && wx.kind === "clear" ? "맑은 밤" : wx.label}`;
+  b.hidden = false;
+}
+
+function wxDraw(t) {
+  wxCtx.clearRect(0, 0, wxCanvas.width, wxCanvas.height);
+  const w = wxCanvas.width, h = wxCanvas.height;
+  if (wx.kind === "rain" || wx.kind === "storm") {
+    wxCtx.strokeStyle = wx.night ? "rgba(190,205,235,0.55)" : "rgba(120,140,170,0.6)";
+    wxCtx.lineWidth = 1.2; wxCtx.beginPath();
+    for (const p of wxParticles) {
+      const len = 12 + 16 * p.v, sp = 14 + 14 * p.v;
+      wxCtx.moveTo(p.x, p.y); wxCtx.lineTo(p.x - 3, p.y + len);
+      p.y += sp; p.x -= 1.2;
+      if (p.y > h) { p.y = -20; p.x = Math.random() * (w + 40); }
+    }
+    wxCtx.stroke();
+  } else if (wx.kind === "snow") {
+    wxCtx.fillStyle = "rgba(255,255,255,0.85)";
+    for (const p of wxParticles) {
+      const r = 1.5 + 2.5 * p.v;
+      wxCtx.beginPath(); wxCtx.arc(p.x + Math.sin(t / 900 + p.ph) * 12, p.y, r, 0, 6.28); wxCtx.fill();
+      p.y += 1.2 + 1.8 * p.v;
+      if (p.y > h + 5) { p.y = -5; p.x = Math.random() * w; }
+    }
+  }
+  if (wx.kind === "storm") {               // 번개 번쩍
+    if (t > wxNextFlash) { wxFlash = 1; wxNextFlash = t + 4000 + Math.random() * 8000; }
+    if (wxFlash > 0) { wxCtx.fillStyle = `rgba(255,255,255,${wxFlash * 0.55})`; wxCtx.fillRect(0, 0, w, h); wxFlash -= 0.08; }
+  }
+  requestAnimationFrame(wxDraw);
+}
+wxResize(); requestAnimationFrame(wxDraw);
+
+// 실시간 날씨 (10분마다 자동 갱신)
+let wxManual = false;
+async function fetchWeather() {
+  if (wxManual) return;
+  try {
+    const url = `https://api.open-meteo.com/v1/forecast?latitude=${WEATHER_POINT.lat}&longitude=${WEATHER_POINT.lon}` +
+      `&current=temperature_2m,weather_code,is_day&timezone=Asia%2FSeoul`;
+    const r = await fetch(url); if (!r.ok) return;
+    const cur = (await r.json()).current; if (!cur) return;
+    applyWeather({ ...WX_CODE(cur.weather_code), night: cur.is_day === 0, temp: cur.temperature_2m });
+  } catch (e) {}
+}
+fetchWeather(); setInterval(fetchWeather, 600000);
+
+// 미리보기 (내 PC 또는 ?wx=rain 처럼 주소에 붙였을 때)
+const WX_PRESET = {
+  clear: { kind: "clear", label: "맑음", i: 0 }, cloud: { kind: "cloud", label: "흐림", i: 0.6 },
+  rain: { kind: "rain", label: "비", i: 0.6 }, heavyrain: { kind: "rain", label: "폭우", i: 1 },
+  snow: { kind: "snow", label: "눈", i: 0.6 }, fog: { kind: "fog", label: "안개", i: 0.7 },
+  night: { kind: "clear", label: "맑음", i: 0, night: true }, storm: { kind: "storm", label: "천둥번개", i: 0.9, night: true },
+};
+(function wxPreview() {
+  const sel = document.getElementById("wx-select");
+  const q = new URLSearchParams(location.search).get("wx");
+  if (IS_LOCAL || q) sel.hidden = false;
+  const go = v => {
+    if (v === "auto") { wxManual = false; fetchWeather(); return; }
+    wxManual = true; applyWeather({ temp: null, night: false, ...WX_PRESET[v] });
+  };
+  sel.onchange = () => go(sel.value);
+  if (q && WX_PRESET[q]) { sel.value = q; go(q); }
+})();

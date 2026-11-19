@@ -36,3 +36,5 @@ const TOUR = [
   { name: "상동 · 수성", center: [126.8720, 35.5570], zoom: 15.8, pitch: 62, bearing: 140 },
   { name: "정읍역 일대", center: [126.8470, 35.5700], zoom: 15.6, pitch: 62, bearing: 250 },
 ];
+
+const WEATHER_POINT = { lat: 35.57, lon: 126.856 };   // 날씨를 가져올 기준 위치(정읍 시내)
