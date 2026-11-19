@@ -399,6 +399,12 @@ function setupColors() {
     else if (l.type === "fill" && /(grass|park|meadow|farm|agri)/.test(id)) set(id, "fill-color", "#c5e0a5");
   }
   set("background", "background-color", "#f4efe4");
+  // 산길·오솔길·보행로 점선은 너무 많아서 가까이 확대했을 때만 표시
+  for (const l of map.getStyle().layers) {
+    if (l.type === "line" && /(path|track|trail|footway|pedestrian|cycleway|steps)/i.test(l.id) && !/tunnel/i.test(l.id)) {
+      try { map.setLayerZoomRange(l.id, 17, 24); } catch (e) {}
+    }
+  }
   // 터널 도로: 네이버 지도처럼 연한 살구색 띠 + 회색 점선 테두리
   for (const l of map.getStyle().layers) {
     if (!/tunnel/i.test(l.id) || l.type !== "line") continue;
@@ -407,7 +413,7 @@ function setupColors() {
       if (/casing/i.test(l.id)) {
         map.setPaintProperty(l.id, "line-color", "#8a7f7a");
         map.setPaintProperty(l.id, "line-opacity", 0.9);
-        map.setPaintProperty(l.id, "line-dasharray", [2, 2]);
+        map.setPaintProperty(l.id, "line-opacity", 0.5);
       } else {
         map.setPaintProperty(l.id, "line-color", "#ecd8cc");
         map.setPaintProperty(l.id, "line-opacity", 0.95);
