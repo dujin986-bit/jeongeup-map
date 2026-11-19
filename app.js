@@ -328,7 +328,7 @@ async function fetchShopEdits() {
     if (src) {
       const feats = shopFeatures();
       src.setData({ type: "FeatureCollection", features: feats });
-      const chip = document.getElementById("shop-chip"); if (chip) chip.textContent = `상가 ${feats.length}`;
+      const chip = document.getElementById("shop-chip"); if (chip) chip.textContent = "상가";
     }
     return true;
   } catch (e) { return false; }
@@ -355,7 +355,7 @@ async function sendEdit(payload) {
   const feats = shopFeatures();
   map.getSource("shops").setData({ type: "FeatureCollection", features: feats });
   const chip = document.getElementById("shop-chip");
-  if (chip) chip.textContent = `상가 ${feats.length}`;
+  if (chip) chip.textContent = "상가";
 }
 
 async function loadShops() {
@@ -417,10 +417,11 @@ async function loadShops() {
     map.on("mouseenter", "shops-dot", () => { map.getCanvas().style.cursor = "pointer"; });
     map.on("mouseleave", "shops-dot", () => { map.getCanvas().style.cursor = ""; });
     const chip = document.createElement("button");
-    chip.id = "shop-chip"; chip.className = "chip on"; chip.style.flex = "none"; chip.textContent = `상가 ${feats.length}`;
+    chip.id = "shop-chip"; chip.className = "chip on"; chip.style.flex = "none"; chip.textContent = "상가";
     chip.onclick = () => {
       const on = chip.classList.toggle("on");
       for (const id of ["shops-dot", "shops-label"]) map.setLayoutProperty(id, "visibility", on ? "visible" : "none");
+      try { if (map.getLayer("shops-glow")) map.setLayoutProperty("shops-glow", "visibility", on && nightOn ? "visible" : "none"); } catch (e) {}   // 밤 후광도 같이
     };
     document.getElementById("filters").appendChild(chip);
     if (nightOn) setBuildingNight(true);   // 가게 후광 레이어는 가게가 올라온 뒤에 만든다
@@ -727,7 +728,8 @@ function setBuildingNight(on) {
   document.body.classList.toggle("night", !!on);
   applyRoadTone(on); applyLabelTone(on);
   if (on) ensureNightLights();
-  for (const id of ["night-road-glow", "night-road-core", "shops-glow"]) { try { if (map.getLayer(id)) map.setLayoutProperty(id, "visibility", on ? "visible" : "none"); } catch (e) {} }
+  const shopsOn = !(document.getElementById("shop-chip") && !document.getElementById("shop-chip").classList.contains("on"));   // 상가 필터가 꺼져 있으면 후광도 숨김
+  for (const id of ["night-road-glow", "night-road-core", "shops-glow"]) { try { if (map.getLayer(id)) map.setLayoutProperty(id, "visibility", on && (id !== "shops-glow" || shopsOn) ? "visible" : "none"); } catch (e) {} }
   try { map.setLight(on ? { anchor: "viewport", position: [1.4, 210, 45], intensity: 0.4, color: "#c4cfe2" } : { anchor: "viewport", position: [1.4, 210, 45], intensity: 0.55, color: "#fff4e0" }); } catch (e) {}
   for (const l of map.getStyle().layers) {
     try {
@@ -1443,7 +1445,7 @@ function shopInfo(id) {
 }
 function edRefresh() {
   const feats = shopFeatures(); map.getSource("shops").setData({ type: "FeatureCollection", features: feats });
-  const chip = document.getElementById("shop-chip"); if (chip) chip.textContent = `상가 ${feats.length}`;
+  const chip = document.getElementById("shop-chip"); if (chip) chip.textContent = "상가";
 }
 async function edSave(id, patch, msg) {
   const cur = shopInfo(id) || { id, hidden: false, category: "기타" };
