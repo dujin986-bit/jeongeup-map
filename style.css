@@ -109,3 +109,20 @@ body.live #feed {
 .wx { color: #333; }
 body.live #wx-select { display: none !important; }
 #wx-select[hidden] { display: none; }
+
+/* 제보하기 버튼 (폰) */
+#fab {
+  position: fixed; right: 14px; bottom: 64px; z-index: 6; border: 0; border-radius: 28px;
+  background: #e5484d; color: #fff; font-size: 16px; font-weight: 700; padding: 13px 20px;
+  box-shadow: 0 4px 14px rgba(0,0,0,.3); cursor: pointer;
+}
+body.live #fab, body.live #crosshair { display: none !important; }
+#crosshair {
+  position: fixed; left: 50%; top: 50%; transform: translate(-50%, -92%); font-size: 36px;
+  z-index: 4; pointer-events: none; filter: drop-shadow(0 2px 3px rgba(0,0,0,.4));
+}
+#crosshair[hidden] { display: none; }
+@media (max-width: 600px) {
+  #panel { width: 96vw; bottom: 10px; }
+  #hint { display: none; }
+}

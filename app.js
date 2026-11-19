@@ -354,17 +354,27 @@ function setupBasePoi() {
 // ---------- 제보 ----------
 const panel = document.getElementById("panel");
 let pending = null;
-function openPanel(lngLat) {
+let pickMode = false;
+const crosshair = document.getElementById("crosshair");
+function setPos(lngLat) {
   pending = [lngLat.lng, lngLat.lat];
-  document.getElementById("pos").textContent = `위치: ${pending[1].toFixed(5)}, ${pending[0].toFixed(5)}`;
+  document.getElementById("pos").textContent = (pickMode ? "📍 표시된 위치 · 지도를 움직여 맞추세요" : "위치") +
+    `: ${pending[1].toFixed(5)}, ${pending[0].toFixed(5)}`;
+}
+function openPanel(lngLat, pick) {
+  pickMode = !!pick; crosshair.hidden = !pickMode;
+  setPos(lngLat);
   panel.hidden = false;
 }
+function closePanel() { panel.hidden = true; pickMode = false; crosshair.hidden = true; }
+map.on("move", () => { if (pickMode && !panel.hidden) setPos(map.getCenter()); });
+document.getElementById("fab").onclick = () => openPanel(map.getCenter(), true);
 map.on("contextmenu", e => openPanel(e.lngLat));            // PC: 우클릭
 let pressTimer;                                              // 모바일: 길게 누르기
 map.on("touchstart", e => { if (e.points.length === 1) pressTimer = setTimeout(() => openPanel(e.lngLat), 600); });
 ["touchend", "touchmove", "touchcancel"].forEach(t => map.on(t, () => clearTimeout(pressTimer)));
 
-document.getElementById("cancel").onclick = () => { panel.hidden = true; };
+document.getElementById("cancel").onclick = closePanel;
 const modeSel = document.getElementById("mode");
 function syncMode() {
   const shop = modeSel.value === "shop";
@@ -386,7 +396,7 @@ async function saveShop() {
     await sendEdit({ action: "add", name, category: document.getElementById("shopcat").value,
                      address: document.getElementById("desc").value.trim(), coord: pending });
     document.getElementById("title").value = ""; document.getElementById("desc").value = "";
-    panel.hidden = true;
+    closePanel();
   } catch (err) { alert(err.message); }
 }
 
@@ -409,7 +419,7 @@ document.getElementById("save").onclick = async () => {
     if (!res.ok) throw new Error("제보 전송 실패 (" + res.status + ")");
     try { localStorage.setItem("jeongeup-last-report", String(Date.now())); } catch {}
     document.getElementById("title").value = ""; document.getElementById("desc").value = "";
-    panel.hidden = true;
+    closePanel();
     alert("제보가 접수됐어요! 확인 후 지도에 표시됩니다.");
   } catch (err) { alert(err.message); }
   btn.disabled = false;

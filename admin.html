@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex,nofollow">
+<title>정읍 3D 지도 - 제보 관리</title>
+<style>
+  * { box-sizing: border-box; }
+  body { margin: 0; font-family: -apple-system, "Malgun Gothic", sans-serif; background: #f4f5f7; color: #222; }
+  header { position: sticky; top: 0; background: #fff; padding: 12px 14px; box-shadow: 0 1px 6px rgba(0,0,0,.12); z-index: 2; }
+  h1 { margin: 0 0 8px; font-size: 18px; }
+  .tabs { display: flex; gap: 6px; flex-wrap: wrap; }
+  .tab { border: 1px solid #ccc; background: #fff; border-radius: 16px; padding: 6px 12px; font-size: 14px; cursor: pointer; }
+  .tab.on { background: #1f6feb; color: #fff; border-color: #1f6feb; }
+  main { padding: 12px; max-width: 720px; margin: 0 auto; }
+  .card { background: #fff; border-radius: 12px; padding: 12px 14px; margin-bottom: 10px; box-shadow: 0 1px 4px rgba(0,0,0,.08); }
+  .row1 { display: flex; gap: 8px; align-items: center; }
+  .dot { width: 12px; height: 12px; border-radius: 50%; flex: none; }
+  .title { font-weight: 700; font-size: 16px; }
+  .meta { font-size: 12px; color: #666; margin-top: 4px; }
+  .desc { margin-top: 6px; font-size: 14px; white-space: pre-wrap; word-break: break-word; }
+  .btns { display: flex; gap: 8px; margin-top: 10px; }
+  button.act { flex: 1; border: 0; border-radius: 10px; padding: 12px; font-size: 15px; font-weight: 700; cursor: pointer; color: #fff; }
+  .ok { background: #2f9e44; } .hide { background: #868e96; } .del { background: #e5484d; flex: 0 0 auto !important; }
+  .login { max-width: 360px; margin: 60px auto; background: #fff; padding: 20px; border-radius: 12px; box-shadow: 0 2px 10px rgba(0,0,0,.12); }
+  .login input { width: 100%; padding: 10px; margin: 6px 0; font-size: 16px; border: 1px solid #ccc; border-radius: 8px; }
+  .login button { width: 100%; padding: 12px; margin-top: 8px; font-size: 16px; border: 0; border-radius: 8px; background: #1f6feb; color: #fff; font-weight: 700; }
+  .msg { color: #e5484d; font-size: 14px; min-height: 20px; }
+  .empty { text-align: center; color: #888; padding: 40px 0; }
+  a { color: #1f6feb; }
+  .top { display: flex; justify-content: space-between; align-items: center; }
+  .link { font-size: 13px; background: none; border: 0; color: #1f6feb; cursor: pointer; }
+</style>
+</head>
+<body>
+<div id="login" class="login" hidden>
+  <h1>제보 관리</h1>
+  <input id="email" type="email" placeholder="이메일" autocomplete="username">
+  <input id="pw" type="password" placeholder="비밀번호" autocomplete="current-password">
+  <div class="msg" id="loginMsg"></div>
+  <button id="loginBtn">로그인</button>
+</div>
+
+<div id="app" hidden>
+  <header>
+    <div class="top"><h1>제보 관리</h1><button class="link" id="logout">로그아웃</button></div>
+    <div class="tabs" id="tabs"></div>
+  </header>
+  <main id="list"></main>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="data.js"></script>
+<script>
+const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+const TABS = [["pending", "대기"], ["approved", "승인됨"], ["hidden", "숨김"]];
+let tab = "pending", rows = [];
+const $ = id => document.getElementById(id);
+const esc = s => String(s == null ? "" : s).replace(/[&<>"']/g, c => ({ "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;" }[c]));
+
+function showLogin(msg) { $("login").hidden = false; $("app").hidden = true; $("loginMsg").textContent = msg || ""; }
+async function init() {
+  const { data } = await sb.auth.getSession();
+  if (data.session) start(); else showLogin();
+}
+$("loginBtn").onclick = async () => {
+  $("loginMsg").textContent = "";
+  const { error } = await sb.auth.signInWithPassword({ email: $("email").value.trim(), password: $("pw").value });
+  if (error) { $("loginMsg").textContent = "로그인 실패: 이메일/비밀번호를 확인하세요."; return; }
+  start();
+};
+$("logout").onclick = async () => { await sb.auth.signOut(); showLogin(); };
+
+function start() {
+  $("login").hidden = true; $("app").hidden = false;
+  $("tabs").innerHTML = "";
+  for (const [k, label] of TABS) {
+    const b = document.createElement("button");
+    b.className = "tab" + (k === tab ? " on" : ""); b.dataset.k = k; b.textContent = label;
+    b.onclick = () => { tab = k; document.querySelectorAll(".tab").forEach(t => t.classList.toggle("on", t.dataset.k === k)); draw(); };
+    $("tabs").appendChild(b);
+  }
+  load();
+  setInterval(load, 10000);
+  sb.channel("admin-reports").on("postgres_changes", { event: "*", schema: "public", table: "reports" }, load).subscribe();
+}
+
+async function load() {
+  const { data, error } = await sb.from("reports").select("*").order("created_at", { ascending: false }).limit(300);
+  if (error) { $("list").innerHTML = '<div class="empty">불러오기 실패: ' + esc(error.message) + '<br>(관리자 이메일로 로그인했는지 확인하세요)</div>'; return; }
+  rows = data; draw();
+}
+
+function draw() {
+  const counts = {}; rows.forEach(r => counts[r.status] = (counts[r.status] || 0) + 1);
+  document.querySelectorAll(".tab").forEach(t => { const k = t.dataset.k; t.textContent = TABS.find(x => x[0] === k)[1] + " " + (counts[k] || 0); });
+  const list = rows.filter(r => r.status === tab);
+  const box = $("list");
+  if (!list.length) { box.innerHTML = '<div class="empty">없어요</div>'; return; }
+  box.innerHTML = "";
+  for (const r of list) {
+    const c = (CATEGORIES[r.category] || { label: r.category, color: "#888" });
+    const el = document.createElement("div"); el.className = "card";
+    el.innerHTML = `<div class="row1"><span class="dot" style="background:${c.color}"></span><span class="title">${esc(r.title)}</span></div>` +
+      `<div class="meta">${esc(c.label)} · ${new Date(r.created_at).toLocaleString("ko-KR")} · ` +
+      `<a href="https://www.openstreetmap.org/?mlat=${r.lat}&mlon=${r.lon}#map=17/${r.lat}/${r.lon}" target="_blank" rel="noopener">위치 보기</a></div>` +
+      (r.description ? `<div class="desc">${esc(r.description)}</div>` : "") +
+      `<div class="btns">` +
+      (r.status !== "approved" ? `<button class="act ok" data-a="approved">승인</button>` : "") +
+      (r.status !== "hidden" ? `<button class="act hide" data-a="hidden">숨김</button>` : "") +
+      `<button class="act del" data-a="delete">삭제</button></div>`;
+    el.querySelectorAll("button.act").forEach(b => b.onclick = () => act(r, b.dataset.a));
+    box.appendChild(el);
+  }
+}
+
+async function act(r, a) {
+  let res;
+  if (a === "delete") {
+    if (!confirm("이 제보를 완전히 삭제할까요? (되돌릴 수 없어요)")) return;
+    res = await sb.from("reports").delete().eq("id", r.id);
+  } else {
+    res = await sb.from("reports").update({ status: a }).eq("id", r.id);
+  }
+  if (res.error) { alert("처리 실패: " + res.error.message); return; }
+  load();
+}
+init();
+</script>
+</body>
+</html>
