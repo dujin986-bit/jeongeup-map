@@ -12,8 +12,10 @@
 
 <header id="top">
   <strong>정읍 3D 지도</strong>
+  <span id="viewers" class="viewers" hidden></span>
   <nav id="filters"></nav>
   <button id="feed-btn" class="chip on feedbtn">제보 0</button>
+  <a id="live-link" class="chip" href="?live=1" hidden>방송 모드</a>
   <div id="feed" hidden></div>
 </header>
 
@@ -32,9 +34,12 @@
   </div>
 </div>
 
+<div id="tour-label" hidden></div>
+<div id="live-url" hidden>제보·구경하기 ▶ dujin986-bit.github.io/jeongeup-map</div>
 <div id="hint">지도를 길게 누르거나 우클릭하면 제보하거나 가게를 추가할 수 있어요</div>
 
 <script src="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="data.js"></script>
 <script src="app.js"></script>
 </body>

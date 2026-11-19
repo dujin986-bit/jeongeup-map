@@ -80,3 +80,25 @@ button.ghost { background: #eee; color: #333; }
 .feed-title { font-size: 14px; font-weight: 700; }
 .feed-meta { font-size: 12px; color: #666; }
 .feed-empty { padding: 14px; font-size: 13px; color: #666; }
+
+/* 접속자 수 */
+.viewers { font-size: 13px; color: #1f6feb; font-weight: 700; }
+
+/* 방송 모드 (?live=1) */
+body.live #filters, body.live #feed-btn, body.live #panel, body.live #hint, body.live #live-link { display: none !important; }
+body.live #top { padding: 12px 22px; }
+body.live #top strong { font-size: 22px; }
+body.live .viewers { font-size: 18px; margin-left: auto; }
+body.live #feed {
+  position: fixed; top: 70px; right: 14px; left: auto; width: 340px; max-height: 62vh;
+  border-radius: 12px; overflow-y: auto;
+}
+#tour-label {
+  position: fixed; left: 18px; bottom: 56px; z-index: 5; background: rgba(0,0,0,.65); color: #fff;
+  padding: 8px 16px; border-radius: 20px; font-size: 20px; font-weight: 700;
+}
+#live-url {
+  position: fixed; left: 0; right: 0; bottom: 0; z-index: 5; background: #1f6feb; color: #fff;
+  text-align: center; padding: 8px; font-size: 20px; font-weight: 700;
+}
+#tour-label[hidden], #live-url[hidden] { display: none; }

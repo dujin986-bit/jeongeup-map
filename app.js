@@ -17,6 +17,8 @@ const STORE_KEY = "jeongeup-reports-v1";
 const load = () => { try { return JSON.parse(localStorage.getItem(STORE_KEY)) || []; } catch { return []; } };
 const store = (list) => { try { localStorage.setItem(STORE_KEY, JSON.stringify(list)); } catch {} };
 
+const LIVE = new URLSearchParams(location.search).get("live") === "1";   // 방송 모드
+if (LIVE) document.body.classList.add("live");
 const IS_LOCAL = ["localhost", "127.0.0.1", "[::1]"].includes(location.hostname);   // 내 PC에서만 가게 수정 가능
 let reports = [];                // 시민 제보: 서버(Supabase)에서 승인된 것만 받아옴
 let activeCats = new Set(Object.keys(CATEGORIES));
@@ -73,6 +75,7 @@ function renderFeed() {
   if (!btn || !box) return;
   const list = reports.filter(r => activeCats.has(r.cat));
   btn.textContent = `제보 ${list.length}`;
+  if (LIVE) box.hidden = false;
   box.innerHTML = list.length ? "" : '<div class="feed-empty">아직 제보가 없어요. 지도를 길게 눌러 첫 제보를 남겨 보세요!</div>';
   for (const r of list) {
     const c = CATEGORIES[r.cat];
@@ -81,7 +84,7 @@ function renderFeed() {
     row.innerHTML = `<span class="feed-dot" style="background:${c.color}"></span><div><div class="feed-title">${esc(r.title)}</div>` +
       `<div class="feed-meta">${c.label} · ${timeAgo(r.ts)}${r.desc ? " · " + esc(r.desc) : ""}</div></div>`;
     row.onclick = () => {
-      box.hidden = true;
+      if (!LIVE) box.hidden = true;
       map.flyTo({ center: r.coord, zoom: 17, pitch: 60, duration: 1500 });
       const mk = markers.find(x => x._item && x._item.id === r.id);
       if (mk && !mk.getPopup().isOpen()) setTimeout(() => mk.togglePopup(), 1500);
@@ -413,6 +416,7 @@ document.getElementById("save").onclick = async () => {
 };
 
 // 승인된 제보를 서버에서 받아옴 (15초마다 갱신)
+const knownIds = new Set(); let started = false;
 async function fetchReports() {
   try {
     const res = await fetch(SUPABASE_URL + "/rest/v1/reports?select=id,category,title,description,lon,lat,created_at&order=created_at.desc&limit=200",
@@ -422,13 +426,18 @@ async function fetchReports() {
     const next = rows.filter(r => CATEGORIES[r.category]).map(r => ({
       id: r.id, title: r.title, desc: r.description || "", cat: r.category,
       coord: [r.lon, r.lat], ts: r.created_at }));
+    // 새로 승인된 제보 감지 (방송 모드: 그 위치로 카메라 이동). 첫 로딩은 제외
+    const fresh = next.filter(r => !knownIds.has(r.id));
+    const firstLoad = !started; started = true;
+    next.forEach(r => knownIds.add(r.id));
     if (JSON.stringify(next) === JSON.stringify(reports)) return;   // 변화 없으면 다시 그리지 않음(열린 팝업 유지)
     reports = next;
     render();
+    if (LIVE && !firstLoad && fresh.length) showReport(fresh[0]);
   } catch (e) {}
 }
 fetchReports();
-setInterval(fetchReports, 15000);
+setInterval(fetchReports, 30000);   // 실시간 알림이 안 올 때를 위한 보조 갱신
 
 
 // ---------- 지형 + 색감 ----------
@@ -494,4 +503,52 @@ function setupColors() {
       set(l.id, "fill-extrusion-color", HEIGHT_COLOR.map((v, i) => i === 2 ? ["coalesce", ["get", "render_height"], 6] : v));
     }
   }
+}
+
+
+// ---------- 접속자 수 + 실시간 제보 알림 (Supabase Realtime) ----------
+(function setupRealtime() {
+  try {
+    if (!window.supabase) return;
+    const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+    const myId = (crypto.randomUUID ? crypto.randomUUID() : String(Math.random()));
+    const el = document.getElementById("viewers");
+    const ch = sb.channel("viewers", { config: { presence: { key: myId } } });
+    ch.on("presence", { event: "sync" }, () => {
+      const st = ch.presenceState();
+      const n = Object.values(st).filter(m => !(m[0] && m[0].live)).length;   // 방송 화면 자신은 제외
+      el.textContent = `👀 지금 ${n}명이 지도 보는 중`; el.hidden = false;
+    }).on("postgres_changes", { event: "*", schema: "public", table: "reports" }, () => fetchReports())
+      .subscribe(async status => { if (status === "SUBSCRIBED") await ch.track({ live: LIVE }); });
+  } catch (e) { console.warn("실시간 연결 실패", e); }
+})();
+
+// ---------- 방송 모드: 자동 카메라 ----------
+if (IS_LOCAL) document.getElementById("live-link").hidden = false;
+let holdUntil = 0, tourI = 0;
+function closePopups() { markers.forEach(m => { const p = m.getPopup(); if (p && p.isOpen()) m.togglePopup(); }); }
+function tourStep() {
+  if (Date.now() < holdUntil) return;
+  closePopups();
+  const s = TOUR[tourI++ % TOUR.length];
+  const label = document.getElementById("tour-label");
+  label.textContent = "📍 " + s.name; label.hidden = false;
+  map.flyTo({ center: s.center, zoom: s.zoom, pitch: s.pitch, bearing: s.bearing, duration: 6000, essential: true });
+  map.once("moveend", () => {     // 도착하면 천천히 돌면서 보여주기
+    if (Date.now() < holdUntil) return;
+    map.easeTo({ bearing: s.bearing + 35, duration: 9000, easing: t => t, essential: true });
+  });
+}
+function showReport(r) {
+  holdUntil = Date.now() + 15000;
+  document.getElementById("tour-label").textContent = "🔔 새 제보";
+  map.flyTo({ center: r.coord, zoom: 17, pitch: 60, duration: 3000, essential: true });
+  setTimeout(() => {
+    const mk = markers.find(x => x._item && x._item.id === r.id);
+    if (mk && !mk.getPopup().isOpen()) mk.togglePopup();
+  }, 3200);
+}
+if (LIVE) {
+  document.getElementById("live-url").hidden = false;
+  map.on("load", () => { setTimeout(tourStep, 4000); setInterval(tourStep, 17000); });
 }

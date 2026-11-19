@@ -28,3 +28,11 @@ const ZONES = [
 // 제보 서버(Supabase). 공개해도 되는 publishable 키입니다. (secret 키는 절대 넣지 마세요)
 const SUPABASE_URL = "https://ljluvdikyjgniyuvgotk.supabase.co";
 const SUPABASE_KEY = "sb_publishable_5_Zs5kq3U3CGO1gWGDn7RQ_hyTRhybK";
+
+// 방송 모드 자동 카메라 코스 (center=[경도,위도])
+const TOUR = [
+  { name: "정읍 시내",   center: [126.8575, 35.5700], zoom: 15.6, pitch: 62, bearing: 20 },
+  { name: "내장산",      center: [126.8900, 35.4900], zoom: 14.6, pitch: 66, bearing: -30 },
+  { name: "상동 · 수성", center: [126.8720, 35.5570], zoom: 15.8, pitch: 62, bearing: 140 },
+  { name: "정읍역 일대", center: [126.8470, 35.5700], zoom: 15.6, pitch: 62, bearing: 250 },
+];
