@@ -9,6 +9,22 @@ const map = new maplibregl.Map({
   minZoom: 9.5,
   maxBounds: [[126.55, 35.25], [127.25, 35.85]],   // 정읍시 일대(대략). 경계 파일이 있으면 자동 보정
 });
+// 시험용 밤 지도 스타일: 주소 끝에 ?style=dark (CARTO Dark Matter, 무료·키 불필요)
+const DARKSTYLE = new URLSearchParams(location.search).get("style") === "dark";
+if (DARKSTYLE) {
+  map.setStyle("https://basemaps.cartocdn.com/gl/dark-matter-gl-style/style.json", {
+    diff: false,
+    // 우리 글자 레이어(가게·건물 이름)가 한글로 나오도록 글꼴 서버는 OpenFreeMap 것을 그대로 사용
+    transformStyle: (prev, next) => ({ ...next, glyphs: "https://tiles.openfreemap.org/fonts/{fontstack}/{range}.pbf" }),
+  });
+}
+let VEC_SRC_CACHE = null;
+function vecSrc() {                // 스타일의 벡터 타일 소스 이름 (liberty=openmaptiles, CARTO=carto 등)
+  if (VEC_SRC_CACHE) return VEC_SRC_CACHE;
+  const s = map.getStyle().sources;
+  VEC_SRC_CACHE = s.openmaptiles ? "openmaptiles" : (Object.keys(s).find(k => s[k].type === "vector") || "openmaptiles");
+  return VEC_SRC_CACHE;
+}
 map.addControl(new maplibregl.NavigationControl({ visualizePitch: true }), "top-right");
 map.addControl(new maplibregl.GeolocateControl({ trackUserLocation: true }), "top-right");
 
@@ -106,7 +122,7 @@ map.on("load", () => {
   const has3d = layers.some(l => l.type === "fill-extrusion");
   if (!has3d) {
     map.addLayer({
-      id: "buildings-3d", type: "fill-extrusion", source: "openmaptiles", "source-layer": "building",
+      id: "buildings-3d", type: "fill-extrusion", source: vecSrc(), "source-layer": "building",
       minzoom: 14,
       paint: {
         "fill-extrusion-color": "#c9ccd1",
@@ -119,7 +135,7 @@ map.on("load", () => {
   try { map.setLight({ anchor: "viewport", position: [1.4, 210, 45], intensity: 0.55, color: "#fff4e0" }); } catch (e) {}   // 면 음영
   addAptImages();
   setupTerrain();
-  setupColors();
+  if (!DARKSTYLE) setupColors();
   setupBasePoi();
   loadBoundary();
   loadLocalBuildings().then(() => { bldReady = true; setBuildingNight(nightOn); loadShops(); loadSignals(); });   // 건물 레이어 뒤에 올려야 가려지지 않음
@@ -475,6 +491,8 @@ const BLD_NIGHT = ["interpolate", ["linear"], ["coalesce", ["get", "height"], 6]
 const APT_FAR_DAY = ["match", ["%", ["floor", ["/", ["to-number", ["coalesce", ["get", "id"], "0"], 0], 1000]], 5],
   0, APT_WALL[0], 1, APT_WALL[1], 2, APT_WALL[2], 3, APT_WALL[3], APT_WALL[4]];
 const APT_FAR_NIGHT = "#6a7099";
+const BLD_NIGHT_DS = ["interpolate", ["linear"], ["coalesce", ["get", "height"], 6],
+  0, "#2e334d", 10, "#2b3050", 25, "#282d52", 45, "#252a54", 70, "#222758"];
 function hex2rgb(h) { const n = parseInt(h.slice(1), 16); return [n >> 16 & 255, n >> 8 & 255, n & 255]; }
 function makeWindowImage(wall, band, alpha) {      // 8x8 타일: 층마다 가로 유리띠 한 줄 (세로 칸 없이 깔끔하게)
   const W = 8, Hh = 8, d = new Uint8Array(W * Hh * 4), wr = hex2rgb(wall), br = hex2rgb(band);
@@ -514,10 +532,10 @@ function ensureNightLights() {
       const flt = ["in", ["get", "class"], ["literal", ["motorway", "trunk", "primary", "secondary", "tertiary", "minor", "street", "residential", "service"]]];
       const w = k => ["interpolate", ["linear"], ["zoom"], 13, ["*", k, 2], 17, ["*", k, 11]];
       const kk = ["match", ["get", "class"], ["motorway", "trunk", "primary"], 1.8, ["secondary", "tertiary"], 1.3, 0.8];
-      map.addLayer({ id: "night-road-glow", type: "line", source: "openmaptiles", "source-layer": "transportation", minzoom: 13, filter: flt,
+      map.addLayer({ id: "night-road-glow", type: "line", source: vecSrc(), "source-layer": "transportation", minzoom: 13, filter: flt,
         layout: { visibility: "none", "line-cap": "round", "line-join": "round" },
         paint: { "line-color": "#ffae4d", "line-width": w(kk), "line-blur": 6, "line-opacity": 0.55 } }, firstExt && firstExt.id);
-      map.addLayer({ id: "night-road-core", type: "line", source: "openmaptiles", "source-layer": "transportation", minzoom: 14, filter: flt,
+      map.addLayer({ id: "night-road-core", type: "line", source: vecSrc(), "source-layer": "transportation", minzoom: 14, filter: flt,
         layout: { visibility: "none", "line-cap": "round", "line-join": "round" },
         paint: { "line-color": "#ffe3a6", "line-width": ["interpolate", ["linear"], ["zoom"], 14, 0.4, 18, 2.2], "line-opacity": 0.6 } }, firstExt && firstExt.id);
     }
@@ -533,7 +551,7 @@ function setBuildingNight(on) {
   if (!bldReady) return;
   try {                                   // 땅·길·물·글씨까지 한꺼번에 어둡게 (건물만 어두워 보이던 문제)
     const cv = map.getCanvas(); cv.style.transition = "filter 1.5s ease";
-    cv.style.filter = on ? "brightness(0.68) contrast(1.15) saturate(0.9) hue-rotate(8deg)" : "none";
+    cv.style.filter = on && !DARKSTYLE ? "brightness(0.68) contrast(1.15) saturate(0.9) hue-rotate(8deg)" : "none";
   } catch (e) {}
   document.body.classList.toggle("night", !!on);
   if (on) ensureNightLights();
@@ -541,7 +559,7 @@ function setBuildingNight(on) {
   try { map.setLight(on ? { anchor: "viewport", position: [1.4, 210, 45], intensity: 0.25, color: "#9fb0ff" } : { anchor: "viewport", position: [1.4, 210, 45], intensity: 0.55, color: "#fff4e0" }); } catch (e) {}
   for (const l of map.getStyle().layers) {
     try {
-      if (/^local-.*-3d$/.test(l.id)) map.setPaintProperty(l.id, "fill-extrusion-color", on ? BLD_NIGHT : BLD_DAY);
+      if (/^local-.*-3d$/.test(l.id)) map.setPaintProperty(l.id, "fill-extrusion-color", on ? (DARKSTYLE ? BLD_NIGHT_DS : BLD_NIGHT) : BLD_DAY);
       else if (/^local-.*-apt$/.test(l.id)) map.setPaintProperty(l.id, "fill-extrusion-color", on ? APT_FAR_NIGHT : APT_FAR_DAY);
       else { const m = l.id.match(/^local-.*-apt(\d)$/); if (m) map.setPaintProperty(l.id, "fill-extrusion-pattern", `apt${m[1]}-${on ? "night" : "day"}`); }
     } catch (e) {}
@@ -761,7 +779,7 @@ wxResize(); requestAnimationFrame(wxDraw);
 
 // 실시간 날씨 (10분마다 자동 갱신)
 let wxManual = false;
-let nightForce = null;      // null=실시간(낮/밤 자동), true/false=사용자가 버튼으로 고정
+let nightForce = DARKSTYLE ? true : null;      // null=실시간(낮/밤 자동), true/false=사용자가 버튼으로 고정
 (function nightBtn() {
   const b = document.getElementById("night-btn"); if (!b) return;
   const label = () => { b.textContent = wx.night ? "☀️ 낮" : "🌙 밤"; b.classList.toggle("on", nightForce !== null); };
