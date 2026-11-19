@@ -151,6 +151,7 @@ map.on("load", () => {
   addAptImages();
   setupTerrain();
   if (!DARKSTYLE) setupColors();
+  setupRoads();
   setupBasePoi();
   loadBoundary();
   loadLocalBuildings().then(() => { bldReady = true; setBuildingNight(nightOn); loadShops(); loadSignals(); });   // 건물 레이어 뒤에 올려야 가려지지 않음
@@ -603,10 +604,10 @@ const APT_WALL = ["#f2e3c6", "#cfe0f1", "#e9d2d2", "#d5e6d0", "#e0dbee"];
 const BLD_DAY = ["interpolate", ["linear"], ["coalesce", ["get", "height"], 6],
   0, "#eadcc0", 8, "#e2c29e", 15, "#d4a283", 25, "#c8bdb2", 40, "#c4cad2", 70, "#b3bcc9"];   // 저층=베이지·테라코타, 고층=쿨실버
 const BLD_NIGHT = ["interpolate", ["linear"], ["coalesce", ["get", "height"], 6],
-  0, "#5d636b", 10, "#5a6169", 25, "#555e69", 45, "#4f5b68", 70, "#4a5766"];   // 딥 슬레이트·차콜
+  0, "#6c737d", 10, "#697079", 25, "#636d79", 45, "#5d6977", 70, "#586675"];   // 딥 슬레이트·차콜
 const APT_FAR_DAY = ["match", ["%", ["floor", ["/", ["to-number", ["coalesce", ["get", "id"], "0"], 0], 1000]], 5],
   0, APT_WALL[0], 1, APT_WALL[1], 2, APT_WALL[2], 3, APT_WALL[3], APT_WALL[4]];
-const APT_FAR_NIGHT = "#68737f";
+const APT_FAR_NIGHT = "#76818e";
 const BLD_NIGHT_DS = ["interpolate", ["linear"], ["coalesce", ["get", "height"], 6],
   0, "#2e334d", 10, "#2b3050", 25, "#282d52", 45, "#252a54", 70, "#222758"];
 function hex2rgb(h) { const n = parseInt(h.slice(1), 16); return [n >> 16 & 255, n >> 8 & 255, n & 255]; }
@@ -634,7 +635,7 @@ function addAptImages() {
   APT_WALL.forEach((w, i) => {
     try {
       map.addImage(`apt${i}-day`, makeWindowImage(w, "#7f98b0", 0.45));
-      map.addImage(`apt${i}-night`, makeNightImage(dark(w, 0.36)));
+      map.addImage(`apt${i}-night`, makeNightImage(dark(w, 0.45)));
     } catch (e) {}
   });
   try { aptPatterns = APT_WALL.every((_, i) => map.hasImage(`apt${i}-day`) && map.hasImage(`apt${i}-night`)) && !/[?&]stripes=0/.test(location.search); } catch (e) {}
@@ -662,6 +663,50 @@ function ensureNightLights() {
     }
   } catch (e) {}
 }
+
+// ---------- 도로 톤 + 큰 도로 중앙선 + 밤 라벨 ----------
+const ROAD_ORIG = {};
+function roadTier(id) { return /(motorway|trunk|primary)/.test(id) ? 1 : /(secondary|tertiary)/.test(id) ? 2 : 3; }
+const ROAD_DAY = { 1: "#c4c4c8", 2: "#d2d2d5", 3: "#e3e2df" };
+const ROAD_NIGHT = { 1: "#6a7280", 2: "#5d6573", 3: "#4f5662" };
+const ROAD_NIGHT_CASE = "#2b313c";
+function setupRoads() {
+  try {
+    const firstExt = map.getStyle().layers.find(l => l.type === "fill-extrusion");
+    if (!map.getLayer("road-centerline")) {
+      map.addLayer({ id: "road-centerline", type: "line", source: vecSrc(), "source-layer": "transportation", minzoom: 15,
+        filter: ["all", ["in", ["get", "class"], ["literal", ["motorway", "trunk", "primary", "secondary"]]], ["!=", ["get", "brunnel"], "tunnel"]],
+        layout: { "line-cap": "butt", "line-join": "round" },
+        paint: { "line-color": "#e2b52f", "line-opacity": 0.9, "line-width": ["interpolate", ["linear"], ["zoom"], 15, 0.5, 18, 1.6, 20, 2.6] } }, firstExt && firstExt.id);
+    }
+  } catch (e) {}
+  applyRoadTone(nightOn);
+}
+function applyRoadTone(on) {
+  try {
+    for (const l of map.getStyle().layers) {
+      if (l.type !== "line" || !/^(road|bridge)_/.test(l.id) || /(tunnel|rail|oneway|arrow|path|pier|track|steps|ferry)/.test(l.id)) continue;
+      if (!(l.id in ROAD_ORIG)) ROAD_ORIG[l.id] = map.getPaintProperty(l.id, "line-color");
+      const casing = /casing/.test(l.id), t = roadTier(l.id);
+      if (casing) map.setPaintProperty(l.id, "line-color", on ? ROAD_NIGHT_CASE : ROAD_ORIG[l.id]);
+      else map.setPaintProperty(l.id, "line-color", on ? ROAD_NIGHT[t] : ROAD_DAY[t]);
+    }
+    if (map.getLayer("road-centerline")) map.setPaintProperty("road-centerline", "line-color", on ? "#f0c850" : "#e2b52f");
+  } catch (e) {}
+}
+const LABEL_ORIG = {};
+function applyLabelTone(on) {          // 밤: 밝은 글씨 + 어두운 halo (전체 필터를 줄인 대신)
+  try {
+    for (const l of map.getStyle().layers) {
+      if (l.type !== "symbol" || !map.getLayoutProperty(l.id, "text-field")) continue;
+      if (!(l.id in LABEL_ORIG)) LABEL_ORIG[l.id] = ["text-color", "text-halo-color", "text-halo-width"].map(k => map.getPaintProperty(l.id, k));
+      const o = LABEL_ORIG[l.id];
+      map.setPaintProperty(l.id, "text-color", on ? "#eef2f8" : o[0]);
+      map.setPaintProperty(l.id, "text-halo-color", on ? "#131a27" : o[1]);
+      map.setPaintProperty(l.id, "text-halo-width", on ? 1.8 : o[2]);
+    }
+  } catch (e) {}
+}
 function setBuildingNight(on) {
   nightOn = !!on;
   if (!bldReady) return;
@@ -670,9 +715,10 @@ function setBuildingNight(on) {
     cv.style.filter = on && !DARKSTYLE ? "brightness(0.74) contrast(1.06) saturate(0.88)" : "none";   // 약하게: 라벨이 어두워지지 않도록
   } catch (e) {}
   document.body.classList.toggle("night", !!on);
+  applyRoadTone(on); applyLabelTone(on);
   if (on) ensureNightLights();
   for (const id of ["night-road-glow", "night-road-core", "shops-glow"]) { try { if (map.getLayer(id)) map.setLayoutProperty(id, "visibility", on ? "visible" : "none"); } catch (e) {} }
-  try { map.setLight(on ? { anchor: "viewport", position: [1.4, 210, 45], intensity: 0.32, color: "#b9c6dc" } : { anchor: "viewport", position: [1.4, 210, 45], intensity: 0.55, color: "#fff4e0" }); } catch (e) {}
+  try { map.setLight(on ? { anchor: "viewport", position: [1.4, 210, 45], intensity: 0.4, color: "#c4cfe2" } : { anchor: "viewport", position: [1.4, 210, 45], intensity: 0.55, color: "#fff4e0" }); } catch (e) {}
   for (const l of map.getStyle().layers) {
     try {
       if (/^local-.*-3d$/.test(l.id)) map.setPaintProperty(l.id, "fill-extrusion-color", on ? (DARKSTYLE ? BLD_NIGHT_DS : BLD_NIGHT) : BLD_DAY);
