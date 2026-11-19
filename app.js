@@ -66,6 +66,7 @@ function addMarker(item, isLandmark) {
   const popup = new maplibregl.Popup({ offset: 20 }).setHTML(
     `<strong>${esc(item.name || item.title)}</strong> <small>(${c.label})</small><br>${esc(item.desc || "")}${when}` + navLinks(item.name || item.title, item.coord[0], item.coord[1])
   );
+  el.addEventListener("click", () => playFx(item.cat, el));      // 클릭 연출 (1~2초)
   const m = new maplibregl.Marker({ element: el }).setLngLat(item.coord).setPopup(popup).addTo(map);
   m._item = item; markers.push(m);
 }
@@ -1065,4 +1066,77 @@ if (commEl) {
   let sy = 0;                                         // 아래로 당겨서 새로고침
   commEl.addEventListener("touchstart", e => { sy = e.touches[0].clientY; }, { passive: true });
   commEl.addEventListener("touchend", e => { if (commBody.scrollTop <= 0 && e.changedTouches[0].clientY - sy > 90) manualRefresh(document.getElementById("comm-refresh")); }, { passive: true });
+}
+
+
+// ===== 마커 클릭 연출 (1~2초): 사건사고=경광등, 행사=폭죽, 교통=경고 파동, 웨이팅=맴도는 점, 생활정보=잔잔한 파동 =====
+const fxCv = document.createElement("canvas");
+fxCv.style.cssText = "position:fixed;inset:0;width:100%;height:100%;z-index:7;pointer-events:none";
+document.body.appendChild(fxCv);
+let fxRun = 0;
+function playFx(cat, el) {
+  if (matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+  const r = el.getBoundingClientRect(), x = r.left + r.width / 2, y = r.top + r.height / 2;
+  const dpr = devicePixelRatio || 1, W = innerWidth, H = innerHeight;
+  fxCv.width = W * dpr; fxCv.height = H * dpr;
+  const g = fxCv.getContext("2d"); g.setTransform(dpr, 0, 0, dpr, 0, 0);
+  const id = ++fxRun, t0 = performance.now();
+  const DUR = { incident: 1800, event: 1900, traffic: 1500, wait: 1500, info: 1200 }[cat] || 1200;
+  const parts = [];
+  if (cat === "event") {                                  // 폭죽: 3발, 시간차로 터짐
+    const cols = ["#ff4d6d", "#ffd23f", "#4dd2ff", "#8aff80", "#c77dff", "#ffffff"];
+    for (let s = 0; s < 3; s++) {
+      const bx = x + (s - 1) * 46, by = y - 70 - (s % 2) * 30, delay = s * 280, col = cols[(s * 2) % 6];
+      for (let i = 0; i < 26; i++) {
+        const ang = Math.PI * 2 * i / 26 + Math.random() * 0.2, sp = 55 + Math.random() * 55;
+        parts.push({ bx, by, vx: Math.cos(ang) * sp, vy: Math.sin(ang) * sp, delay, col: Math.random() < 0.3 ? cols[Math.floor(Math.random() * 6)] : col });
+      }
+    }
+  }
+  function frame(now) {
+    if (id !== fxRun) return;
+    const t = now - t0; g.clearRect(0, 0, W, H);
+    if (t > DUR) return;
+    const k = t / DUR;
+    g.save();
+    if (cat === "incident") {                             // 빨강/파랑이 번갈아 퍼지는 경광등 파동
+      for (let n = 0; n < 3; n++) {
+        const p = ((t - n * 420) / 900); if (p < 0 || p > 1) continue;
+        g.strokeStyle = n % 2 ? "rgba(40,110,255," + (0.85 * (1 - p)) + ")" : "rgba(255,50,60," + (0.85 * (1 - p)) + ")";
+        g.lineWidth = 5 * (1 - p) + 1; g.beginPath(); g.arc(x, y, 14 + p * 80, 0, 7); g.stroke();
+      }
+      const flash = Math.floor(t / 150) % 2;
+      const gr = g.createRadialGradient(x, y, 4, x, y, 60);
+      gr.addColorStop(0, (flash ? "rgba(255,50,60," : "rgba(40,110,255,") + (0.5 * (1 - k)) + ")"); gr.addColorStop(1, "rgba(0,0,0,0)");
+      g.fillStyle = gr; g.beginPath(); g.arc(x, y, 60, 0, 7); g.fill();
+    } else if (cat === "event") {
+      for (const p of parts) {
+        const tt = (t - p.delay) / 1000; if (tt < 0 || tt > 1.3) continue;
+        const px = p.bx + p.vx * tt, py = p.by + p.vy * tt + 60 * tt * tt, al = Math.max(0, 1 - tt / 1.3);
+        g.globalAlpha = al; g.fillStyle = p.col; g.beginPath(); g.arc(px, py, 2.4 * al + 0.6, 0, 7); g.fill();
+      }
+    } else if (cat === "traffic") {                       // 주황 경고 파동 + 삼각형
+      for (let n = 0; n < 2; n++) {
+        const p = ((t - n * 450) / 800); if (p < 0 || p > 1) continue;
+        g.strokeStyle = "rgba(255,150,20," + (0.8 * (1 - p)) + ")"; g.lineWidth = 4 * (1 - p) + 1;
+        g.beginPath(); g.arc(x, y, 12 + p * 60, 0, 7); g.stroke();
+      }
+      const s = Math.min(1, k * 5), al = 1 - Math.max(0, (k - 0.6) / 0.4), ty = y - 34 - 10 * Math.sin(Math.min(1, k * 3) * Math.PI);
+      g.globalAlpha = al; g.fillStyle = "#ffb703"; g.strokeStyle = "#7a4b00"; g.lineWidth = 2; g.beginPath();
+      g.moveTo(x, ty - 12 * s); g.lineTo(x + 12 * s, ty + 9 * s); g.lineTo(x - 12 * s, ty + 9 * s); g.closePath(); g.fill(); g.stroke();
+      g.fillStyle = "#3b2600"; g.font = "bold " + 13 * s + "px sans-serif"; g.textAlign = "center"; g.fillText("!", x, ty + 7 * s);
+    } else if (cat === "wait") {                          // 핀 둘레를 도는 점 세 개
+      const al = 1 - Math.max(0, (k - 0.6) / 0.4);
+      for (let i = 0; i < 3; i++) {
+        const ang = k * Math.PI * 4 + i * 2.09, rr = 22 + 6 * Math.sin(k * 9 + i);
+        g.globalAlpha = al; g.fillStyle = "#f76b15"; g.beginPath(); g.arc(x + Math.cos(ang) * rr, y + Math.sin(ang) * rr, 4, 0, 7); g.fill();
+      }
+    } else {                                              // 잔잔한 파란 파동
+      g.strokeStyle = "rgba(31,111,235," + (0.7 * (1 - k)) + ")"; g.lineWidth = 3 * (1 - k) + 1;
+      g.beginPath(); g.arc(x, y, 10 + k * 46, 0, 7); g.stroke();
+    }
+    g.restore();
+    requestAnimationFrame(frame);
+  }
+  requestAnimationFrame(frame);
 }
