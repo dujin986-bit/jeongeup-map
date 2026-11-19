@@ -241,3 +241,16 @@ body.has-notice #top { top: 32px; }
 #notice-modal .nm p { margin: 0 0 10px; padding: 8px 10px; border-left: 5px solid #1f6feb; background: #eef4ff; border-radius: 4px; font-size: 15px; }
 #notice-modal .nm p.u { border-color: #d9232d; background: #ffeeee; }
 #notice-modal .nm button { width: 100%; padding: 12px; border: 0; border-radius: 10px; background: #868e96; color: #fff; font-size: 15px; font-weight: 700; }
+
+/* 처음 방문 안내 */
+#tut { position: fixed; inset: 0; z-index: 30; }
+#tut[hidden] { display: none; }
+#tut-hole { position: fixed; border-radius: 14px; box-shadow: 0 0 0 200vmax rgba(0,0,0,.68); border: 3px solid #ffd43b; transition: all .3s; pointer-events: none; animation: tutpulse 1.2s ease-in-out infinite; }
+@keyframes tutpulse { 50% { border-color: #fff; } }
+#tut-tip { position: fixed; left: 14px; right: 14px; max-width: 380px; margin: 0 auto; background: #fff; color: #222; border-radius: 14px; padding: 14px 16px; box-shadow: 0 6px 24px rgba(0,0,0,.4); }
+#tut-txt { font-size: 17px; font-weight: 700; line-height: 1.5; margin-bottom: 12px; }
+#tut-row { display: flex; align-items: center; gap: 8px; }
+#tut-n { flex: 1; font-size: 13px; color: #888; }
+#tut-row button { border: 0; border-radius: 10px; padding: 10px 16px; font-size: 15px; font-weight: 700; }
+#tut-skip { background: #e9ecef; color: #555; } #tut-next { background: #1f6feb; color: #fff; }
+body.live #help-btn, body.live #tut { display: none !important; }

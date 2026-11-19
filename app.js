@@ -1403,3 +1403,36 @@ document.getElementById("ticker").onclick = () => {
   m.hidden = false; document.getElementById("nm-x").onclick = () => m.hidden = true;
 };
 fetchNotices(); setInterval(fetchNotices, 60000);
+
+
+// ===== 처음 방문 안내 (4단계, 한 번 보면 다시 안 뜸 / ❓ 로 다시 보기) =====
+(function () {
+  const tut = document.getElementById("tut"), hole = document.getElementById("tut-hole"), tip = document.getElementById("tut-tip");
+  const txt = document.getElementById("tut-txt"), nEl = document.getElementById("tut-n");
+  const center = () => ({ x: innerWidth / 2 - 60, y: innerHeight * 0.5 - 60, w: 120, h: 120 });
+  const rectOf = id => { const r = document.getElementById(id).getBoundingClientRect(); return { x: r.left, y: r.top, w: r.width, h: r.height }; };
+  const STEPS = [
+    { t: "어서 와! 👋<br>정읍에서 지금 무슨 일이 있는지 한눈에 볼 수 있어.", r: () => rectOf("top") },
+    { t: "이 점을 눌러봐. 가게 정보나 누가 올린 소식이 떠.", r: center },
+    { t: "길 막히거나 웨이팅 길면 이걸 눌러서 알려줘.", r: () => rectOf("fab") },
+    { t: "이웃 이야기는 💬 커뮤니티, 보고 싶은 정보만 고르려면 🎛 필터를 눌러봐.", r: () => { const a = rectOf("comm-btn"), b = rectOf("filter-btn"); const x = Math.min(a.x, b.x), y = Math.min(a.y, b.y); return { x, y, w: Math.max(a.x + a.w, b.x + b.w) - x, h: Math.max(a.y + a.h, b.y + b.h) - y }; } },
+  ];
+  let i = 0;
+  function show() {
+    const s = STEPS[i], r = s.r(), p = 6;
+    Object.assign(hole.style, { left: r.x - p + "px", top: r.y - p + "px", width: r.w + p * 2 + "px", height: r.h + p * 2 + "px" });
+    txt.innerHTML = s.t; nEl.textContent = (i + 1) + " / " + STEPS.length;
+    document.getElementById("tut-next").textContent = i === STEPS.length - 1 ? "시작하기" : "다음";
+    const below = r.y + r.h / 2 < innerHeight / 2;
+    tip.style.top = below ? Math.min(r.y + r.h + p + 14, innerHeight - 190) + "px" : "auto";
+    tip.style.bottom = below ? "auto" : innerHeight - r.y + p + 14 + "px";
+  }
+  function end() { tut.hidden = true; try { localStorage.setItem("tut_done", "1"); } catch (e) {} }
+  function start() { i = 0; tut.hidden = false; show(); }
+  document.getElementById("tut-next").onclick = () => { if (++i >= STEPS.length) end(); else show(); };
+  document.getElementById("tut-skip").onclick = end;
+  document.getElementById("help-btn").onclick = start;
+  addEventListener("resize", () => { if (!tut.hidden) show(); });
+  let done = false; try { done = localStorage.getItem("tut_done") === "1"; } catch (e) {}
+  if (!done && !LIVE && !/[?&]edit=1/.test(location.search)) setTimeout(start, 1800);
+})();
