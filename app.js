@@ -117,11 +117,12 @@ map.on("load", () => {
     });
   }
   try { map.setLight({ anchor: "viewport", position: [1.4, 210, 45], intensity: 0.55, color: "#fff4e0" }); } catch (e) {}   // 면 음영
+  addAptImages();
   setupTerrain();
   setupColors();
   setupBasePoi();
   loadBoundary();
-  loadLocalBuildings().then(() => { loadShops(); loadSignals(); });   // 건물 레이어 뒤에 올려야 가려지지 않음
+  loadLocalBuildings().then(() => { bldReady = true; setBuildingNight(nightOn); loadShops(); loadSignals(); });   // 건물 레이어 뒤에 올려야 가려지지 않음
   loadPlaces();
   render();
 });
@@ -155,16 +156,18 @@ async function loadLocalBuildings() {
       });
       const src = `local-${z.id}`;
       map.addSource(src, { type: "geojson", data: gj });
-      map.addLayer({
-        id: `${src}-3d`, type: "fill-extrusion", source: src, minzoom: 14,
-        paint: {
-          "fill-extrusion-color": APT_COLOR,
-          "fill-extrusion-vertical-gradient": true,
-          // 층수 정보가 없는 건물(height 0)은 기본 6m로 표시
-          "fill-extrusion-height": ["case", [">", ["get", "height"], 0], ["get", "height"], 6],
-          "fill-extrusion-opacity": 0.92,
-        },
-      });
+      const H = ["case", [">", ["get", "height"], 0], ["get", "height"], 6];
+      const common = { "fill-extrusion-vertical-gradient": true, "fill-extrusion-height": H, "fill-extrusion-opacity": 0.92 };
+      // 일반 건물: 모든 줌 / 아파트: 멀리서는 단색, 가까이서는 창문 줄무늬 패턴
+      map.addLayer({ id: `${src}-3d`, type: "fill-extrusion", source: src, minzoom: 14, filter: ["!", IS_APT],
+        paint: { ...common, "fill-extrusion-color": BLD_DAY } });
+      map.addLayer({ id: `${src}-apt`, type: "fill-extrusion", source: src, minzoom: 14, maxzoom: aptPatterns ? APT_PATTERN_ZOOM : 24, filter: IS_APT,
+        paint: { ...common, "fill-extrusion-color": APT_FAR_DAY } });
+      for (let i = 0; aptPatterns && i < 5; i++) {
+        map.addLayer({ id: `${src}-apt${i}`, type: "fill-extrusion", source: src, minzoom: APT_PATTERN_ZOOM,
+          filter: ["all", IS_APT, ["==", APT_PICK, i]],
+          paint: { ...common, "fill-extrusion-pattern": `apt${i}-day` } });
+      }
       z.status = "loaded";
       for (const f of gj.features) {
         const p = f.properties || {};
@@ -461,6 +464,52 @@ setInterval(fetchReports, 30000);   // 실시간 알림이 안 올 때를 위한
 
 
 // ---------- 지형 + 색감 ----------
+// ---------- 건물 낮/밤 + 아파트 창문 줄무늬 ----------
+const APT_PATTERN_ZOOM = 16.6;
+const APT_WALL = ["#f2e3c6", "#cfe0f1", "#e9d2d2", "#d5e6d0", "#e0dbee"];
+const BLD_DAY = ["interpolate", ["linear"], ["coalesce", ["get", "height"], 6],
+  0, "#e8dcc8", 10, "#e3c9a8", 25, "#d9a98a", 45, "#c98a7a", 70, "#a96f86"];
+const BLD_NIGHT = ["interpolate", ["linear"], ["coalesce", ["get", "height"], 6],
+  0, "#4a4a58", 10, "#454a5e", 25, "#3f4258", 45, "#3a3d58", 70, "#37395a"];
+const APT_FAR_DAY = ["match", ["%", ["floor", ["/", ["to-number", ["coalesce", ["get", "id"], "0"], 0], 1000]], 5],
+  0, APT_WALL[0], 1, APT_WALL[1], 2, APT_WALL[2], 3, APT_WALL[3], APT_WALL[4]];
+const APT_FAR_NIGHT = "#4b5062";
+function hex2rgb(h) { const n = parseInt(h.slice(1), 16); return [n >> 16 & 255, n >> 8 & 255, n & 255]; }
+function makeWindowImage(wall, win, litMix) {      // 16x16 타일: 층 높이 한 칸, 창문 2개(밤에는 하나만 불 켜짐)
+  const W = 16, Hh = 16, d = new Uint8Array(W * Hh * 4), wr = hex2rgb(wall);
+  for (let y = 0; y < Hh; y++) for (let x = 0; x < W; x++) {
+    let c = wr;
+    const inRow = y >= 4 && y < 12;
+    const w1 = inRow && x >= 2 && x < 7, w2 = inRow && x >= 9 && x < 14;
+    if (w1) c = hex2rgb(win[0]); else if (w2) c = hex2rgb(win[1]);
+    const o = (y * W + x) * 4; d[o] = c[0]; d[o + 1] = c[1]; d[o + 2] = c[2]; d[o + 3] = 255;
+  }
+  return { width: W, height: Hh, data: d };
+}
+function addAptImages() {
+  const dark = (h, k) => "#" + hex2rgb(h).map(v => Math.round(v * k).toString(16).padStart(2, "0")).join("");
+  APT_WALL.forEach((w, i) => {
+    try {
+      map.addImage(`apt${i}-day`, makeWindowImage(w, ["#9db4c8", "#a9bfd1"]));
+      map.addImage(`apt${i}-night`, makeWindowImage(dark(w, 0.28), i % 2 ? ["#ffd98a", "#2a2f40"] : ["#2a2f40", "#ffcf75"]));
+    } catch (e) {}
+  });
+  try { aptPatterns = APT_WALL.every((_, i) => map.hasImage(`apt${i}-day`) && map.hasImage(`apt${i}-night`)) && !/[?&]stripes=0/.test(location.search); } catch (e) {}
+}
+let nightOn = false, bldReady = false, aptPatterns = false;
+function setBuildingNight(on) {
+  nightOn = !!on;
+  if (!bldReady) return;
+  try { map.setLight(on ? { anchor: "viewport", position: [1.4, 210, 45], intensity: 0.25, color: "#9fb0ff" } : { anchor: "viewport", position: [1.4, 210, 45], intensity: 0.55, color: "#fff4e0" }); } catch (e) {}
+  for (const l of map.getStyle().layers) {
+    try {
+      if (/^local-.*-3d$/.test(l.id)) map.setPaintProperty(l.id, "fill-extrusion-color", on ? BLD_NIGHT : BLD_DAY);
+      else if (/^local-.*-apt$/.test(l.id)) map.setPaintProperty(l.id, "fill-extrusion-color", on ? APT_FAR_NIGHT : APT_FAR_DAY);
+      else { const m = l.id.match(/^local-.*-apt(\d)$/); if (m) map.setPaintProperty(l.id, "fill-extrusion-pattern", `apt${m[1]}-${on ? "night" : "day"}`); }
+    } catch (e) {}
+  }
+}
+
 // 아파트 추정: 이름에 '아파트' 포함 또는 높이 24m(8층) 이상 → 건물마다 파스텔톤을 섞어 단지 느낌
 const IS_APT = ["any", [">=", ["coalesce", ["get", "height"], 0], 24], [">", ["index-of", "아파트", ["coalesce", ["get", "name"], ""]], -1]];
 const APT_PICK = ["%", ["floor", ["/", ["to-number", ["coalesce", ["get", "id"], "0"], 0], 1000]], 5];
@@ -632,7 +681,9 @@ function wxTintColor() {
 }
 
 function applyWeather(next) {
+  if (nightForce !== null) next = { ...next, night: nightForce };
   wx = next;
+  setBuildingNight(wx.night);
   wxTint.style.backgroundColor = wxTintColor();
   wxSeed();
   const b = document.getElementById("wx-badge");
@@ -672,6 +723,13 @@ wxResize(); requestAnimationFrame(wxDraw);
 
 // 실시간 날씨 (10분마다 자동 갱신)
 let wxManual = false;
+let nightForce = null;      // null=실시간(낮/밤 자동), true/false=사용자가 버튼으로 고정
+(function nightBtn() {
+  const b = document.getElementById("night-btn"); if (!b) return;
+  const label = () => { b.textContent = wx.night ? "☀️ 낮" : "🌙 밤"; b.classList.toggle("on", nightForce !== null); };
+  b.onclick = () => { nightForce = nightForce === null ? !wx.night : null; if (nightForce === null) fetchWeather(); applyWeather({ ...wx }); label(); };
+  setInterval(label, 1000); label();
+})();
 async function fetchWeather() {
   if (wxManual) return;
   try {

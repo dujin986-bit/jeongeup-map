@@ -11,7 +11,7 @@
 <meta name="apple-mobile-web-app-title" content="정읍지도">
 <link rel="apple-touch-icon" href="icons/user-apple-180.png">
 <link href="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.css" rel="stylesheet">
-<link rel="stylesheet" href="style.css?v=20">
+<link rel="stylesheet" href="style.css?v=21">
 </head>
 <body>
 <div id="map"></div>
@@ -25,6 +25,7 @@
   <div id="searchbox"><input id="q" type="search" placeholder="🔍 가게·아파트·주소 검색" autocomplete="off"><div id="results" hidden></div></div>
   <nav id="filters"></nav>
   <button id="feed-btn" class="chip on feedbtn">제보 0</button>
+  <button id="night-btn" class="chip">🌙 밤</button>
   <select id="wx-select" class="chip" hidden>
     <option value="auto">날씨: 실시간</option><option value="clear">맑음</option><option value="cloud">흐림</option>
     <option value="rain">비</option><option value="heavyrain">폭우</option><option value="snow">눈</option>
@@ -59,7 +60,7 @@
 
 <script src="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="data.js?v=20"></script>
-<script src="app.js?v=20"></script>
+<script src="data.js?v=21"></script>
+<script src="app.js?v=21"></script>
 </body>
 </html>
