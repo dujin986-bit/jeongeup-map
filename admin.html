@@ -64,7 +64,7 @@
 
 <div id="app" hidden>
   <header>
-    <div class="top"><h1>제보 관리</h1><button class="link" id="logout">로그아웃</button></div>
+    <div class="top"><h1>제보 관리</h1><button class="link" onclick="cleanupPhotos(true)">🧹 사진정리</button><button class="link" id="logout">로그아웃</button></div>
     <div class="tabs" id="tabs"></div>
   </header>
   <main id="list"></main>
@@ -150,7 +150,20 @@ async function drawLog() {
   }
 }
 
+async function cleanupPhotos(manual) {
+  const { data } = await sb.from("reports").select("id,category,created_at,photo_url").not("photo_url", "is", null);
+  if (!data) return 0;
+  const old = data.filter(r => (Date.now() - new Date(r.created_at)) > ((EXPIRE_HOURS[r.category] || 72) * 3600e3));
+  if (!old.length) { if (manual) alert("정리할 사진이 없어요"); return 0; }
+  const names = old.map(r => r.photo_url.split("/report-photos/")[1]).filter(Boolean);
+  if (names.length) await sb.storage.from("report-photos").remove(names);
+  await sb.from("reports").update({ photo_url: null }).in("id", old.map(r => r.id));
+  if (manual) alert(old.length + "장 정리했어요");
+  return old.length;
+}
+
 function start() {
+  cleanupPhotos(false);
   $("login").hidden = true; $("app").hidden = false;
   $("tabs").innerHTML = "";
   for (const [k, label] of TABS) {

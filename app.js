@@ -1145,12 +1145,12 @@ addEventListener("pageshow", autoRefresh);
 const commEl = document.getElementById("comm"), commBody = document.getElementById("comm-body");
 function renderComm() {
   if (!commBody) return;
-  const topic = (typeof COMM_TOPIC !== "undefined" && COMM_TOPIC) || "";
-  let html = topic ? `<div class="comm-topic"><b>📌 이번 주 주제</b><br>${esc(topic)}<br><small>지도를 길게 눌러 제보로 참여해 보세요</small></div>` : "";
+  let html = `<div class="comm-topic" id="food-card"><b>🍚 오늘의 맛집 TOP 3</b><div id="food-list">불러오는 중…</div><button id="food-vote" class="chip">투표하기</button><div id="food-yday"></div></div>`;
   html += `<div class="comm-note">💬 이야기 글쓰기는 곧 열려요. 지금은 지도 제보로 참여할 수 있어요.</div>`;
   html += `<div class="comm-head">실시간 제보 ${reports.length}건</div>`;
   if (!reports.length) html += `<div class="feed-empty">아직 제보가 없어요. 첫 제보를 남겨 보세요!</div>`;
   commBody.innerHTML = html;
+  loadFood();
   for (const r of reports) {
     const c = CATEGORIES[r.cat];
     const card = document.createElement("div"); card.className = "comm-card";
@@ -1457,11 +1457,52 @@ document.getElementById("photo-btn").onclick = () => document.getElementById("ph
 document.getElementById("photo").onchange = async e => {
   const f = e.target.files[0]; if (!f) return;
   try {
-    const bmp = await createImageBitmap(f), k = Math.min(1, 1280 / Math.max(bmp.width, bmp.height));
+    const bmp = await createImageBitmap(f), k = Math.min(1, 800 / Math.max(bmp.width, bmp.height));
     const c = document.createElement("canvas"); c.width = Math.round(bmp.width * k); c.height = Math.round(bmp.height * k);
     c.getContext("2d").drawImage(bmp, 0, 0, c.width, c.height);
-    photoBlob = await new Promise(r => c.toBlob(r, "image/jpeg", 0.75));
+    photoBlob = await new Promise(r => c.toBlob(r, "image/jpeg", 0.7));
     const p = document.getElementById("photo-prev"); p.src = URL.createObjectURL(photoBlob); p.hidden = false;
     document.getElementById("photo-btn").textContent = "📷 사진 바꾸기";
   } catch (err) { alert("사진을 불러오지 못했어요. 다른 사진으로 해 보세요."); clearPhoto(); }
 };
+
+
+// ===== 오늘의 맛집 TOP 3 (하루 한 표 / 한국시간 자정 초기화) =====
+const kstDay = (off = 0) => new Date(Date.now() + 9 * 3600e3 + off * 864e5).toISOString().slice(0, 10);
+function voterId() { try { let v = localStorage.getItem("voter_id"); if (!v) { v = (crypto.randomUUID ? crypto.randomUUID() : Date.now() + "-" + Math.random().toString(36).slice(2)); localStorage.setItem("voter_id", v); } return v; } catch (e) { return "anon-" + Math.random().toString(36).slice(2, 12); } }
+const foodRpc = d => fetch(SUPABASE_URL + "/rest/v1/rpc/food_top", { method: "POST", headers: { apikey: SUPABASE_KEY, Authorization: "Bearer " + SUPABASE_KEY, "Content-Type": "application/json" }, body: JSON.stringify({ d }) }).then(r => r.ok ? r.json() : null).catch(() => null);
+function myVote() { try { const v = JSON.parse(localStorage.getItem("food_vote") || "null"); return v && v.day === kstDay() ? v : null; } catch (e) { return null; } }
+async function loadFood() {
+  const list = document.getElementById("food-list"); if (!list) return;
+  const [today, yday] = await Promise.all([foodRpc(kstDay()), foodRpc(kstDay(-1))]);
+  if (!document.getElementById("food-list")) return;
+  const medal = ["🥇", "🥈", "🥉"];
+  list.innerHTML = !today ? "<small>투표 준비 중이에요</small>" : today.length ? today.map((r, i) => `<div class="food-row" data-id="${esc(r.shop_id)}">${medal[i]} <b>${esc(r.shop_name)}</b> <small>${r.cnt}표</small></div>`).join("") : "<small>아직 투표가 없어요. 첫 표를 남겨 보세요!</small>";
+  list.querySelectorAll(".food-row").forEach(el => el.onclick = () => { const s = shopInfo(el.dataset.id); if (!s) return; closeComm(); map.flyTo({ center: s.coord, zoom: 18, pitch: 55, duration: 1500 }); });
+  const y = document.getElementById("food-yday"); if (y) y.innerHTML = yday && yday.length ? `<small>어제의 1등 👑 ${esc(yday[0].shop_name)} (${yday[0].cnt}표)</small>` : "";
+  const btn = document.getElementById("food-vote"), mv = myVote();
+  if (mv) { btn.textContent = "✔ 오늘 투표 완료 · " + mv.name; btn.disabled = true; } else btn.onclick = openFoodVote;
+}
+function openFoodVote() {
+  const m = document.getElementById("notice-modal");
+  m.innerHTML = '<div class="nm"><b>오늘 제일 맛있게 먹은 식당은?</b><input id="fv-q" placeholder="식당 이름 검색" style="width:100%;padding:10px;margin:8px 0;font-size:16px;border:1px solid #ccc;border-radius:8px"><div id="fv-res"></div><button id="nm-x">닫기</button></div>';
+  m.hidden = false; document.getElementById("nm-x").onclick = () => m.hidden = true;
+  const q = document.getElementById("fv-q"), res = document.getElementById("fv-res");
+  const pool = SHOPS.concat((EDITS && EDITS.added) || []).map(s => shopInfo(s.id)).filter(s => s && !s.hidden && /음식점/.test(s.category || ""));
+  const draw = () => {
+    const t = q.value.trim().replace(/\s/g, ""); res.innerHTML = "";
+    if (!t) { res.innerHTML = "<small>가게 이름을 입력하면 후보가 나와요</small>"; return; }
+    for (const s of pool.filter(s => s.name.replace(/\s/g, "").includes(t)).slice(0, 8)) {
+      const b = document.createElement("button"); b.className = "fv-item"; b.textContent = s.name;
+      b.onclick = async () => {
+        if (!confirm(`오늘의 맛집으로 "${s.name}"에 투표할까요? (하루 한 번만 가능해요)`)) return;
+        const r = await fetch(SUPABASE_URL + "/rest/v1/food_votes", { method: "POST", headers: { apikey: SUPABASE_KEY, Authorization: "Bearer " + SUPABASE_KEY, "Content-Type": "application/json", Prefer: "return=minimal" }, body: JSON.stringify({ day: kstDay(), voter: voterId(), shop_id: s.id, shop_name: s.name }) });
+        if (r.ok || r.status === 409) { try { localStorage.setItem("food_vote", JSON.stringify({ day: kstDay(), name: s.name })); } catch (e) {} m.hidden = true; loadFood(); alert(r.ok ? "투표 완료! 내일 또 만나요 🍚" : "오늘은 이미 투표하셨어요"); }
+        else alert("투표에 실패했어요. 잠시 뒤 다시 해 주세요.");
+      };
+      res.appendChild(b);
+    }
+    if (!res.children.length) res.innerHTML = "<small>검색 결과가 없어요</small>";
+  };
+  q.oninput = draw; draw(); q.focus();
+}

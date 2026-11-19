@@ -262,3 +262,9 @@ body.live #help-btn, body.live #tut { display: none !important; }
 #photo-row small { color: #888; font-size: 12px; }
 .pop-photo { display: block; width: 100%; max-width: 220px; max-height: 160px; object-fit: cover; border-radius: 8px; margin-top: 6px; }
 .comm-photo { display: block; width: 100%; max-height: 220px; object-fit: cover; border-radius: 10px; margin: 6px 0; }
+
+#food-list { margin: 8px 0; } .food-row { padding: 6px 0; font-size: 16px; cursor: pointer; }
+#food-vote { margin-top: 4px; font-weight: 700; } #food-vote:disabled { opacity: .85; }
+#food-yday { margin-top: 6px; }
+#fv-res { display: flex; flex-direction: column; gap: 6px; margin-bottom: 10px; }
+.fv-item { text-align: left; padding: 10px; border: 1px solid #ddd; border-radius: 8px; background: #fff; font-size: 15px; }
