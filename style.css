@@ -268,3 +268,8 @@ body.live #help-btn, body.live #tut { display: none !important; }
 #food-yday { margin-top: 6px; }
 #fv-res { display: flex; flex-direction: column; gap: 6px; margin-bottom: 10px; }
 .fv-item { text-align: left; padding: 10px; border: 1px solid #ddd; border-radius: 8px; background: #fff; font-size: 15px; }
+#notice-modal { z-index: 60 !important; align-items: flex-start !important; padding-top: 10vh !important; }
+#notice-modal .nm { color-scheme: light; }
+#notice-modal .nm input { background: #fff; color: #222; }
+#notice-modal .nm .fv-item { color: #222; }
+#notice-modal .nm b { font-size: 16px; }
