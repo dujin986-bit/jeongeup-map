@@ -49,7 +49,7 @@ function addMarker(item, isLandmark) {
     `<strong>${esc(item.name || item.title)}</strong> <small>(${c.label})</small><br>${esc(item.desc || "")}${when}`
   );
   const m = new maplibregl.Marker({ element: el }).setLngLat(item.coord).setPopup(popup).addTo(map);
-  markers.push(m);
+  m._item = item; markers.push(m);
 }
 function esc(s) { return String(s).replace(/[&<>"']/g, ch => ({ "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;" }[ch])); }
 
@@ -57,7 +57,39 @@ function render() {
   markers.forEach(m => m.remove()); markers = [];
   LANDMARKS.filter(l => activeCats.has(l.cat)).forEach(l => addMarker(l, true));
   reports.filter(r => activeCats.has(r.cat)).forEach(r => addMarker(r, false));
+  renderFeed();
 }
+
+// ---------- 제보 목록 (상단) ----------
+function timeAgo(ts) {
+  const m = Math.floor((Date.now() - new Date(ts).getTime()) / 60000);
+  if (m < 1) return "방금";
+  if (m < 60) return m + "분 전";
+  if (m < 1440) return Math.floor(m / 60) + "시간 전";
+  return Math.floor(m / 1440) + "일 전";
+}
+function renderFeed() {
+  const btn = document.getElementById("feed-btn"), box = document.getElementById("feed");
+  if (!btn || !box) return;
+  const list = reports.filter(r => activeCats.has(r.cat));
+  btn.textContent = `제보 ${list.length}`;
+  box.innerHTML = list.length ? "" : '<div class="feed-empty">아직 제보가 없어요. 지도를 길게 눌러 첫 제보를 남겨 보세요!</div>';
+  for (const r of list) {
+    const c = CATEGORIES[r.cat];
+    const row = document.createElement("div");
+    row.className = "feed-row";
+    row.innerHTML = `<span class="feed-dot" style="background:${c.color}"></span><div><div class="feed-title">${esc(r.title)}</div>` +
+      `<div class="feed-meta">${c.label} · ${timeAgo(r.ts)}${r.desc ? " · " + esc(r.desc) : ""}</div></div>`;
+    row.onclick = () => {
+      box.hidden = true;
+      map.flyTo({ center: r.coord, zoom: 17, pitch: 60, duration: 1500 });
+      const mk = markers.find(x => x._item && x._item.id === r.id);
+      if (mk && !mk.getPopup().isOpen()) setTimeout(() => mk.togglePopup(), 1500);
+    };
+    box.appendChild(row);
+  }
+}
+document.getElementById("feed-btn").onclick = () => { const b = document.getElementById("feed"); b.hidden = !b.hidden; };
 
 // ---------- 3D 건물 ----------
 map.on("load", () => {
@@ -387,9 +419,11 @@ async function fetchReports() {
       { headers: { apikey: SUPABASE_KEY, Authorization: "Bearer " + SUPABASE_KEY } });
     if (!res.ok) return;
     const rows = await res.json();
-    reports = rows.filter(r => CATEGORIES[r.category]).map(r => ({
+    const next = rows.filter(r => CATEGORIES[r.category]).map(r => ({
       id: r.id, title: r.title, desc: r.description || "", cat: r.category,
       coord: [r.lon, r.lat], ts: r.created_at }));
+    if (JSON.stringify(next) === JSON.stringify(reports)) return;   // 변화 없으면 다시 그리지 않음(열린 팝업 유지)
+    reports = next;
     render();
   } catch (e) {}
 }
