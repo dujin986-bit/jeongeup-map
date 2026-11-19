@@ -465,15 +465,15 @@ setInterval(fetchReports, 30000);   // 실시간 알림이 안 올 때를 위한
 
 // ---------- 지형 + 색감 ----------
 // ---------- 건물 낮/밤 + 아파트 창문 줄무늬 ----------
-const APT_PATTERN_ZOOM = 16.6;
+const APT_PATTERN_ZOOM = 16;
 const APT_WALL = ["#f2e3c6", "#cfe0f1", "#e9d2d2", "#d5e6d0", "#e0dbee"];
 const BLD_DAY = ["interpolate", ["linear"], ["coalesce", ["get", "height"], 6],
   0, "#e8dcc8", 10, "#e3c9a8", 25, "#d9a98a", 45, "#c98a7a", 70, "#a96f86"];
 const BLD_NIGHT = ["interpolate", ["linear"], ["coalesce", ["get", "height"], 6],
-  0, "#4a4a58", 10, "#454a5e", 25, "#3f4258", 45, "#3a3d58", 70, "#37395a"];
+  0, "#8a8aa0", 10, "#8189a6", 25, "#7a7fa2", 45, "#7479a4", 70, "#6e72a6"];
 const APT_FAR_DAY = ["match", ["%", ["floor", ["/", ["to-number", ["coalesce", ["get", "id"], "0"], 0], 1000]], 5],
   0, APT_WALL[0], 1, APT_WALL[1], 2, APT_WALL[2], 3, APT_WALL[3], APT_WALL[4]];
-const APT_FAR_NIGHT = "#4b5062";
+const APT_FAR_NIGHT = "#8b93b4";
 function hex2rgb(h) { const n = parseInt(h.slice(1), 16); return [n >> 16 & 255, n >> 8 & 255, n & 255]; }
 function makeWindowImage(wall, win, litMix) {      // 16x16 타일: 층 높이 한 칸, 창문 2개(밤에는 하나만 불 켜짐)
   const W = 16, Hh = 16, d = new Uint8Array(W * Hh * 4), wr = hex2rgb(wall);
@@ -491,7 +491,7 @@ function addAptImages() {
   APT_WALL.forEach((w, i) => {
     try {
       map.addImage(`apt${i}-day`, makeWindowImage(w, ["#9db4c8", "#a9bfd1"]));
-      map.addImage(`apt${i}-night`, makeWindowImage(dark(w, 0.28), i % 2 ? ["#ffd98a", "#2a2f40"] : ["#2a2f40", "#ffcf75"]));
+      map.addImage(`apt${i}-night`, makeWindowImage(dark(w, 0.5), i % 2 ? ["#fff0b8", "#3a4056"] : ["#3a4056", "#ffe9a0"]));
     } catch (e) {}
   });
   try { aptPatterns = APT_WALL.every((_, i) => map.hasImage(`apt${i}-day`) && map.hasImage(`apt${i}-night`)) && !/[?&]stripes=0/.test(location.search); } catch (e) {}
@@ -500,6 +500,10 @@ let nightOn = false, bldReady = false, aptPatterns = false;
 function setBuildingNight(on) {
   nightOn = !!on;
   if (!bldReady) return;
+  try {                                   // 땅·길·물·글씨까지 한꺼번에 어둡게 (건물만 어두워 보이던 문제)
+    const cv = map.getCanvas(); cv.style.transition = "filter 1.5s ease";
+    cv.style.filter = on ? "brightness(0.62) saturate(0.85) hue-rotate(8deg)" : "none";
+  } catch (e) {}
   try { map.setLight(on ? { anchor: "viewport", position: [1.4, 210, 45], intensity: 0.25, color: "#9fb0ff" } : { anchor: "viewport", position: [1.4, 210, 45], intensity: 0.55, color: "#fff4e0" }); } catch (e) {}
   for (const l of map.getStyle().layers) {
     try {
