@@ -897,6 +897,16 @@ let nightForce = DARKSTYLE ? true : null;      // null=실시간(낮/밤 자동)
   b.onclick = () => { nightForce = nightForce === null ? !wx.night : null; if (nightForce === null) fetchWeather(); applyWeather({ ...wx }); label(); };
   setInterval(label, 1000); label();
 })();
+let WXO = null;                                   // 관리자가 정한 날씨 (모든 사용자에게 적용, 만료되면 자동 복귀)
+async function fetchWxOverride() {
+  try {
+    const r = await fetch(SUPABASE_URL + "/rest/v1/weather_override?select=*&id=eq.1", { headers: { apikey: SUPABASE_KEY, Authorization: "Bearer " + SUPABASE_KEY } });
+    if (!r.ok) return;
+    const row = (await r.json())[0];
+    const next = row && row.kind && new Date(row.expires_at) > new Date() && WX_PRESET[row.kind] ? row.kind : null;
+    if (next !== WXO) { WXO = next; fetchWeather(); }
+  } catch (e) {}
+}
 async function fetchWeather() {
   if (wxManual) return;
   try {
@@ -904,10 +914,14 @@ async function fetchWeather() {
       `&current=temperature_2m,weather_code,is_day&timezone=Asia%2FSeoul`;
     const r = await fetch(url); if (!r.ok) return;
     const cur = (await r.json()).current; if (!cur) return;
-    applyWeather({ ...WX_CODE(cur.weather_code), night: cur.is_day === 0, temp: cur.temperature_2m });
+    let base = WX_CODE(cur.weather_code);
+    if (cur.temperature_2m <= 1 && base.kind === "rain" && base.i <= 0.6) base = { kind: "snow", label: "진눈깨비", i: base.i };   // 영하권 약한 비는 진눈깨비로 보정
+    if (WXO) { applyWeather({ ...WX_PRESET[WXO], night: cur.is_day === 0, temp: cur.temperature_2m }); return; }
+    applyWeather({ ...base, night: cur.is_day === 0, temp: cur.temperature_2m });
   } catch (e) {}
 }
 fetchWeather(); setInterval(fetchWeather, 600000);
+setTimeout(fetchWxOverride, 1500); setInterval(fetchWxOverride, 60000);
 
 // 미리보기 (내 PC 또는 ?wx=rain 처럼 주소에 붙였을 때)
 const WX_PRESET = {
@@ -1165,7 +1179,7 @@ document.addEventListener("click", e => { if (!e.target.closest("#searchbox")) r
 // ===== 새로고침 버튼 + 앱으로 돌아올 때 자동 갱신 =====
 async function manualRefresh(btn) {
   const old = btn.textContent; btn.disabled = true; btn.textContent = "⏳";
-  const [ok] = await Promise.all([fetchReports(), fetchShopEdits(), fetchNotices()]);
+  const [ok] = await Promise.all([fetchReports(), fetchShopEdits(), fetchNotices(), fetchWxOverride()]);
   btn.textContent = ok ? "✓ 방금" : "⚠ 실패";
   setTimeout(() => { btn.textContent = old; btn.disabled = false; }, 1500);
 }

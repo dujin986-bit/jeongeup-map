@@ -83,7 +83,7 @@
 <script src="data.js"></script>
 <script>
 const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
-const TABS = [["pending", "대기"], ["approved", "승인됨"], ["hidden", "숨김"], ["notice", "공지"], ["log", "편집기록"], ["map", "지도 수정 ↗"]];
+const TABS = [["pending", "대기"], ["approved", "승인됨"], ["hidden", "숨김"], ["notice", "공지"], ["wx", "날씨"], ["log", "편집기록"], ["map", "지도 수정 ↗"]];
 let tab = "pending", rows = [];
 const $ = id => document.getElementById(id);
 const esc = s => String(s == null ? "" : s).replace(/[&<>"']/g, c => ({ "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;" }[c]));
@@ -162,6 +162,23 @@ async function cleanupPhotos(manual) {
   return old.length;
 }
 
+async function drawWx() {
+  const box = $("extra"); delete box.dataset.n;
+  const { data } = await sb.from("weather_override").select("*").eq("id", 1);
+  const row = data && data[0], live = row && row.kind && new Date(row.expires_at) > new Date();
+  const NAMES = { clear: "맑음", cloud: "흐림", rain: "비", heavyrain: "폭우", snow: "눈", fog: "안개", storm: "천둥번개" };
+  box.innerHTML = `<div class="card"><b>모든 사용자 화면의 날씨 정하기</b><div style="margin:6px 0;color:#555">현재: ${live ? "수동 · " + NAMES[row.kind] + " (" + new Date(row.expires_at).toLocaleString("ko-KR") + "까지)" : "자동 (실시간 날씨)"}</div>
+    <select id="wKind" style="width:100%;padding:10px;font-size:16px;margin-bottom:8px">${Object.entries(NAMES).map(([k, v]) => `<option value="${k}">${v}</option>`).join("")}</select>
+    <select id="wMin" style="width:100%;padding:10px;font-size:16px;margin-bottom:8px">${Array.from({ length: 24 }, (_, i) => { const m = (i + 1) * 30, h = Math.floor(m / 60), mm = m % 60; return `<option value="${m}"${m === 120 ? " selected" : ""}>${(h ? h + "시간" : "") + (h && mm ? " " : "") + (mm ? mm + "분" : "")} 동안</option>`; }).join("")}</select>
+    <button class="act ok" id="wSet" style="width:100%;margin-bottom:8px">적용</button><button class="act hide" id="wAuto" style="width:100%">자동으로 되돌리기</button></div>`;
+  $("wSet").onclick = async () => {
+    const exp = new Date(Date.now() + Number($("wMin").value) * 60000).toISOString();
+    const { error } = await sb.from("weather_override").upsert({ id: 1, kind: $("wKind").value, expires_at: exp });
+    if (error) { alert("실패: " + error.message + "\n(날씨 SQL을 실행했는지 확인하세요)"); return; } drawWx();
+  };
+  $("wAuto").onclick = async () => { await sb.from("weather_override").upsert({ id: 1, kind: null, expires_at: new Date().toISOString() }); drawWx(); };
+}
+
 function start() {
   cleanupPhotos(false);
   $("login").hidden = true; $("app").hidden = false;
@@ -186,10 +203,11 @@ async function load() {
 function draw() {
   const counts = {}; rows.forEach(r => counts[r.status] = (counts[r.status] || 0) + 1);
   document.querySelectorAll(".tab").forEach(t => { const k = t.dataset.k; t.textContent = TABS.find(x => x[0] === k)[1] + (["pending","approved","hidden"].includes(k) ? " " + (counts[k] || 0) : ""); });
-  const ext = tab === "notice" || tab === "log";
+  const ext = ["notice", "log", "wx"].includes(tab);
   $("list").hidden = ext; $("mapedit").hidden = true; $("extra").hidden = !ext;
   if (tab === "notice") { drawNotice(); return; }
   if (tab === "log") { drawLog(); return; }
+  if (tab === "wx") { drawWx(); return; }
   const list = rows.filter(r => r.status === tab);
   const box = $("list");
   if (!list.length) { box.innerHTML = '<div class="empty">없어요</div>'; return; }
