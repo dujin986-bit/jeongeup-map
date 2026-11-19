@@ -1,0 +1,67 @@
+* { box-sizing: border-box; }
+html, body { margin: 0; height: 100%; font-family: -apple-system, "Malgun Gothic", sans-serif; }
+#map { position: absolute; inset: 0; }
+
+#top {
+  position: absolute; top: 0; left: 0; right: 0; z-index: 5;
+  display: flex; align-items: center; gap: 12px; flex-wrap: wrap;
+  padding: 10px 14px; background: rgba(255,255,255,.94);
+  box-shadow: 0 1px 6px rgba(0,0,0,.15);
+}
+#filters { display: flex; gap: 6px; flex-wrap: wrap; }
+.chip {
+  border: 1px solid #ccc; background: #fff; border-radius: 16px;
+  padding: 4px 10px; font-size: 13px; cursor: pointer;
+}
+.chip.on { background: #1f6feb; color: #fff; border-color: #1f6feb; }
+
+#panel {
+  position: absolute; z-index: 6; left: 50%; bottom: 24px; transform: translateX(-50%);
+  width: min(92vw, 360px); background: #fff; border-radius: 12px;
+  padding: 14px; box-shadow: 0 4px 20px rgba(0,0,0,.25);
+  display: flex; flex-direction: column; gap: 8px;
+}
+#panel[hidden] { display: none; }
+#panel h3 { margin: 0; font-size: 16px; }
+#pos { margin: 0; font-size: 12px; color: #666; }
+#panel input, #panel select, #panel textarea {
+  width: 100%; padding: 8px; font-size: 14px; border: 1px solid #ccc; border-radius: 8px;
+}
+#panel textarea { resize: none; height: 60px; }
+.row { display: flex; gap: 8px; }
+button { flex: 1; padding: 9px; border: 0; border-radius: 8px; background: #1f6feb; color: #fff; font-size: 14px; cursor: pointer; }
+button.ghost { background: #eee; color: #333; }
+
+#hint {
+  position: absolute; z-index: 4; left: 50%; bottom: 8px; transform: translateX(-50%);
+  background: rgba(0,0,0,.6); color: #fff; font-size: 12px; padding: 5px 10px; border-radius: 12px;
+  pointer-events: none;
+}
+
+.pin {
+  width: 26px; height: 26px; border-radius: 50% 50% 50% 0; transform: rotate(-45deg);
+  border: 2px solid #fff; box-shadow: 0 1px 4px rgba(0,0,0,.4); cursor: pointer;
+}
+
+/* 내 장소 간판 (position 은 지도 마커 기본값(absolute)을 그대로 사용) */
+.sign { width: max-content; padding: 2px 8px; border: 2px solid #222; border-radius: 6px;
+  font-size: 13px; font-weight: 700; line-height: 1.3; color: #111; white-space: nowrap; cursor: pointer;
+  box-shadow: 0 1px 4px rgba(0,0,0,.4); margin-bottom: 8px; }
+.sign i { position: absolute; left: 50%; bottom: -8px; transform: translateX(-50%);
+  border: 5px solid transparent; border-top: 6px solid #222; border-bottom: 0; }
+
+/* 장소(spot) 표시 */
+.spot { display: flex; align-items: center; gap: 4px; cursor: pointer; width: max-content; }
+.spot b { width: 14px; height: 14px; border-radius: 50%; border: 2px solid #fff; box-shadow: 0 1px 3px rgba(0,0,0,.5); }
+.spot span { font-size: 12px; font-weight: 700; color: #111; background: rgba(255,255,255,.9);
+  padding: 1px 5px; border-radius: 4px; box-shadow: 0 1px 3px rgba(0,0,0,.3); white-space: nowrap; }
+
+/* 가게 팝업 수정 버튼 */
+.edit-row { display: flex; gap: 6px; margin-top: 8px; }
+.edit-row button { flex: 1; padding: 5px 6px; font-size: 12px; }
+
+/* 겹친 가게 목록 */
+.shop-head { font-size: 12px; font-weight: 700; color: #1f6feb; margin-bottom: 4px; }
+.shop-list { max-height: 260px; overflow-y: auto; }
+.shop-row { padding: 6px 0; border-bottom: 1px solid #e3e3e3; }
+.shop-row:last-child { border-bottom: 0; }

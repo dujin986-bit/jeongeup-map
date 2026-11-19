@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>정읍 3D 지도</title>
+<link href="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.css" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div id="map"></div>
+
+<header id="top">
+  <strong>정읍 3D 지도</strong>
+  <nav id="filters"></nav>
+</header>
+
+<div id="panel" hidden>
+  <select id="mode"><option value="report">제보하기</option><option value="shop">가게 추가</option></select>
+  <p id="pos"></p>
+  <select id="cat"></select>
+  <select id="shopcat" hidden>
+    <option>음식점</option><option>카페</option><option>숙박</option><option>편의점/마트</option><option>주차장</option><option>기타</option>
+  </select>
+  <input id="title" placeholder="제목 (예: 내장산 입구 정체)" maxlength="40">
+  <textarea id="desc" placeholder="내용 (선택)" maxlength="200"></textarea>
+  <div class="row">
+    <button id="save">등록</button>
+    <button id="cancel" class="ghost">취소</button>
+  </div>
+</div>
+
+<div id="hint">지도를 길게 누르거나 우클릭하면 제보하거나 가게를 추가할 수 있어요</div>
+
+<script src="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.js"></script>
+<script src="data.js"></script>
+<script src="app.js"></script>
+</body>
+</html>

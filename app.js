@@ -1,0 +1,423 @@
+const map = new maplibregl.Map({
+  container: "map",
+  style: "https://tiles.openfreemap.org/styles/liberty", // 무료, API 키 불필요
+  center: JEONGEUP_CENTER,
+  zoom: 15.2,
+  pitch: 60,
+  bearing: -20,
+  maxPitch: 80,
+  minZoom: 9.5,
+  maxBounds: [[126.55, 35.25], [127.25, 35.85]],   // 정읍시 일대(대략). 경계 파일이 있으면 자동 보정
+});
+map.addControl(new maplibregl.NavigationControl({ visualizePitch: true }), "top-right");
+map.addControl(new maplibregl.GeolocateControl({ trackUserLocation: true }), "top-right");
+
+// ---------- 데이터 ----------
+const STORE_KEY = "jeongeup-reports-v1";
+const load = () => { try { return JSON.parse(localStorage.getItem(STORE_KEY)) || []; } catch { return []; } };
+const store = (list) => { try { localStorage.setItem(STORE_KEY, JSON.stringify(list)); } catch {} };
+
+let reports = load();            // 시민 제보 (현재는 이 브라우저에만 저장. 이후 서버 연동)
+let activeCats = new Set(Object.keys(CATEGORIES));
+let markers = [];
+
+// ---------- 필터 UI ----------
+const filtersEl = document.getElementById("filters");
+const catSel = document.getElementById("cat");
+for (const [key, c] of Object.entries(CATEGORIES)) {
+  const b = document.createElement("button");
+  b.className = "chip on"; b.textContent = c.label; b.style.flex = "none";
+  b.onclick = () => {
+    activeCats.has(key) ? activeCats.delete(key) : activeCats.add(key);
+    b.classList.toggle("on");
+    render();
+  };
+  filtersEl.appendChild(b);
+  catSel.add(new Option(c.label, key));
+}
+
+// ---------- 마커 ----------
+function addMarker(item, isLandmark) {
+  const c = CATEGORIES[item.cat];
+  const el = document.createElement("div");
+  el.className = "pin";
+  el.style.background = c.color;
+  if (isLandmark) el.style.outline = "2px solid #fff";
+  const when = item.ts ? `<br><small>${new Date(item.ts).toLocaleString("ko-KR")}</small>` : "";
+  const popup = new maplibregl.Popup({ offset: 20 }).setHTML(
+    `<strong>${esc(item.name || item.title)}</strong> <small>(${c.label})</small><br>${esc(item.desc || "")}${when}`
+  );
+  const m = new maplibregl.Marker({ element: el }).setLngLat(item.coord).setPopup(popup).addTo(map);
+  markers.push(m);
+}
+function esc(s) { return String(s).replace(/[&<>"']/g, ch => ({ "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;" }[ch])); }
+
+function render() {
+  markers.forEach(m => m.remove()); markers = [];
+  LANDMARKS.filter(l => activeCats.has(l.cat)).forEach(l => addMarker(l, true));
+  reports.filter(r => activeCats.has(r.cat)).forEach(r => addMarker(r, false));
+}
+
+// ---------- 3D 건물 ----------
+map.on("load", () => {
+  const layers = map.getStyle().layers;
+  // liberty 스타일에 3D 건물 레이어가 이미 있으면 그대로 사용, 없으면 추가
+  const has3d = layers.some(l => l.type === "fill-extrusion");
+  if (!has3d) {
+    map.addLayer({
+      id: "buildings-3d", type: "fill-extrusion", source: "openmaptiles", "source-layer": "building",
+      minzoom: 14,
+      paint: {
+        "fill-extrusion-color": "#c9ccd1",
+        "fill-extrusion-height": ["coalesce", ["get", "render_height"], 6],
+        "fill-extrusion-base": ["coalesce", ["get", "render_min_height"], 0],
+        "fill-extrusion-opacity": 0.9,
+      },
+    });
+  }
+  setupTerrain();
+  setupColors();
+  setupBasePoi();
+  loadBoundary();
+  loadLocalBuildings().then(loadShops);   // 건물 레이어 뒤에 올려야 가려지지 않음
+  loadPlaces();
+  render();
+});
+
+// ---------- 수집한 정읍 건물 데이터 (tools/collect_buildings.py 결과) ----------
+// data/<구역>.geojson 이 있으면 3D 건물로 얹고, 큰 건물(7층 이상)은 이름 라벨을 붙인다.
+function centroidOf(geom) {
+  let ring = null;
+  if (!geom) return null;
+  if (geom.type === "Polygon") ring = geom.coordinates[0];
+  else if (geom.type === "MultiPolygon") ring = geom.coordinates[0] && geom.coordinates[0][0];
+  if (!ring || !ring.length) return null;
+  let x = 0, y = 0;
+  for (const c of ring) { x += c[0]; y += c[1]; }
+  return [x / ring.length, y / ring.length];
+}
+
+async function loadLocalBuildings() {
+  const seen = new Set();           // 구역 겹침으로 생기는 중복 건물 제거
+  const groups = new Map();         // 이름 -> 라벨 위치(평균), 최고층
+  for (const z of ZONES) {
+    try {
+      const res = await fetch(`data/${z.id}.geojson`);
+      if (!res.ok) continue;
+      const gj = await res.json();
+      gj.features = gj.features.filter(f => {
+        const id = f.properties && f.properties.id;
+        if (!id) return true;
+        if (seen.has(id)) return false;
+        seen.add(id); return true;
+      });
+      const src = `local-${z.id}`;
+      map.addSource(src, { type: "geojson", data: gj });
+      map.addLayer({
+        id: `${src}-3d`, type: "fill-extrusion", source: src, minzoom: 14,
+        paint: {
+          "fill-extrusion-color": HEIGHT_COLOR,
+          // 층수 정보가 없는 건물(height 0)은 기본 6m로 표시
+          "fill-extrusion-height": ["case", [">", ["get", "height"], 0], ["get", "height"], 6],
+          "fill-extrusion-opacity": 0.92,
+        },
+      });
+      z.status = "loaded";
+      for (const f of gj.features) {
+        const p = f.properties || {};
+        const name = (p.name || "").trim();
+        if (!name) continue;
+        const c = centroidOf(f.geometry);
+        if (!c) continue;
+        const g = groups.get(name) || { x: 0, y: 0, n: 0, floors: 0 };
+        g.x += c[0]; g.y += c[1]; g.n += 1; g.floors = Math.max(g.floors, p.floors || 0);
+        groups.set(name, g);
+      }
+    } catch (e) { /* 파일 없음/열기 제한: 무시 */ }
+  }
+  const labels = [];
+  for (const [name, g] of groups) {
+    if (g.floors < 7) continue;     // 큰 건물(아파트 단지 등)만 이름 표시
+    labels.push({ type: "Feature", geometry: { type: "Point", coordinates: [g.x / g.n, g.y / g.n] },
+                  properties: { name, floors: g.floors } });
+  }
+  if (labels.length) {
+    map.addSource("local-labels", { type: "geojson", data: { type: "FeatureCollection", features: labels } });
+    map.addLayer({
+      id: "local-labels", type: "symbol", source: "local-labels", minzoom: 15,
+      layout: { "text-field": ["get", "name"], "text-font": ["Noto Sans Regular"], "text-size": 12,
+                "text-anchor": "center", "text-max-width": 8 },
+      paint: { "text-color": "#1b1b1b", "text-halo-color": "#ffffff", "text-halo-width": 1.6 },
+    });
+  }
+}
+
+// ---------- 내 장소 (data/places.json: tools/find_place.py 로 추가) ----------
+// 지도 글자가 아니라 화면 위에 항상 떠 있는 노란 간판(HTML 마커)으로 표시한다.
+async function loadPlaces() {
+  try {
+    const res = await fetch("data/places.json?" + Date.now());
+    if (!res.ok) return;
+    const places = await res.json();
+    for (const p of places) {
+      const el = document.createElement("div");
+      if (p.kind === "spot") {                       // 장소: 분류 색 점 + 이름, 누르면 설명
+        const c = (CATEGORIES[p.cat] || CATEGORIES.info).color;
+        el.className = "spot";
+        el.innerHTML = `<b style="background:${c}"></b><span>${esc(p.name)}</span>`;
+        const pop = new maplibregl.Popup({ offset: 14 }).setHTML(
+          `<strong>${esc(p.name)}</strong><br>${esc(p.desc || "")}<br><small>${esc(p.address || "")}</small>`);
+        new maplibregl.Marker({ element: el, anchor: "left" }).setLngLat(p.coord).setPopup(pop).addTo(map);
+      } else {                                       // 내 사무실: 노란 간판
+        el.className = "sign";
+        el.style.background = p.color || "#ffd400";
+        el.innerHTML = `<span>${esc(p.name)}</span><i></i>`;
+        new maplibregl.Marker({ element: el, anchor: "bottom" }).setLngLat(p.coord).addTo(map);
+      }
+    }
+  } catch (e) { /* 파일 없음: 무시 */ }
+}
+
+// ---------- 정읍시 경계 (data/boundary.geojson: tools/fetch_boundary.py) ----------
+// 경계 밖은 회색으로 가리고, 이동 범위를 정읍시 + 여백으로 제한한다.
+async function loadBoundary() {
+  try {
+    const res = await fetch("data/boundary.geojson");
+    if (!res.ok) return;
+    const gj = await res.json();
+    const holes = [];
+    let w = 999, s = 999, e = -999, n = -999;
+    const eat = ring => { holes.push(ring); for (const [x, y] of ring) { w = Math.min(w, x); e = Math.max(e, x); s = Math.min(s, y); n = Math.max(n, y); } };
+    for (const f of gj.features) {
+      const g = f.geometry; if (!g) continue;
+      if (g.type === "Polygon") eat(g.coordinates[0]);
+      else if (g.type === "MultiPolygon") g.coordinates.forEach(poly => eat(poly[0]));
+    }
+    if (!holes.length) return;
+    const world = [[-180, -85], [180, -85], [180, 85], [-180, 85], [-180, -85]];
+    map.addSource("mask", { type: "geojson", data: { type: "Feature", geometry: { type: "Polygon", coordinates: [world, ...holes] } } });
+    map.addSource("boundary", { type: "geojson", data: gj });
+    map.addLayer({ id: "mask-fill", type: "fill", source: "mask", paint: { "fill-color": "#dfe3e8", "fill-opacity": 0.93 } });
+    map.addLayer({ id: "boundary-line", type: "line", source: "boundary", paint: { "line-color": "#1f6feb", "line-width": 2.5 } });
+    const pad = 0.03;
+    map.setMaxBounds([[w - pad, s - pad], [e + pad, n + pad]]);
+  } catch (err) { /* 경계 파일 없음: 대략 범위만 적용 */ }
+}
+
+// ---------- 상가/시설 (data/shops.json: tools/search_shops.py) ----------
+function shopColor(cat) {
+  if (/카페|커피/.test(cat)) return "#8d5524";
+  if (/음식|식당|한식|분식|치킨|중식|일식|양식/.test(cat)) return "#f76b15";
+  if (/숙박|모텔|펜션|호텔/.test(cat)) return "#8e4ec6";
+  if (/편의점|마트|슈퍼|소매/.test(cat)) return "#2f9e44";
+  if (/주차/.test(cat)) return "#1f6feb";
+  return "#6b7280";
+}
+
+let SHOPS = [];
+let EDITS = { edits: {}, added: [] };   // 이름 수정/숨김 (data/shop_edits.json, tools/serve.py 가 저장)
+
+function shopFeatures() {
+  const out = [];
+  for (const s of SHOPS.concat(EDITS.added || [])) {
+    const e = (EDITS.edits || {})[s.id] || {};
+    if (e.hidden) continue;
+    out.push({ type: "Feature", geometry: { type: "Point", coordinates: s.coord },
+      properties: { id: s.id, name: e.name || s.name, category: s.category, address: s.address,
+                    color: shopColor(s.category) } });
+  }
+  return out;
+}
+
+async function sendEdit(payload) {
+  const r = await fetch("/api/edit", { method: "POST", headers: { "Content-Type": "application/json" },
+                                       body: JSON.stringify(payload) });
+  if (!r.ok) throw new Error("저장 실패 (run_map.bat 으로 연 지도에서만 수정이 저장됩니다)");
+  EDITS = await r.json();
+  const feats = shopFeatures();
+  map.getSource("shops").setData({ type: "FeatureCollection", features: feats });
+  const chip = document.getElementById("shop-chip");
+  if (chip) chip.textContent = `상가 ${feats.length}`;
+}
+
+async function loadShops() {
+  try {
+    const res = await fetch("data/shops.json");
+    if (!res.ok) return;
+    SHOPS = await res.json();
+    try { const er = await fetch("data/shop_edits.json"); if (er.ok) EDITS = await er.json(); } catch (e) {}
+    if (!SHOPS.length) return;
+    const feats = shopFeatures();
+    map.addSource("shops", { type: "geojson", data: { type: "FeatureCollection", features: feats } });
+    map.addLayer({ id: "shops-dot", type: "circle", source: "shops", minzoom: 14,
+      paint: { "circle-radius": ["interpolate", ["linear"], ["zoom"], 14, 3, 18, 7],
+               "circle-color": ["get", "color"], "circle-stroke-color": "#fff", "circle-stroke-width": 1.5 } });
+    map.addLayer({ id: "shops-label", type: "symbol", source: "shops", minzoom: 16.5,
+      layout: { "text-field": ["get", "name"], "text-font": ["Noto Sans Regular"], "text-size": 11,
+                "text-offset": [0, 1.1], "text-anchor": "top", "text-max-width": 8 },
+      paint: { "text-color": "#1b1b1b", "text-halo-color": "#fff", "text-halo-width": 1.4 } });
+    map.on("click", "shops-dot", e => {
+      // 같은 위치에 겹친 가게도 모두 찾는다 (건물 하나에 여러 가게가 있는 경우)
+      const pt = e.point;
+      const found = map.queryRenderedFeatures([[pt.x - 8, pt.y - 8], [pt.x + 8, pt.y + 8]], { layers: ["shops-dot"] });
+      const seen = new Set(), list = [];
+      for (const f of found) {
+        const id = f.properties.id;
+        if (seen.has(id)) continue;
+        seen.add(id); list.push(f.properties);
+      }
+      if (!list.length) return;
+      const rows = list.map((p, i) =>
+        `<div class="shop-row" data-i="${i}"><strong>${esc(p.name)}</strong><br>${esc(p.category)}<br>` +
+        `<small>${esc(p.address)}</small><div class="edit-row">` +
+        `<button data-a="rename">이름 수정</button><button data-a="hide">없는 가게</button></div></div>`).join("");
+      const head = list.length > 1 ? `<div class="shop-head">이 위치에 가게 ${list.length}곳</div>` : "";
+      const pop = new maplibregl.Popup({ offset: 10, maxWidth: "300px" }).setLngLat(e.lngLat)
+        .setHTML(`${head}<div class="shop-list">${rows}</div>`).addTo(map);
+      pop.getElement().querySelectorAll(".shop-row").forEach(row => {
+        const p = list[Number(row.dataset.i)];
+        row.querySelector('[data-a="rename"]').onclick = async () => {
+          const n = window.prompt("올바른 가게 이름", p.name);
+          if (!n || !n.trim()) return;
+          try { await sendEdit({ action: "rename", id: p.id, name: n.trim() }); pop.remove(); } catch (err) { alert(err.message); }
+        };
+        row.querySelector('[data-a="hide"]').onclick = async () => {
+          if (!window.confirm(`"${p.name}" 을(를) 지도에서 숨길까요? (폐업/없는 가게)`)) return;
+          try { await sendEdit({ action: "hide", id: p.id }); pop.remove(); } catch (err) { alert(err.message); }
+        };
+      });
+    });
+    map.on("mouseenter", "shops-dot", () => { map.getCanvas().style.cursor = "pointer"; });
+    map.on("mouseleave", "shops-dot", () => { map.getCanvas().style.cursor = ""; });
+    const chip = document.createElement("button");
+    chip.id = "shop-chip"; chip.className = "chip on"; chip.style.flex = "none"; chip.textContent = `상가 ${feats.length}`;
+    chip.onclick = () => {
+      const on = chip.classList.toggle("on");
+      for (const id of ["shops-dot", "shops-label"]) map.setLayoutProperty(id, "visibility", on ? "visible" : "none");
+    };
+    document.getElementById("filters").appendChild(chip);
+  } catch (e) { /* 파일 없음: 무시 */ }
+}
+
+// ---------- 기본 지도(OpenStreetMap)의 상호/시설 글자 ----------
+// 옛 이름이나 없는 가게가 섞여 있어 고칠 수 없으므로, 기본은 끄고 우리 가게 데이터만 보여준다.
+// 위쪽 "지도 상호" 칩으로 다시 켤 수 있다.
+function setupBasePoi() {
+  const ids = map.getStyle().layers.filter(l => l["source-layer"] === "poi").map(l => l.id);
+  if (!ids.length) return;
+  const set = on => ids.forEach(id => map.setLayoutProperty(id, "visibility", on ? "visible" : "none"));
+  set(false);
+  const chip = document.createElement("button");
+  chip.className = "chip"; chip.style.flex = "none"; chip.textContent = "지도 상호";
+  chip.title = "기본 지도에 들어 있는 상호(고칠 수 없음) 보기";
+  chip.onclick = () => set(chip.classList.toggle("on"));
+  document.getElementById("filters").appendChild(chip);
+}
+
+// ---------- 제보 ----------
+const panel = document.getElementById("panel");
+let pending = null;
+function openPanel(lngLat) {
+  pending = [lngLat.lng, lngLat.lat];
+  document.getElementById("pos").textContent = `위치: ${pending[1].toFixed(5)}, ${pending[0].toFixed(5)}`;
+  panel.hidden = false;
+}
+map.on("contextmenu", e => openPanel(e.lngLat));            // PC: 우클릭
+let pressTimer;                                              // 모바일: 길게 누르기
+map.on("touchstart", e => { if (e.points.length === 1) pressTimer = setTimeout(() => openPanel(e.lngLat), 600); });
+["touchend", "touchmove", "touchcancel"].forEach(t => map.on(t, () => clearTimeout(pressTimer)));
+
+document.getElementById("cancel").onclick = () => { panel.hidden = true; };
+const modeSel = document.getElementById("mode");
+function syncMode() {
+  const shop = modeSel.value === "shop";
+  document.getElementById("cat").hidden = shop;
+  document.getElementById("shopcat").hidden = !shop;
+  document.getElementById("title").placeholder = shop ? "가게 이름" : "제목 (예: 내장산 입구 정체)";
+  document.getElementById("desc").placeholder = shop ? "주소/설명 (선택)" : "내용 (선택)";
+}
+modeSel.onchange = syncMode;
+
+async function saveShop() {
+  const name = document.getElementById("title").value.trim();
+  if (!name || !pending) return;
+  try {
+    await sendEdit({ action: "add", name, category: document.getElementById("shopcat").value,
+                     address: document.getElementById("desc").value.trim(), coord: pending });
+    document.getElementById("title").value = ""; document.getElementById("desc").value = "";
+    panel.hidden = true;
+  } catch (err) { alert(err.message); }
+}
+
+document.getElementById("save").onclick = () => {
+  if (modeSel.value === "shop") { saveShop(); return; }
+  const title = document.getElementById("title").value.trim();
+  if (!title || !pending) return;
+  reports.push({
+    title, desc: document.getElementById("desc").value.trim(),
+    cat: catSel.value, coord: pending, ts: Date.now(),
+  });
+  store(reports); render();
+  document.getElementById("title").value = ""; document.getElementById("desc").value = "";
+  panel.hidden = true;
+};
+
+
+// ---------- 지형 + 색감 ----------
+const HEIGHT_COLOR = ["interpolate", ["linear"], ["coalesce", ["get", "height"], 6],
+  0, "#e8dcc8", 10, "#e3c9a8", 25, "#d9a98a", 45, "#c98a7a", 70, "#a96f86"];
+
+function setupTerrain() {
+  try {
+    // 무료 지형 고도 타일(키 불필요)
+    map.addSource("dem", {
+      type: "raster-dem", encoding: "terrarium", tileSize: 256, maxzoom: 14,
+      tiles: ["https://s3.amazonaws.com/elevation-tiles-prod/terrarium/{z}/{x}/{y}.png"],
+      attribution: "Terrain: Mapzen/AWS",
+    });
+    const firstSymbol = map.getStyle().layers.find(l => l.type === "symbol");
+    map.addLayer({
+      id: "hillshade", type: "hillshade", source: "dem",
+      paint: {
+        "hillshade-exaggeration": 0.6,
+        "hillshade-shadow-color": "#3b4a3a",
+        "hillshade-highlight-color": "#fffbe6",
+        "hillshade-accent-color": "#5c6b52",
+      },
+    }, firstSymbol && firstSymbol.id);
+    map.setTerrain({ source: "dem", exaggeration: 1.6 });
+  } catch (e) { console.warn("지형 설정 실패", e); }
+}
+
+function setupColors() {
+  const set = (id, prop, val) => { try { if (map.getLayer(id)) map.setPaintProperty(id, prop, val); } catch (e) {} };
+  for (const l of map.getStyle().layers) {
+    const id = l.id;
+    if (l.type === "fill" && /water/.test(id)) set(id, "fill-color", "#7fb6d9");
+    else if (l.type === "line" && /waterway/.test(id)) set(id, "line-color", "#6aa9d0");
+    else if (l.type === "fill" && /(wood|forest)/.test(id)) set(id, "fill-color", "#8fb97a");
+    else if (l.type === "fill" && /(grass|park|meadow|farm|agri)/.test(id)) set(id, "fill-color", "#c5e0a5");
+  }
+  set("background", "background-color", "#f4efe4");
+  // 터널 도로: 네이버 지도처럼 연한 살구색 띠 + 회색 점선 테두리
+  for (const l of map.getStyle().layers) {
+    if (!/tunnel/i.test(l.id) || l.type !== "line") continue;
+    try {
+      map.setLayoutProperty(l.id, "visibility", "visible");
+      if (/casing/i.test(l.id)) {
+        map.setPaintProperty(l.id, "line-color", "#8a7f7a");
+        map.setPaintProperty(l.id, "line-opacity", 0.9);
+        map.setPaintProperty(l.id, "line-dasharray", [2, 2]);
+      } else {
+        map.setPaintProperty(l.id, "line-color", "#ecd8cc");
+        map.setPaintProperty(l.id, "line-opacity", 0.95);
+      }
+    } catch (e) {}
+  }
+  // 기본 지도(오픈스트리트) 건물도 같은 톤으로
+  for (const l of map.getStyle().layers) {
+    if (l.type === "fill-extrusion" && !l.id.startsWith("local-")) {
+      set(l.id, "fill-extrusion-color", HEIGHT_COLOR.map((v, i) => i === 2 ? ["coalesce", ["get", "render_height"], 6] : v));
+    }
+  }
+}
