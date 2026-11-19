@@ -1414,6 +1414,7 @@ fetchNotices(); setInterval(fetchNotices, 60000);
   const STEPS = [
     { t: "어서 와! 👋<br>정읍에서 지금 무슨 일이 있는지 한눈에 볼 수 있어.", r: () => rectOf("top") },
     { t: "이 점을 눌러봐. 가게 정보나 누가 올린 소식이 떠.", r: center },
+    { t: "여기 <b>제보</b>를 누르면 지금 올라온 소식 목록이 쭉 나와. 하나 누르면 그 위치로 날아가!", r: () => rectOf("feed-btn") },
     { t: "길 막히거나 웨이팅 길면 이걸 눌러서 알려줘.", r: () => rectOf("fab") },
     { t: "이웃 이야기는 💬 커뮤니티, 보고 싶은 정보만 고르려면 🎛 필터를 눌러봐.", r: () => { const a = rectOf("comm-btn"), b = rectOf("filter-btn"); const x = Math.min(a.x, b.x), y = Math.min(a.y, b.y); return { x, y, w: Math.max(a.x + a.w, b.x + b.w) - x, h: Math.max(a.y + a.h, b.y + b.h) - y }; } },
   ];
