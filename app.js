@@ -499,12 +499,12 @@ async function loadShops() {
       if (!list.length) return;
       const rows = list.map((p, i) =>
         `<div class="shop-row" data-i="${i}"><strong>${p.brand == 1 ? "⭐ " + esc(p.bname) : esc(p.name)}</strong>${p.brand == 1 && p.bname !== p.name ? `<br><small>(${esc(p.name)})</small>` : ""}<br>${esc(p.category)}<br>` +
-        `<small>${esc(p.address)}</small>` + navLinks(p.name, p.lon, p.lat) + (p.blink ? `<a class="brand-link" href="${esc(p.blink)}" target="_blank" rel="noopener noreferrer">🔗 가게 소식 보기</a>` : "") + `<div class="shop-act">${rxHtml("shop", p.id)}<button class="fix-btn" data-id="${esc(p.id)}" data-name="${esc(p.name)}">✏ 정보가 틀렸어요</button></div>` + (IS_LOCAL ? `<div class="edit-row">` +
+        `<small>${esc(p.address)}</small>` + navLinks(p.name, p.lon, p.lat) + (p.blink ? `<a class="brand-link" href="${esc(p.blink)}" target="_blank" rel="noopener noreferrer">🔗 가게 소식 보기</a>` : "") + (VD_CAT.test(p.category || "") ? vdBlock(p.id) : "") + `<div class="shop-act">${rxHtml("shop", p.id)}<button class="fix-btn" data-id="${esc(p.id)}" data-name="${esc(p.name)}">✏ 정보가 틀렸어요</button></div>` + (IS_LOCAL ? `<div class="edit-row">` +
         `<button data-a="rename">이름 수정</button><button data-a="hide">없는 가게</button></div>` : "") + `</div>`).join("");
       const head = list.length > 1 ? `<div class="shop-head">이 위치에 가게 ${list.length}곳</div>` : "";
       const pop = new maplibregl.Popup({ offset: 10, maxWidth: "300px" }).setLngLat(e.lngLat)
         .setHTML(`${head}<div class="shop-list">${rows}</div>`).addTo(map);
-      hydrateRx(pop.getElement());
+      hydrateRx(pop.getElement()); vdHydrate(pop.getElement());
       pop.getElement().querySelectorAll(".shop-row").forEach(row => {
         const p = list[Number(row.dataset.i)];
         if (!IS_LOCAL) return;
@@ -1453,12 +1453,14 @@ function renderComm() {
     commBody.innerHTML = `<div class="soon"><div class="soon-ic">${s[0]}</div><div class="soon-t">${s[1]}</div><div class="soon-d">${s[2]}</div><div class="soon-b">🛠 곧 열려요 · 업데이트 예정</div></div>`;
     return;
   }
-  let html = `<button class="comm-topic food-go" id="food-go">🍚 오늘의 맛집 순위 보러가기 <span>지도 아래에서 확인 ▴</span></button>`;
-  html += `<div class="comm-note">💬 이야기 글쓰기는 곧 열려요. 지금은 지도 제보로 참여할 수 있어요.</div>`;
+  let html = `<div class="vd-card"><div class="vd-card-hd"><b>🔥 오늘의 찐맛집 판정</b><span>자정 초기화</span></div><div id="vd-sum" class="vd-sum"><div class="vd-empty">불러오는 중…</div></div><button class="vd-go" id="vd-go">📍 지도에서 내가 아는 가게 판정하기</button><div class="vd-foot">재미로 보는 정읍 주민의 주관적 판정이에요 (자정 초기화)</div></div>`;
+  html += `<button class="comm-topic food-go" id="food-go">🍚 오늘의 맛집 순위 보러가기 <span>지도 아래에서 확인 ▴</span></button>`;
   if (pushReady()) html += `<div class="comm-note" id="push-card"></div>`;
   html += `<div class="comm-head">실시간 제보 ${reports.length}건</div>`;
   if (!reports.length) html += `<div class="feed-empty">아직 제보가 없어요. 첫 제보를 남겨 보세요!</div>`;
   commBody.innerHTML = html;
+  const vg = document.getElementById("vd-go"); if (vg) vg.onclick = () => { closeComm(); setTimeout(enterJudge, 260); };
+  vdSummary(true);
   const fg = document.getElementById("food-go"); if (fg) fg.onclick = () => { closeComm(); setTimeout(() => foodSheet.set(true), 260); };
   setupPushCard();
   for (const r of reports) {
@@ -1707,7 +1709,7 @@ const SFX_GAIN = { open: 0.7, close: 0.7, on: 0.8, off: 0.8, done: 0.9, win: 1, 
 const sfxBuf = {}; let sfxLoading = false;
 function sfxLoad() {
   if (sfxLoading || !AC) return; sfxLoading = true;
-  for (const k in SFX_FILES) fetch("sounds/" + SFX_FILES[k] + ".mp3?v=111").then(r => r.arrayBuffer()).then(b => new Promise((ok, no) => AC.decodeAudioData(b, ok, no))).then(buf => { sfxBuf[k] = buf; }).catch(() => {});
+  for (const k in SFX_FILES) fetch("sounds/" + SFX_FILES[k] + ".mp3?v=116").then(r => r.arrayBuffer()).then(b => new Promise((ok, no) => AC.decodeAudioData(b, ok, no))).then(buf => { sfxBuf[k] = buf; }).catch(() => {});
 }
 function sfx(kind) {
   if (!sndOn || !AC) return;
@@ -1935,7 +1937,6 @@ document.getElementById("photo").onchange = async e => {
 const kstDay = (off = 0) => new Date(Date.now() + 9 * 3600e3 + off * 864e5).toISOString().slice(0, 10);
 function voterId() { try { let v = localStorage.getItem("voter_id"); if (!v) { v = (crypto.randomUUID ? crypto.randomUUID() : Date.now() + "-" + Math.random().toString(36).slice(2)); localStorage.setItem("voter_id", v); } return v; } catch (e) { return "anon-" + Math.random().toString(36).slice(2, 12); } }
 const foodRpc = d => fetch(SUPABASE_URL + "/rest/v1/rpc/food_top", { method: "POST", headers: { apikey: SUPABASE_KEY, Authorization: "Bearer " + SUPABASE_KEY, "Content-Type": "application/json" }, body: JSON.stringify({ d }) }).then(r => r.ok ? r.json() : null).catch(() => null);
-function myVote() { try { const v = JSON.parse(localStorage.getItem("food_vote") || "null"); return v && v.day === kstDay() ? v : null; } catch (e) { return null; } }
 async function loadFood() {
   const list = document.getElementById("food-list"); if (!list) return;
   const [today, yday] = await Promise.all([foodRpc(kstDay()), foodRpc(kstDay(-1))]);
@@ -1948,33 +1949,80 @@ async function loadFood() {
   list.querySelectorAll(".food-row").forEach(el => el.onclick = () => { const s = shopInfo(el.dataset.id); if (!s) return; closeComm(); foodSheet.set(false); map.flyTo({ center: s.coord, zoom: 18, pitch: 55, duration: 1500 }); });
   const y = document.getElementById("food-yday"); if (y) y.innerHTML = yday && yday.length ? `<span class="yday">👑 어제의 1위 <b>${esc(yday[0].shop_name)}</b> · ${yday[0].cnt}표</span>` : "";
   foodTop = today && today.length ? today[0] : null; foodDay = kstDay(); foodClock();
-  const btn = document.getElementById("food-vote"), mv = myVote();
-  if (mv) { btn.textContent = "✔ 투표 완료 · " + mv.name + " (내일 0시에 새로 시작)"; btn.disabled = true; } else { btn.textContent = "투표하기"; btn.disabled = false; btn.onclick = openFoodVote; }
+  const btn = document.getElementById("food-vote"), nj = vdMineCount();
+  if (btn) { btn.textContent = nj ? "📍 지도에서 판정하기 · 오늘 " + nj + "곳 판정함" : "📍 지도에서 내가 아는 가게 판정하기"; btn.disabled = false; btn.onclick = () => { foodSheet.set(false); enterJudge(); }; }
   foodSheet.refit();
 }
-function openFoodVote() {
-  const m = document.getElementById("notice-modal");
-  m.innerHTML = '<div class="nm"><b>오늘 제일 맛있게 먹은 식당은?</b><input id="fv-q" placeholder="식당 이름 검색" style="width:100%;padding:10px;margin:8px 0;font-size:16px;border:1px solid #ccc;border-radius:8px"><div id="fv-res"></div><button id="nm-x">닫기</button></div>';
-  m.hidden = false; document.getElementById("nm-x").onclick = () => m.hidden = true;
-  const q = document.getElementById("fv-q"), res = document.getElementById("fv-res");
-  const pool = SHOPS.concat((EDITS && EDITS.added) || []).map(s => shopInfo(s.id)).filter(s => s && !s.hidden && /음식점/.test(s.category || ""));
-  const draw = () => {
-    const t = q.value.trim().replace(/\s/g, ""); res.innerHTML = "";
-    if (!t) { res.innerHTML = "<small>가게 이름을 입력하면 후보가 나와요</small>"; return; }
-    for (const s of pool.filter(s => s.name.replace(/\s/g, "").includes(t)).slice(0, 8)) {
-      const b = document.createElement("button"); b.className = "fv-item"; b.textContent = s.name;
-      b.onclick = async () => {
-        if (!confirm(`오늘의 맛집으로 "${s.name}"에 투표할까요? (하루 한 번만 가능해요)`)) return;
-        const r = await fetch(SUPABASE_URL + "/rest/v1/food_votes", { method: "POST", headers: { apikey: SUPABASE_KEY, Authorization: "Bearer " + SUPABASE_KEY, "Content-Type": "application/json", Prefer: "return=minimal" }, body: JSON.stringify({ day: kstDay(), voter: voterId(), shop_id: s.id, shop_name: s.name }) });
-        if (r.ok || r.status === 409) { try { localStorage.setItem("food_vote", JSON.stringify({ day: kstDay(), name: s.name })); } catch (e) {} m.hidden = true; loadFood(); alert(r.ok ? "투표 완료! 내일 또 만나요 🍚" : "오늘은 이미 투표하셨어요"); }
-        else alert("투표에 실패했어요. 잠시 뒤 다시 해 주세요.");
-      };
-      res.appendChild(b);
-    }
-    if (!res.children.length) res.innerHTML = "<small>검색 결과가 없어요</small>";
-  };
-  q.oninput = draw; draw(); q.focus();
+// ===== 🔥 오늘의 찐맛집 판정 (가게별 하루 1표 · 3가지 중 하나 · 한국시간 자정 초기화) =====
+const VD = [["again", "🔥", "또 갈 거임"], ["local", "👴", "토박이 단골"], ["meh", "😅", "한 번으로 족함"]];
+const VD_MIN = 3;                       // 이 인원 이상 모여야 비율을 공개 (한두 명 장난으로 가게가 낙인찍히지 않게)
+const VD_CAT = /음식점|카페|주점/;
+const vdHdr = { apikey: SUPABASE_KEY, Authorization: "Bearer " + SUPABASE_KEY, "Content-Type": "application/json" };
+let vdData = { day: "", t: 0, rows: {} }, judging = false;
+function vdMine() { try { const v = JSON.parse(localStorage.getItem("vd_mine") || "null"); return v && v.day === kstDay() ? v : { day: kstDay(), m: {} }; } catch (e) { return { day: kstDay(), m: {} }; } }
+function vdMineSave(v) { try { localStorage.setItem("vd_mine", JSON.stringify(v)); } catch (e) {} }
+const vdMineCount = () => Object.keys(vdMine().m).length;
+async function vdLoad(force) {
+  const day = kstDay();
+  if (!force && vdData.day === day && Date.now() - vdData.t < 20000) return vdData.rows;
+  try {
+    const r = await fetch(SUPABASE_URL + "/rest/v1/rpc/food_verdict", { method: "POST", headers: vdHdr, body: JSON.stringify({ d: day }) });
+    if (r.ok) { const rows = {}; for (const x of await r.json()) rows[x.shop_id] = { again: +x.n_again || 0, local: +x.n_local || 0, meh: +x.n_meh || 0 }; vdData = { day, t: Date.now(), rows }; }
+  } catch (e) {}
+  return vdData.day === day ? vdData.rows : {};
 }
+function vdBars(c) {
+  const n = c.again + c.local + c.meh;
+  if (!n) return `<div class="vd-empty">아직 판정이 없어요. 첫 판정의 주인공이 되어보세요!</div>`;
+  if (n < VD_MIN) return `<div class="vd-empty">👥 ${n}명 판정 중 · ${VD_MIN}명부터 비율이 공개돼요</div>`;
+  return `<div class="vd-stack">` + VD.filter(([k]) => c[k]).map(([k]) => `<i class="vd-${k}" style="flex:${c[k]}"></i>`).join("") + `</div><div class="vd-legend">` + VD.map(([k, ic]) => `<span class="vd-${k}">${ic} ${Math.round(c[k] / n * 100)}%</span>`).join("") + `<em>👥 ${n}명 참여</em></div>`;
+}
+function vdBlock(id) {
+  return `<div class="vd" data-id="${esc(id)}"><div class="vd-hd">🔥 오늘의 찐맛집 판정 <small>자정 초기화</small></div><div class="vd-btns">` +
+    VD.map(([k, ic, tx]) => `<button class="vd-b vd-${k}" data-k="${k}"><span>${ic}</span>${tx}</button>`).join("") + `</div><div class="vd-res"></div></div>`;
+}
+async function vdHydrate(root) {
+  const boxes = [...root.querySelectorAll(".vd")]; if (!boxes.length) return;
+  const mine = vdMine().m;
+  boxes.forEach(b => b.querySelectorAll(".vd-b").forEach(x => x.classList.toggle("on", mine[b.dataset.id] === x.dataset.k)));
+  const rows = await vdLoad();
+  boxes.forEach(b => { const r = b.querySelector(".vd-res"); if (r) r.innerHTML = vdBars(rows[b.dataset.id] || { again: 0, local: 0, meh: 0 }); });
+}
+const vdRefreshAll = () => { vdHydrate(document); vdSummary(false); };
+async function vdSummary(force) {
+  if (!document.getElementById("vd-sum")) return;
+  const rows = await vdLoad(force), el = document.getElementById("vd-sum"); if (!el) return;
+  const list = Object.entries(rows).map(([id, c]) => ({ id, c, n: c.again + c.local + c.meh, s: shopInfo(id) })).filter(x => x.s && !x.s.hidden && x.n > 0)
+    .sort((a, b) => b.n - a.n || (b.c.again + b.c.local) - (a.c.again + a.c.local)).slice(0, 3);
+  el.innerHTML = list.length ? list.map((x, i) => `<div class="vd-row" data-id="${esc(x.id)}"><div class="vd-name"><span>${["🥇", "🥈", "🥉"][i]}</span><b>${esc(x.s.name)}</b></div>${vdBars(x.c)}</div>`).join("") : `<div class="vd-empty">오늘 첫 번째 판정의 주인공이 되어보세요!</div>`;
+  el.querySelectorAll(".vd-row").forEach(r => r.onclick = () => { const s = shopInfo(r.dataset.id); if (!s) return; closeComm(); map.flyTo({ center: s.coord, zoom: 18, pitch: 55, duration: 1500 }); });
+}
+function enterJudge() {
+  judging = true;
+  let bar = document.getElementById("vd-bar");
+  if (!bar) { bar = document.createElement("div"); bar.id = "vd-bar"; bar.innerHTML = `<span>지도에서 판정할 음식점·카페를 눌러보세요</span><button id="vd-x">취소 ✕</button>`; document.body.appendChild(bar); bar.querySelector("#vd-x").onclick = exitJudge; }
+  bar.hidden = false;
+}
+function exitJudge() { judging = false; const bar = document.getElementById("vd-bar"); if (bar) bar.hidden = true; }
+document.addEventListener("click", async e => {
+  const b = e.target.closest(".vd-b"); if (!b) return;
+  const box = b.closest(".vd"), id = box.dataset.id, k = b.dataset.k, s = shopInfo(id); if (!s) return;
+  const mine = vdMine(), prev = mine.m[id];
+  if (prev === k) { shareToast("이미 이렇게 판정했어요 (바꾸려면 다른 버튼을 눌러요)"); return; }
+  box.querySelectorAll(".vd-b").forEach(x => x.disabled = true);
+  try {
+    const r = await fetch(SUPABASE_URL + "/rest/v1/rpc/food_judge", { method: "POST", headers: vdHdr, body: JSON.stringify({ p_shop_id: id, p_shop_name: s.name, p_voter: voterId(), p_choice: k }) });
+    if (!r.ok) { const t = await r.text(); shareToast(/ratelimit/.test(t) ? "오늘은 판정을 많이 하셨어요. 내일 또 해 주세요!" : "판정에 실패했어요. 잠시 뒤 다시 해 주세요."); return; }
+    mine.m[id] = k; vdMineSave(mine);
+    if (vdData.day !== kstDay()) vdData = { day: kstDay(), t: 0, rows: {} };
+    const row = vdData.rows[id] || (vdData.rows[id] = { again: 0, local: 0, meh: 0 });
+    if (prev) row[prev] = Math.max(0, row[prev] - 1); row[k]++; vdData.t = 0;
+    vdRefreshAll(); shareToast(prev ? "판정을 바꿨어요!" : "판정 완료! 커뮤니티에서 확인해 보세요");
+    if (judging) exitJudge();
+    loadFood(); vdLoad(true).then(vdRefreshAll);
+  } catch (err) { shareToast("판정에 실패했어요. 인터넷을 확인해 주세요."); }
+  finally { box.querySelectorAll(".vd-b").forEach(x => x.disabled = false); vdHydrate(box.parentNode || document); }
+});
 
 
 // ===== 👍/👎 반응 (한 사람당 하나, 다시 누르면 취소) + "정보가 틀렸어요" 수정 요청 =====
@@ -2131,7 +2179,7 @@ const foodSheet = (function () {
   const el = document.createElement("div"); el.id = "food-sheet";
   el.innerHTML = `<div id="fs-head"><i class="fs-grab"></i><div id="fs-sum">🍚 오늘의 맛집 · 불러오는 중…</div><span id="fs-hint">▴ 더보기</span></div>` +
     `<div id="fs-body"><div class="food-hd"><b>🍚 오늘의 맛집 TOP 3</b><span id="food-total"></span></div><div id="food-clock"></div><div id="food-list">불러오는 중…</div>` +
-    `<button id="food-vote" class="chip">투표하기</button><button id="food-roulette" class="chip">🎰 오늘 뭐 먹지? 룰렛 돌리기</button><div id="food-yday"></div></div>`;
+    `<button id="food-vote" class="chip">📍 지도에서 내가 아는 가게 판정하기</button><button id="food-roulette" class="chip">🎰 오늘 뭐 먹지? 룰렛 돌리기</button><div id="food-yday"></div></div>`;
   document.body.appendChild(el);
   const head = el.querySelector("#fs-head");
   let open = false, dragging = false, y0 = 0, off0 = 0, curOff = 0, moved = 0, t0 = 0;
@@ -2179,8 +2227,8 @@ async function rlCandidates() {
   const pool = SHOPS.concat((EDITS && EDITS.added) || []).map(x => shopInfo(x.id)).filter(x => x && !x.hidden && /음식점/.test(x.category || ""));
   const w = new Map();   // id → 가중치
   try {
-    const r = await fetch(SUPABASE_URL + "/rest/v1/food_votes?select=day,shop_id&day=gte." + kstDay(-6) + "&limit=2000", { headers: { apikey: SUPABASE_KEY, Authorization: "Bearer " + SUPABASE_KEY } });
-    if (r.ok) for (const v of await r.json()) w.set(v.shop_id, (w.get(v.shop_id) || 0) + (v.day === kstDay() ? 3 : 1));   // 오늘 표는 3배
+    const r = await fetch(SUPABASE_URL + "/rest/v1/food_votes?select=day,shop_id,choice&day=gte." + kstDay(-6) + "&limit=2000", { headers: { apikey: SUPABASE_KEY, Authorization: "Bearer " + SUPABASE_KEY } });
+    if (r.ok) for (const v of await r.json()) if (v.choice !== "meh") w.set(v.shop_id, (w.get(v.shop_id) || 0) + (v.day === kstDay() ? 3 : 1));   // 오늘 표는 3배
   } catch (e) {}
   let list = [...w].map(([id, wt]) => ({ s: shopInfo(id), wt })).filter(c => c.s && !c.s.hidden).sort((a, b) => b.wt - a.wt).slice(0, 8);
   const have = new Set(list.map(c => c.s.id)), rest = pool.filter(x => !have.has(x.id));
@@ -2192,7 +2240,7 @@ async function openRoulette() {
   m.innerHTML = '<div class="nm rl"><b>🎰 오늘 뭐 먹지?</b><div id="rl-wrap"><i id="rl-pin">▼</i><canvas id="rl-cv" width="560" height="560"></canvas></div><div id="rl-res">후보를 불러오는 중…</div><div class="rl-btns"><button id="rl-spin" class="chip" disabled>돌리기!</button><button id="nm-x">닫기</button></div></div>';
   m.hidden = false; document.getElementById("nm-x").onclick = () => m.hidden = true;
   const list = await rlCandidates(), cv = document.getElementById("rl-cv"), res = document.getElementById("rl-res"), spin = document.getElementById("rl-spin");
-  if (!cv || !list.length) { if (res) res.textContent = "후보가 아직 없어요. 오늘의 맛집에 투표해 주세요!"; return; }
+  if (!cv || !list.length) { if (res) res.textContent = "후보가 아직 없어요. 지도에서 가게를 판정해 주세요!"; return; }
   const tot = list.reduce((a, c) => a + c.wt, 0), g = cv.getContext("2d"), R = 280; let a0 = 0;
   list.forEach((c, i) => { c.a0 = a0; c.a1 = a0 + c.wt / tot * Math.PI * 2; a0 = c.a1; g.beginPath(); g.moveTo(R, R); g.arc(R, R, R - 4, c.a0, c.a1); g.closePath(); g.fillStyle = RL_COLORS[i % RL_COLORS.length]; g.fill(); g.strokeStyle = "#fff"; g.lineWidth = 4; g.stroke();
     g.save(); g.translate(R, R); g.rotate((c.a0 + c.a1) / 2); g.fillStyle = "#fff"; g.font = "bold 30px sans-serif"; g.textAlign = "right"; g.textBaseline = "middle";
