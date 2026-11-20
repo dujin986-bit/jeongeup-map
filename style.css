@@ -686,3 +686,39 @@ button, input, textarea, select, .maplibregl-popup-content, .maplibregl-ctrl, .m
 #ticker.urgent { background: #D9232D; }
 #notice-modal .nm p { border-left: 5px solid #2B6CD6; background: #EAF2FF; color: #1E1B18; }
 #notice-modal .nm p.u { border-left-color: #D9232D; background: #FDE9E4; color: #1E1B18; }
+
+/* v122 도움말 + 3단계 첫 안내 + 제보 중 안내 */
+#help { position: fixed; inset: 0; z-index: 45; background: var(--bg); color: var(--ink); display: flex; flex-direction: column; }
+#help[hidden] { display: none; }
+.hp-top { display: flex; align-items: center; justify-content: space-between; padding: calc(env(safe-area-inset-top) + 12px) 16px 12px; font-size: 19px; background: var(--card); border-bottom: 1px solid var(--line); }
+#hp-x { border: 0; background: var(--track); color: var(--ink); width: 40px; height: 40px; border-radius: 50%; font-size: 18px; font-weight: 800; }
+.hp-scroll { flex: 1; overflow-y: auto; padding: 14px 14px calc(env(safe-area-inset-bottom) + 24px); }
+.hp-tour { width: 100%; min-height: 52px; font-size: 17px; font-weight: 800; background: var(--brand); color: #fff; border: 0; border-radius: 14px; }
+.hp-lead { font-size: 14px; color: var(--muted); margin: 12px 2px; line-height: 1.5; }
+.hp-c { background: var(--card); border: 1px solid var(--line); border-radius: 14px; margin: 0 0 10px; overflow: hidden; }
+.hp-c summary { list-style: none; display: flex; align-items: center; gap: 12px; padding: 14px; cursor: pointer; min-height: 48px; }
+.hp-c summary::-webkit-details-marker { display: none; }
+.hp-c summary::after { content: "▾"; margin-left: auto; color: var(--muted); font-size: 16px; }
+.hp-c[open] summary::after { content: "▴"; }
+.hp-ic { font-size: 26px; } .hp-st { display: flex; flex-direction: column; gap: 2px; } .hp-st b { font-size: 17px; } .hp-st small { font-size: 13px; color: var(--muted); }
+.hp-b { padding: 2px 16px 16px; font-size: 15px; line-height: 1.65; }
+.hp-b p { margin: 8px 0; }
+.hp-steps { margin: 6px 0 8px; padding-left: 22px; } .hp-steps li { margin: 8px 0; padding-left: 2px; }
+.hp-steps small { color: var(--muted); }
+.hp-go { width: 100%; min-height: 48px; margin-top: 8px; font-size: 16px; font-weight: 800; background: var(--brand); color: #fff; border: 0; border-radius: 12px; }
+.hp-end { font-size: 13px; color: var(--muted); text-align: center; margin: 14px 0 0; }
+#help-btn.pulse { animation: helpPulse 1.3s ease-in-out infinite; }
+@keyframes helpPulse { 0%, 100% { box-shadow: 0 0 0 0 rgba(224,159,62,.0); } 50% { box-shadow: 0 0 0 5px rgba(224,159,62,.75); } }
+#tut-hand { position: fixed; z-index: 2; font-size: 38px; pointer-events: none; animation: tutHand 1s ease-in-out infinite; filter: drop-shadow(0 2px 4px rgba(0,0,0,.5)); }
+#tut-hand[hidden] { display: none; }
+@keyframes tutHand { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-12px); } }
+/* 제보하기: 핀 맞추는 단계 */
+#rp-bar { flex-wrap: wrap; }
+.rp-tip { order: 3; flex: 1 0 100%; font-size: 17px; font-weight: 800; line-height: 1.4; color: #1E1B18; background: #FFF3C4; border: 2px solid #E09F3E; border-radius: 12px; padding: 9px 12px; }
+body.rp-seen .rp-tip { font-size: 14px; font-weight: 700; padding: 6px 10px; }
+#rp-place { font-size: 16px; font-weight: 800; margin: 0 0 8px; }
+#rp-zoom { font-size: 14px; font-weight: 700; color: #A8691A; background: #FFF3C4; border-radius: 10px; padding: 7px 10px; margin: 0 0 8px; }
+#rp-zoom[hidden] { display: none; }
+#rp-me { width: 100%; min-height: 46px; margin: 0 0 8px; border: 2px solid var(--brand); background: #fff; color: var(--brand); border-radius: 12px; font-size: 16px; font-weight: 800; }
+#crosshair::after { content: "여기로 등록돼요"; position: absolute; left: 50%; top: 100%; transform: translate(-50%, 4px); white-space: nowrap; font-size: 12px; font-weight: 800; color: #fff; background: rgba(30,27,24,.88); border-radius: 10px; padding: 3px 9px; font-family: inherit; }
+#rp-help { position: absolute; right: 12px; top: 10px; border: 0; background: #FFF3C4; color: #1E1B18; border-radius: 12px; padding: 7px 11px; font-size: 13px; font-weight: 800; }

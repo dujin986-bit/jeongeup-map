@@ -572,6 +572,7 @@ function setPos(lngLat) {
     ((pickMode ? "👆 지도를 움직여 📍 핀 끝을 일어난 장소에 맞추세요" : "위치") + `: ${pending[1].toFixed(5)}, ${pending[0].toFixed(5)}`);
   posEl.style.fontWeight = pendingPlace ? "700" : "";
   const rpl = document.getElementById("rp-place"); if (rpl) rpl.textContent = pendingPlace ? `📍 ${pendingPlace.name}` : "👆 지도를 움직여 📍 핀 끝을 일어난 장소에 맞추세요";
+  const rz = document.getElementById("rp-zoom"); if (rz) rz.hidden = !(pickMode && typeof map !== "undefined" && map.getZoom && map.getZoom() < 15.5);   // 너무 멀면 확대 안내
   const nm = document.getElementById("ch-name");
   if (nm) { nm.textContent = pendingPlace ? pendingPlace.name : ""; nm.hidden = !(pickMode && pendingPlace); }
 }
@@ -605,6 +606,14 @@ function closePanel() {
 }
 document.getElementById("rp-go").onclick = () => { crosshair.hidden = true; const nm = document.getElementById("ch-name"); if (nm) nm.hidden = true; rpSet("form"); showPanel(true); };
 document.getElementById("rp-cancel").onclick = closePanel;
+document.getElementById("rp-me").onclick = () => {
+  if (!navigator.geolocation) { shareToast("이 폰에서는 내 위치를 쓸 수 없어요"); return; }
+  shareToast("내 위치를 찾는 중이에요…");
+  navigator.geolocation.getCurrentPosition(p => map.flyTo({ center: [p.coords.longitude, p.coords.latitude], zoom: Math.max(map.getZoom(), 17), duration: 1200 }),
+    () => shareToast("위치를 못 찾았어요. 폰 설정에서 위치를 허용해 주세요"), { enableHighAccuracy: true, timeout: 8000 });
+};
+document.getElementById("rp-help").onclick = () => openHelp("report");
+try { document.body.classList.toggle("rp-seen", (+localStorage.getItem("rp_n") || 0) >= 1); } catch (e) {}   // 제보해 본 사람은 안내를 작게
 document.getElementById("rp-back").onclick = () => { showPanel(false); pickMode = true; crosshair.hidden = false; rpSet("pick"); setPos(map.getCenter()); };
 map.on("move", () => { if (pickMode && rpStep === "pick") setPos(map.getCenter()); });
 document.getElementById("fab").onclick = () => openPanel(map.getCenter(), true);
@@ -696,7 +705,8 @@ document.getElementById("save").onclick = async () => {
     try { localStorage.setItem("jeongeup-last-report", String(Date.now())); } catch {}
     document.getElementById("title").value = ""; document.getElementById("desc").value = ""; clearPhoto();
     closePanel(); sfx("done");
-    alert("제보가 접수됐어요! 확인 후 지도에 표시됩니다.");
+    try { localStorage.setItem("rp_n", String((+localStorage.getItem("rp_n") || 0) + 1)); document.body.classList.add("rp-seen"); } catch (e) {}
+    alert("✅ 제보가 접수됐어요!\n확인 후 지도에 표시돼요. 고마워요 🙏");
   } catch (err) { alert(err.message); }
   btn.disabled = false; btn.textContent = "등록";
 };
@@ -1709,7 +1719,7 @@ const SFX_GAIN = { open: 0.7, close: 0.7, on: 0.8, off: 0.8, done: 0.9, win: 1, 
 const sfxBuf = {}; let sfxLoading = false;
 function sfxLoad() {
   if (sfxLoading || !AC) return; sfxLoading = true;
-  for (const k in SFX_FILES) fetch("sounds/" + SFX_FILES[k] + ".mp3?v=121").then(r => r.arrayBuffer()).then(b => new Promise((ok, no) => AC.decodeAudioData(b, ok, no))).then(buf => { sfxBuf[k] = buf; }).catch(() => {});
+  for (const k in SFX_FILES) fetch("sounds/" + SFX_FILES[k] + ".mp3?v=122").then(r => r.arrayBuffer()).then(b => new Promise((ok, no) => AC.decodeAudioData(b, ok, no))).then(buf => { sfxBuf[k] = buf; }).catch(() => {});
 }
 function sfx(kind) {
   if (!sndOn || !AC) return;
@@ -1882,38 +1892,79 @@ document.getElementById("ticker").onclick = () => {
 fetchNotices(); setInterval(fetchNotices, 60000);
 
 
-// ===== 처음 방문 안내 (4단계, 한 번 보면 다시 안 뜸 / ❓ 로 다시 보기) =====
+// ===== 처음 방문 안내 (3단계로 가볍게) + 🙋 도움말 (기능별 카드) =====
+const HELP = [
+  { id: "report", ic: "📍", t: "제보하기", s: "길 막힘·웨이팅·행사를 이웃에게 알려요",
+    b: `<ol class="hp-steps"><li><b>＋ 제보하기</b> 버튼을 눌러요 <small>(지도 오른쪽 아래)</small></li><li><b>지도를 손으로 움직여서</b> 가운데 📍 핀 <b>끝</b>을 일어난 장소에 맞춰요.<br>지금 있는 곳이면 <b>📍 내 위치로 이동</b>을 눌러요.</li><li><b>여기로 정했어요 ▶</b>를 누르고, 종류를 고른 뒤 한 줄만 쓰면 끝! 사진은 안 넣어도 돼요.</li></ol><p>🔍 지도가 너무 멀리 보이면 손가락 두 개를 벌려서 확대하세요. 더 정확해져요.<br>⏳ 제보는 시간이 지나면 저절로 사라져요.<br>🚫 욕설이 들어 있으면 올라가지 않아요.</p>`,
+    a: ["지금 제보해보기", () => setTimeout(() => document.getElementById("fab").click(), 250)] },
+  { id: "food", ic: "🍚", t: "오늘의 찐맛집 판정", s: "가게마다 하루 한 번, 🔥👴😅 중 하나",
+    b: `<ol class="hp-steps"><li>아래 <b>맛집 시트</b>를 위로 끌어올리거나, 커뮤니티의 <b>판정 카드</b>를 열어요.</li><li><b>📍 지도에서 내가 아는 가게 판정하기</b>를 누르고 음식점·카페를 눌러요.</li><li>팝업에서 <b>🔥 또 갈 거임 · 👴 토박이 단골 · 😅 한 번으로 족함</b> 중 하나를 눌러요.</li></ol><p>가게마다 하루 한 번이에요. 같은 날엔 마음을 바꿔 다시 눌러도 돼요. 자정이 지나면 처음부터 다시 시작해요. 재미로 보는 주민 판정이에요.</p>`,
+    a: ["지금 판정해보기", () => enterJudge()] },
+  { id: "sound", ic: "🔊", t: "소리·배경음악", s: "낮엔 밝은 피아노, 밤엔 차분한 피아노",
+    b: `<ol class="hp-steps"><li>위쪽 <b>더 보기</b>를 열면 <b>🔇</b> 버튼이 있어요.</li><li>누르면 <b>🔊</b>로 바뀌면서 소리와 배경음악이 켜져요.</li><li>다시 누르면 꺼져요.</li></ol><p>소리가 안 나면 폰이 <b>무음(진동)</b> 모드인지, <b>미디어 볼륨</b>이 0인지 확인해 보세요.</p>`,
+    a: ["소리 켜보기", () => { const b = document.getElementById("snd-btn"); if (b) b.click(); }] },
+  { id: "push", ic: "🔔", t: "알림 받기", s: "새 공지가 오면 폰이 알려줘요",
+    b: `<ol class="hp-steps"><li><b>💬 커뮤니티</b>를 열어요.</li><li>맨 위쪽 <b>알림 받기</b> 카드의 버튼을 눌러요.</li><li>폰에서 <b>허용</b>을 눌러요.</li></ol><p>허용 창이 안 뜨면: 크롬·삼성 인터넷 주소창 왼쪽 <b>자물쇠 → 권한(사이트 설정) → 알림 → 허용</b>으로 바꿔 주세요.</p>`,
+    a: ["커뮤니티 열어보기", () => setTimeout(openComm, 250)] },
+  { id: "filter", ic: "👀", t: "골라보기", s: "보고 싶은 정보만 켜기",
+    b: `<ol class="hp-steps"><li>위쪽 <b>👀 골라보기</b>를 눌러요.</li><li>펼쳐진 <b>종류 칩</b>(교통·행사·웨이팅 등)을 눌러서 켜고 끄세요.</li></ol><p>꺼진 종류는 지도에서 사라져서 지도가 깔끔해져요.</p>`,
+    a: ["골라보기 열어보기", () => setTimeout(() => toolsToggle(), 250)] },
+  { id: "install", ic: "🏠", t: "홈 화면에 추가", s: "앱처럼 바로 열어요",
+    b: `<p><b>갤럭시(크롬):</b> 오른쪽 위 <b>⋮</b> → <b>홈 화면에 추가</b></p><p><b>아이폰(사파리):</b> 아래 <b>공유 버튼</b> → <b>홈 화면에 추가</b></p><p>인스타·카톡 안에서 열었다면 먼저 위쪽 <b>크롬으로 열기</b> 안내를 눌러요.</p>`,
+    a: ["설치 안내 열기", () => { const b = document.getElementById("install-btn"); if (b && !b.hidden) b.click(); else shareToast("브라우저 메뉴에서 '홈 화면에 추가'를 눌러 주세요"); }] },
+  { id: "fix", ic: "🛠", t: "틀린 정보·불편한 점", s: "가게 정보 수정, 앱 의견 남기기",
+    b: `<p><b>가게 정보가 틀리면:</b> 지도에서 그 가게를 눌러 <b>✏ 정보가 틀렸어요</b>를 눌러요.</p><p><b>앱이 불편하거나 바라는 게 있으면:</b> 💬 커뮤니티 → <b>🛠 고쳐줘</b>에 써 주세요. 관리자가 바로 확인해요.</p>`,
+    a: ["의견 남기러 가기", () => setTimeout(() => { openComm(); const b = document.querySelector('#comm-tabs button[data-t="fb"]'); if (b) b.click(); }, 250)] },
+  { id: "share", ic: "🔗", t: "친구에게 공유", s: "카톡·인스타로 보내기",
+    b: `<p>제보 팝업이나 커뮤니티 글의 <b>🔗 공유</b>를 누르면 카톡·인스타로 보낼 수 있어요.</p><p>받은 사람이 누르면 <b>그 제보로 바로 이동</b>해요.</p>` },
+];
+function closeHelp() { const h = document.getElementById("help"); if (h) h.hidden = true; document.body.classList.remove("help-open"); }
+function openHelp(id) {
+  const h = document.getElementById("help"); if (!h) return;
+  try { localStorage.setItem("help_seen", "1"); } catch (e) {}
+  document.getElementById("help-btn").classList.remove("pulse");
+  h.innerHTML = `<div class="hp-top"><b>🙋 도움말</b><button id="hp-x" aria-label="닫기">✕</button></div><div class="hp-scroll"><button id="hp-tour" class="hp-tour">🎓 처음이세요? 1분 투어 다시 보기</button><p class="hp-lead">궁금한 칸을 눌러 보세요. <b>[지금 해보기]</b> 버튼으로 바로 따라 할 수 있어요.</p>` +
+    HELP.map(c => `<details class="hp-c" id="hp-${c.id}"><summary><span class="hp-ic">${c.ic}</span><span class="hp-st"><b>${c.t}</b><small>${c.s}</small></span></summary><div class="hp-b">${c.b}${c.a ? `<button class="hp-go" data-id="${c.id}">▶ ${c.a[0]}</button>` : ""}</div></details>`).join("") + `<p class="hp-end">그래도 모르겠으면 💬 커뮤니티 → 🛠 고쳐줘에 물어보세요.</p></div>`;
+  h.hidden = false; document.body.classList.add("help-open");
+  document.getElementById("hp-x").onclick = closeHelp;
+  document.getElementById("hp-tour").onclick = () => { closeHelp(); setTimeout(() => window.startTour && window.startTour(), 250); };
+  h.querySelectorAll("details.hp-c").forEach(d => d.addEventListener("toggle", () => { if (d.open) h.querySelectorAll("details.hp-c").forEach(o => { if (o !== d) o.open = false; }); }));
+  h.querySelectorAll(".hp-go").forEach(b => b.onclick = () => { const c = HELP.find(x => x.id === b.dataset.id); closeHelp(); if (c && c.a) c.a[1](); });
+  const d = id && document.getElementById("hp-" + id); if (d) { d.open = true; setTimeout(() => d.scrollIntoView({ block: "start" }), 60); }
+}
 (function () {
   const tut = document.getElementById("tut"), hole = document.getElementById("tut-hole"), tip = document.getElementById("tut-tip");
   const txt = document.getElementById("tut-txt"), nEl = document.getElementById("tut-n");
+  const hand = document.createElement("div"); hand.id = "tut-hand"; hand.textContent = "👆"; hand.hidden = true; tut.appendChild(hand);
   const center = () => ({ x: innerWidth / 2 - 60, y: innerHeight * 0.5 - 60, w: 120, h: 120 });
   const rectOf = id => { const r = document.getElementById(id).getBoundingClientRect(); return { x: r.left, y: r.top, w: r.width, h: r.height }; };
+  const helpVisible = () => { const e = document.getElementById("help-btn"); return !!(e && e.offsetParent && e.getBoundingClientRect().width > 0); };
   const STEPS = [
-    { t: "어서 와! 👋<br>정읍에서 지금 무슨 일이 있는지 한눈에 볼 수 있어.", r: () => rectOf("top") },
-    { t: "이 점을 눌러봐. 가게 정보나 누가 올린 소식이 떠.", r: center },
-    { t: "여기 <b>제보</b>를 누르면 지금 올라온 소식 목록이 쭉 나와. 하나 누르면 그 위치로 날아가!", r: () => rectOf("feed-btn") },
-    { t: "길 막히거나 웨이팅 길면 이걸 눌러서 알려줘.", r: () => rectOf("fab") },
-    { t: "제보할 땐 지도를 <b>손으로 움직여서</b> 📍 핀 끝을 일어난 장소에 딱 맞춘 다음 등록하면 돼!", r: center },
-    { t: "이웃 이야기는 💬 커뮤니티, 보고 싶은 정보만 고르려면 👀 골라보기를 눌러봐.", r: () => { const a = rectOf("comm-btn"), b = rectOf("filter-btn"); const x = Math.min(a.x, b.x), y = Math.min(a.y, b.y); return { x, y, w: Math.max(a.x + a.w, b.x + b.w) - x, h: Math.max(a.y + a.h, b.y + b.h) - y }; } },
+    { t: "어서 와요! 👋<br>정읍에서 <b>지금 무슨 일이 있는지</b> 한눈에 볼 수 있어요.", r: () => rectOf("top") },
+    { t: "지도 위 <b>점을 직접 눌러보세요.</b><br>가게 정보나 이웃 소식이 떠요.", r: center, hand: true },
+    { t: () => helpVisible() ? "어려운 건 <b>🙋 도움말</b>에서 알려드려요.<br>제보하는 법, 소리, 알림까지 한곳에 있어요." : "어려운 건 <b>▾ 더 보기</b>를 열면 있는<br><b>🙋 도움말</b>에서 알려드려요.", r: () => helpVisible() ? rectOf("help-btn") : rectOf("tools-grab") },
   ];
   let i = 0;
   function show() {
     const s = STEPS[i], r = s.r(), p = 6;
     Object.assign(hole.style, { left: r.x - p + "px", top: r.y - p + "px", width: r.w + p * 2 + "px", height: r.h + p * 2 + "px" });
-    txt.innerHTML = s.t; nEl.textContent = (i + 1) + " / " + STEPS.length;
+    txt.innerHTML = typeof s.t === "function" ? s.t() : s.t; nEl.textContent = (i + 1) + " / " + STEPS.length;
     document.getElementById("tut-next").textContent = i === STEPS.length - 1 ? "시작하기" : "다음";
+    hand.hidden = !s.hand; if (s.hand) { hand.style.left = r.x + r.w / 2 - 20 + "px"; hand.style.top = r.y + r.h / 2 + "px"; }
     const below = r.y + r.h / 2 < innerHeight / 2;
     tip.style.top = below ? Math.min(r.y + r.h + p + 14, innerHeight - 190) + "px" : "auto";
     tip.style.bottom = below ? "auto" : innerHeight - r.y + p + 14 + "px";
   }
-  function end() { tut.hidden = true; try { localStorage.setItem("tut_done", "1"); } catch (e) {} }
+  function end() { tut.hidden = true; hand.hidden = true; try { localStorage.setItem("tut_done", "1"); } catch (e) {} const hb = document.getElementById("help-btn"); try { if (hb && localStorage.getItem("help_seen") !== "1") hb.classList.add("pulse"); } catch (e) {} }
   function start() { i = 0; tut.hidden = false; show(); }
+  window.startTour = start;
   document.getElementById("tut-next").onclick = () => { if (++i >= STEPS.length) end(); else show(); };
   document.getElementById("tut-skip").onclick = end;
-  document.getElementById("help-btn").onclick = start;
+  document.getElementById("help-btn").onclick = () => openHelp();
   addEventListener("resize", () => { if (!tut.hidden) show(); });
   let done = false; try { done = localStorage.getItem("tut_done") === "1"; } catch (e) {}
   if (!done && !LIVE && !/[?&]edit=1/.test(location.search)) setTimeout(start, 1800);
+  else { try { if (localStorage.getItem("help_seen") !== "1" && (+localStorage.getItem("slide_n") || 0) <= 6) document.getElementById("help-btn").classList.add("pulse"); } catch (e) {} }
 })();
 
 
@@ -2084,6 +2135,7 @@ function openFix(id, name) {
   const vis = id => { const e = document.getElementById(id); return e && !e.hidden; };
   function closeTop() {
     try {
+      if (vis("help")) { closeHelp(); return true; }
       if (vis("tut")) { document.getElementById("tut-skip").click(); return true; }
       if (vis("notice-modal")) { document.getElementById("notice-modal").hidden = true; return true; }
       if (vis("ed-sheet")) { edClose(); return true; }
