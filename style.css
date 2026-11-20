@@ -578,3 +578,4 @@ body.tools-closing #tools, body.tools-closing #filters, body.tools-closing #filt
 /* v100 집계 시간 */
 #food-clock { font-size: 13px; color: var(--muted); margin: 4px 0 2px; }
 #food-clock b { color: var(--brand); font-weight: 800; }
+#fs-sum { padding-left: 0; padding-right: 74px; text-align: left; font-size: 14.5px; }
