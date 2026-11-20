@@ -55,8 +55,7 @@ for (const [key, c] of Object.entries(CATEGORIES)) {
   catSel.add(new Option(c.label, key));
 }
 let showOffices = true;
-{ const ob = document.createElement("button"); ob.className = "chip on"; ob.textContent = "🏛 관공서"; ob.style.flex = "none";
-  ob.onclick = () => { showOffices = !showOffices; ob.classList.toggle("on"); render(); }; filtersEl.insertBefore(ob, filtersEl.firstChild); }
+// (관공서 필터 칩은 v84에서 제거. 관공서 배지는 항상 표시)
 if (!IS_LOCAL) { catSel.add(new Option("🛠 가게 정보 수정", "__fix")); catSel.add(new Option("➕ 없는 가게 알려주기", "__newshop")); }
 
 // ---------- 마커 ----------
