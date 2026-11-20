@@ -358,15 +358,19 @@ let SHOPS = [];
 let EDITS = { edits: {}, added: [] };   // 이름 수정/숨김 (data/shop_edits.json, tools/serve.py 가 저장) + 관리자 화면 수정(Supabase)
 let EDITS_FILE = { edits: {}, added: [] }, REMOTE_ROWS = [];
 let editMode = false, editShowHidden = false;   // 관리자 편집 모드(로그인한 관리자만)
+const kstToday = () => new Date(Date.now() + 9 * 3600e3).toISOString().slice(0, 10);
+const brandOf = r => r.brand_color ? { color: r.brand_color, name: r.brand_name || "", link: r.brand_link || "", from: r.brand_from || "", until: r.brand_until || "" } : null;
+const brandActive = b => { const t = kstToday(); return !!(b && b.color && (!b.from || b.from <= t) && (!b.until || b.until >= t)); };   // 노출 기간 안일 때만 간판 표시
+const safeLink = u => /^https?:\/\//i.test(u || "") ? u : "";
 function mergeRemote() {                // 파일 수정 위에 관리자 화면(Supabase)의 수정을 덮어씀
   const E = { edits: { ...(EDITS_FILE.edits || {}) }, added: [...(EDITS_FILE.added || [])] };
   for (const r of REMOTE_ROWS) {
     if (r.is_new) {
       E.added = E.added.filter(s => s.id !== r.id);
       E.added.push({ id: r.id, name: r.name, category: r.category || "기타", address: "", coord: [r.lon, r.lat] });
-      E.edits[r.id] = { ...(E.edits[r.id] || {}), hidden: !!r.hidden };
+      E.edits[r.id] = { ...(E.edits[r.id] || {}), hidden: !!r.hidden, brand: brandOf(r) };
     } else {
-      const e = { ...(E.edits[r.id] || {}), hidden: !!r.hidden };
+      const e = { ...(E.edits[r.id] || {}), hidden: !!r.hidden, brand: brandOf(r) };
       if (r.name) e.name = r.name;
       if (r.category) e.category = r.category;
       if (r.lon != null && r.lat != null) e.coord = [r.lon, r.lat];
@@ -401,14 +405,16 @@ function shopFeatures() {
     const e = (EDITS.edits || {})[s.id] || {};
     if (e.hidden && !(editMode && editShowHidden)) continue;
     const co = e.coord || s.coord, cat = e.category || s.category;
-    if (!editMode) {
+    const b = e.brand, bOn = brandActive(b);
+    if (!editMode && !bOn) {
       if (!isFoodCafe(cat)) continue;
       const k = (e.name || s.name) + "|" + (s.address || "") + "|" + co[0].toFixed(4) + "," + co[1].toFixed(4);
       if (seen.has(k)) continue; seen.add(k);
     }
     out.push({ type: "Feature", geometry: { type: "Point", coordinates: co },
       properties: { id: s.id, name: (e.name || s.name) + (e.hidden ? " (숨김)" : ""), category: cat, address: s.address, lon: co[0], lat: co[1],
-                    color: e.hidden ? "#bbbbbb" : shopColor(cat) } });
+                    color: e.hidden ? "#bbbbbb" : shopColor(cat),
+                    brand: bOn ? 1 : 0, bcolor: bOn ? b.color : "", bname: bOn ? (b.name || e.name || s.name) : "", blink: bOn ? safeLink(b.link) : "" } });
   }
   return out;
 }
@@ -443,6 +449,14 @@ async function loadShops() {
       layout: { "text-field": ["get", "name"], "text-font": ["Noto Sans Regular"], "text-size": 11,
                 "text-offset": [0, 1.1], "text-anchor": "top", "text-max-width": 8 },
       paint: { "text-color": "#1b1b1b", "text-halo-color": "#fff", "text-halo-width": 1.4 } });
+    map.addLayer({ id: "shops-brand-dot", type: "circle", source: "shops", minzoom: 14, filter: ["==", ["get", "brand"], 1],   // 🎨 간판 꾸미기: 색 동그라미 + ★ + 색 이름표
+      paint: { "circle-radius": ["interpolate", ["linear"], ["zoom"], 14, 8, 17, 12, 19, 15], "circle-color": ["get", "bcolor"], "circle-stroke-color": "#fff", "circle-stroke-width": 2.5 } });
+    map.addLayer({ id: "shops-brand-star", type: "symbol", source: "shops", minzoom: 14, filter: ["==", ["get", "brand"], 1],
+      layout: { "text-field": "★", "text-font": ["Noto Sans Regular"], "text-size": ["interpolate", ["linear"], ["zoom"], 14, 10, 18, 15], "text-allow-overlap": true, "text-ignore-placement": true },
+      paint: { "text-color": "#fff" } });
+    map.addLayer({ id: "shops-brand-label", type: "symbol", source: "shops", minzoom: 14, filter: ["==", ["get", "brand"], 1],
+      layout: { "text-field": ["get", "bname"], "text-font": ["Noto Sans Regular"], "text-size": ["interpolate", ["linear"], ["zoom"], 14, 12, 18, 16], "text-offset": [0, 1.3], "text-anchor": "top", "text-max-width": 9, "text-allow-overlap": true, "symbol-sort-key": 1 },
+      paint: { "text-color": ["get", "bcolor"], "text-halo-color": "#fff", "text-halo-width": 2.4 } });
     const nearShops = pt => {                          // 터치 지점에서 가장 가까운 가게(와 거의 같은 거리의 겹친 가게)만
       const fs = map.queryRenderedFeatures([[pt.x - 26, pt.y - 26], [pt.x + 26, pt.y + 26]], { layers: ["shops-dot"] });
       const arr = fs.map(f => { const p = map.project(f.geometry.coordinates); return { f, d: Math.hypot(p.x - pt.x, p.y - pt.y) }; }).sort((a, b) => a.d - b.d);
@@ -466,8 +480,8 @@ async function loadShops() {
       }
       if (!list.length) return;
       const rows = list.map((p, i) =>
-        `<div class="shop-row" data-i="${i}"><strong>${esc(p.name)}</strong><br>${esc(p.category)}<br>` +
-        `<small>${esc(p.address)}</small>` + navLinks(p.name, p.lon, p.lat) + `<div class="shop-act">${rxHtml("shop", p.id)}<button class="fix-btn" data-id="${esc(p.id)}" data-name="${esc(p.name)}">✏ 정보가 틀렸어요</button></div>` + (IS_LOCAL ? `<div class="edit-row">` +
+        `<div class="shop-row" data-i="${i}"><strong>${p.brand == 1 ? "⭐ " + esc(p.bname) : esc(p.name)}</strong>${p.brand == 1 && p.bname !== p.name ? `<br><small>(${esc(p.name)})</small>` : ""}<br>${esc(p.category)}<br>` +
+        `<small>${esc(p.address)}</small>` + navLinks(p.name, p.lon, p.lat) + (p.blink ? `<a class="brand-link" href="${esc(p.blink)}" target="_blank" rel="noopener noreferrer">🔗 가게 소식 보기</a>` : "") + `<div class="shop-act">${rxHtml("shop", p.id)}<button class="fix-btn" data-id="${esc(p.id)}" data-name="${esc(p.name)}">✏ 정보가 틀렸어요</button></div>` + (IS_LOCAL ? `<div class="edit-row">` +
         `<button data-a="rename">이름 수정</button><button data-a="hide">없는 가게</button></div>` : "") + `</div>`).join("");
       const head = list.length > 1 ? `<div class="shop-head">이 위치에 가게 ${list.length}곳</div>` : "";
       const pop = new maplibregl.Popup({ offset: 10, maxWidth: "300px" }).setLngLat(e.lngLat)
@@ -1634,7 +1648,7 @@ const SFX_GAIN = { open: 0.7, close: 0.7, on: 0.8, off: 0.8, done: 0.9, win: 1, 
 const sfxBuf = {}; let sfxLoading = false;
 function sfxLoad() {
   if (sfxLoading || !AC) return; sfxLoading = true;
-  for (const k in SFX_FILES) fetch("sounds/" + SFX_FILES[k] + ".mp3?v=105").then(r => r.arrayBuffer()).then(b => new Promise((ok, no) => AC.decodeAudioData(b, ok, no))).then(buf => { sfxBuf[k] = buf; }).catch(() => {});
+  for (const k in SFX_FILES) fetch("sounds/" + SFX_FILES[k] + ".mp3?v=106").then(r => r.arrayBuffer()).then(b => new Promise((ok, no) => AC.decodeAudioData(b, ok, no))).then(buf => { sfxBuf[k] = buf; }).catch(() => {});
 }
 function sfx(kind) {
   if (!sndOn || !AC) return;
@@ -1667,7 +1681,7 @@ function edToast(t) { const el = edEl("ed-toast"); el.textContent = t; el.hidden
 function shopInfo(id) {
   const s = SHOPS.concat(EDITS.added || []).find(x => x.id === id); if (!s) return null;
   const e = (EDITS.edits || {})[id] || {};
-  return { id, name: e.name || s.name, category: e.category || s.category || "기타", coord: e.coord || s.coord, hidden: !!e.hidden };
+  return { id, name: e.name || s.name, category: e.category || s.category || "기타", coord: e.coord || s.coord, hidden: !!e.hidden, brand: e.brand || null };
 }
 function edRefresh() {
   const feats = shopFeatures(); map.getSource("shops").setData({ type: "FeatureCollection", features: feats });
@@ -1678,8 +1692,10 @@ async function edSave(id, patch, msg) {
   const o = Object.assign(cur, patch);
   const prev = REMOTE_ROWS.find(r => r.id === id);
   const row = { id, name: o.name, category: o.category, lon: o.coord[0], lat: o.coord[1], hidden: !!o.hidden, is_new: !!(patch.isNew || (prev && prev.is_new)), updated_at: new Date().toISOString() };
+  const bc = patch.brandCols || (prev && "brand_color" in prev ? { brand_color: prev.brand_color, brand_name: prev.brand_name, brand_link: prev.brand_link, brand_from: prev.brand_from, brand_until: prev.brand_until } : null);
+  if (bc) Object.assign(row, bc);   // SQL(shop_brand.sql) 실행 전에는 간판 칸을 건드리지 않음
   const { error } = await sbAdmin.from("shop_edits").upsert(row);
-  if (error) { edToast("저장 실패: " + error.message); alert("저장 실패: " + error.message + "\n(관리자 계정으로 로그인했는지 확인하세요)"); return; }
+  if (error) { edToast("저장 실패: " + error.message); alert("저장 실패: " + error.message + (patch.brandCols ? "\n(Supabase에서 sql/shop_brand.sql 을 먼저 실행했는지 확인하세요)" : "\n(관리자 계정으로 로그인했는지 확인하세요)")); return; }
   REMOTE_ROWS = REMOTE_ROWS.filter(r => r.id !== id).concat([row]); REMOTE_JSON = "";
   mergeRemote(); edRefresh(); edToast(msg); edClose();
 }
@@ -1692,9 +1708,11 @@ function openEditSheet(ids) {
   sh.innerHTML = (ids.length > 1 ? `<div class="ed-h">이 위치에 가게 ${ids.length}곳 · 고칠 가게를 고르세요</div><select id="ed-pick">${ids.map(i => `<option value="${esc(i)}">${esc((shopInfo(i) || {}).name || i)}</option>`).join("")}</select>` : "") +
     `<input id="ed-name" value="${esc(o.name)}" maxlength="40"><select id="ed-cat">${edOpts(o.category)}</select>` +
     `<div class="ed-r"><button id="ed-save" class="ok">저장</button><button id="ed-move">위치 옮기기</button></div>` +
+    `<div class="ed-r"><button id="ed-brand" class="brandbtn">🎨 간판 꾸미기${brandActive(o.brand) ? " ⭐" : ""}</button></div>` +
     `<div class="ed-r"><button id="ed-gone" class="${o.hidden ? "ok" : "red"}">${o.hidden ? "되살리기" : "없어진 가게(숨기기)"}</button><button id="ed-x" class="g">닫기</button></div>`;
   if (ids.length > 1) edEl("ed-pick").onchange = e => openEditSheet([e.target.value].concat(ids.filter(i => i !== e.target.value)));
   edEl("ed-x").onclick = edClose;
+  edEl("ed-brand").onclick = () => openBrandSheet(edSel);
   edEl("ed-save").onclick = () => edSave(edSel, { name: edEl("ed-name").value.trim() || o.name, category: edEl("ed-cat").value }, "저장됨");
   edEl("ed-gone").onclick = () => edSave(edSel, { hidden: !o.hidden }, o.hidden ? "되살렸어요" : "숨겼어요 (지도에서 사라져요)");
   edEl("ed-move").onclick = () => {
@@ -1703,6 +1721,33 @@ function openEditSheet(ids) {
     edEl("ed-sheet").innerHTML = `<b>${esc(o.name)}</b><div>지도를 움직여 📍 끝을 새 위치에 맞춘 뒤 <b>여기로 이동</b>을 누르세요</div><div class="ed-r"><button id="ed-here" class="ok">여기로 이동</button><button id="ed-x2" class="g">취소</button></div>`;
     edEl("ed-x2").onclick = edClose;
     edEl("ed-here").onclick = () => { const c = map.getCenter(); edSave(id, { coord: [c.lng, c.lat] }, "위치를 옮겼어요"); };
+  };
+}
+const BRAND_COLORS = ["#C83E2B", "#E09F3E", "#F2C400", "#2E8B6A", "#3C7DC4", "#7A5BC4", "#B8447A", "#222222"];
+async function openBrandSheet(id) {
+  const o = shopInfo(id); if (!o) return; const b = o.brand || {}; let color = b.color || "";
+  const sh = edEl("ed-sheet"); sh.hidden = false; edState = "sheet";
+  sh.innerHTML = `<div class="ed-h">🎨 간판 꾸미기 · ${esc(o.name)}</div>` +
+    `<div class="bd-sw">${BRAND_COLORS.map(c => `<button class="sw" data-c="${c}" style="background:${c}"></button>`).join("")}<input type="color" id="bd-pick" value="${color || "#C83E2B"}"><button class="sw none" data-c="">해제</button></div>` +
+    `<input id="bd-name" placeholder="지도에 보일 이름 (예: 백프로부동산)" maxlength="30" value="${esc(b.name || "")}">` +
+    `<input id="bd-link" type="url" placeholder="🔗 홍보 링크 (http:// 또는 https://)" value="${esc(b.link || "")}">` +
+    `<div class="bd-dates"><label>시작일<input type="date" id="bd-from" value="${esc(b.from || "")}"></label><label>종료일<input type="date" id="bd-until" value="${esc(b.until || "")}"></label></div>` +
+    `<textarea id="bd-memo" placeholder="📝 메모 (관리자만 볼 수 있어요 · 계약자·금액·연락처 등)" maxlength="500"></textarea>` +
+    `<div class="ed-r"><button id="bd-save" class="ok">저장</button><button id="bd-x" class="g">닫기</button></div>`;
+  const mark = () => sh.querySelectorAll(".sw").forEach(x => x.classList.toggle("on", (x.dataset.c || "") === color));
+  sh.querySelectorAll(".sw").forEach(x => x.onclick = () => { color = x.dataset.c; if (color) edEl("bd-pick").value = color; mark(); });
+  edEl("bd-pick").oninput = e => { color = e.target.value; mark(); }; mark();
+  edEl("bd-x").onclick = edClose;
+  try { const { data } = await sbAdmin.from("shop_brand_memo").select("memo").eq("id", id).maybeSingle(); if (data && edEl("bd-memo")) edEl("bd-memo").value = data.memo || ""; } catch (e) {}
+  edEl("bd-save").onclick = async () => {
+    const link = edEl("bd-link").value.trim(), nm = edEl("bd-name").value.trim(), from = edEl("bd-from").value, until = edEl("bd-until").value;
+    if (link && !safeLink(link)) { edToast("링크는 http:// 또는 https:// 로 시작해야 해요"); return; }
+    if (color && !nm) { edToast("지도에 보일 이름을 써 주세요"); return; }
+    if (from && until && from > until) { edToast("종료일이 시작일보다 빨라요"); return; }
+    const memo = edEl("bd-memo").value.trim();
+    const mr = await sbAdmin.from("shop_brand_memo").upsert({ id, memo, updated_at: new Date().toISOString() });
+    if (mr.error) { alert("메모 저장 실패: " + mr.error.message + "\n(Supabase에서 sql/shop_brand.sql 을 먼저 실행했는지 확인하세요)"); return; }
+    edSave(id, { brandCols: { brand_color: color || null, brand_name: color ? nm : null, brand_link: link || null, brand_from: from || null, brand_until: until || null } }, color ? "간판을 저장했어요 ⭐" : "간판을 해제했어요");
   };
 }
 function edAddNew() {
