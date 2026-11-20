@@ -1891,6 +1891,7 @@ function openFix(id, name) {
       if (vis("ed-sheet")) { edClose(); return true; }
       if (!commEl.hidden) { closeComm(); return true; }
       if (rpStep !== "none" || !panel.hidden) { closePanel(); return true; }
+      if (document.body.classList.contains("tools-open")) { toolsClose(); return true; }
       if (vis("feed")) { document.getElementById("feed").hidden = true; return true; }
       if (document.body.classList.contains("searching") || !resEl.hidden) { resEl.hidden = true; qEl.blur(); return true; }
       if (document.querySelector(".maplibregl-popup")) { closePopups(); return true; }
@@ -1928,3 +1929,22 @@ if (new URLSearchParams(location.search).get("debug") === "1") {
   const tick = () => { box.textContent = Object.entries(TM).map(([k, v]) => k + " " + v).join("\n"); box.style.whiteSpace = "pre"; };
   setInterval(tick, 500);
 }
+
+
+// ===== 상단 도구 서랍: 손잡이를 아래로 끌거나 누르면 도구가 여러 줄로 펼쳐져 글자까지 보인다 =====
+let toolsClose = () => {};
+(function toolsDrawer() {
+  const g = document.getElementById("tools-grab"), tx = document.getElementById("tools-grab-t"); if (!g || LIVE) return;
+  const isOpen = () => document.body.classList.contains("tools-open");
+  const set = on => { document.body.classList.toggle("tools-open", !!on); g.setAttribute("aria-expanded", on ? "true" : "false"); tx.textContent = on ? "접기 ▴" : "더 보기 ▾"; };
+  toolsClose = () => set(false);
+  let y0 = null;
+  g.addEventListener("touchstart", e => { y0 = e.touches[0].clientY; }, { passive: true });
+  g.addEventListener("touchend", e => {
+    if (y0 == null) return; const dy = e.changedTouches[0].clientY - y0; y0 = null;
+    if (dy > 18) { set(true); e.preventDefault(); } else if (dy < -18) { set(false); e.preventDefault(); }   // 쓸어내리기=열기, 쓸어올리기=닫기 (짧게 누르면 아래 click 이 처리)
+  }, { passive: false });
+  g.addEventListener("click", () => set(!isOpen()));
+  g.addEventListener("keydown", e => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); set(!isOpen()); } });
+  document.addEventListener("pointerdown", e => { if (isOpen() && !(e.target.closest && e.target.closest("#top"))) set(false); }, true);   // 지도를 누르면 닫힘
+})();

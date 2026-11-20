@@ -521,3 +521,14 @@ body.night .soon-b { background: rgba(224,159,62,.16); color: var(--gold); }
 .comm-grab::after { content: ""; width: 44px; height: 5px; border-radius: 3px; margin-bottom: 4px; background: color-mix(in srgb, var(--muted) 55%, transparent); }
 #comm .comm-top { touch-action: none; }
 #comm, #comm-body { overscroll-behavior: contain; }
+
+/* v91: 상단 도구 서랍 (닫힘: 한 줄 가로 스크롤 / 열림: 여러 줄로 펼쳐 글자까지 표시) */
+#tools-grab { order: 6; width: 100%; height: 24px; display: flex; align-items: center; justify-content: center; gap: 8px; font-size: 13px; font-weight: 800; color: var(--muted); touch-action: none; cursor: pointer; user-select: none; -webkit-tap-highlight-color: transparent; }
+#tools-grab::before { content: ""; width: 34px; height: 4px; border-radius: 2px; background: color-mix(in srgb, var(--muted) 45%, transparent); }
+body.live #tools-grab, body.searching #tools-grab { display: none !important; }
+body.tools-open #tools { flex-wrap: wrap; overflow: visible; row-gap: 8px; padding-bottom: 2px; }
+body.tools-open #tools > .chip, body.tools-open #tools > select { min-height: 40px; font-size: 14px; padding: 0 14px; display: inline-flex; align-items: center; }
+body.tools-open #tools > .viewers { font-size: 13px; }
+#help-btn::after, #snd-btn::after { display: none; }
+body.tools-open #help-btn::after { content: " 도움말"; display: inline; }
+body.tools-open #snd-btn::after { content: " 소리"; display: inline; }
