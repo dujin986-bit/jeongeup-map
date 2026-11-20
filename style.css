@@ -510,3 +510,8 @@ body.night .soon-b { background: rgba(224,159,62,.16); color: var(--gold); }
 .bell-ctrl button { font-size: 18px; line-height: 1; }
 .bell-ctrl button.on { background: var(--brand); }
 .bell-ctrl[hidden] { display: none; }
+
+/* v88: 분류별 필터 칩 (이모지 + 켜졌을 때 분류색) */
+.chip.cat-chip { font-weight: 700; }
+#top .chip.cat-chip { background: var(--card); color: var(--muted); border-color: var(--line); }
+#top .chip.cat-chip.on { background: var(--c); border-color: var(--c); color: var(--cf, #fff); }

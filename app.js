@@ -79,14 +79,15 @@ const filtersEl = document.getElementById("filters");
 const catSel = document.getElementById("cat");
 for (const [key, c] of Object.entries(CATEGORIES)) {
   const b = document.createElement("button");
-  b.className = "chip on"; b.textContent = c.label; b.style.flex = "none";
+  b.className = "chip cat-chip on"; b.textContent = c.icon + " " + c.label; b.style.flex = "none";
+  b.style.setProperty("--c", c.color); b.style.setProperty("--cf", c.fg || "#fff");
   b.onclick = () => {
     activeCats.has(key) ? activeCats.delete(key) : activeCats.add(key);
     b.classList.toggle("on");
     render();
   };
   filtersEl.appendChild(b);
-  catSel.add(new Option(c.label, key));
+  catSel.add(new Option(c.icon + " " + c.label, key));
 }
 let showOffices = true;
 // (관공서 필터 칩은 v84에서 제거. 관공서 배지는 항상 표시)
@@ -101,7 +102,7 @@ function addMarker(item, isLandmark) {
   if (isLandmark) el.style.outline = "2px solid #fff";
   const when = item.ts ? `<br><small>${timeAgo(item.ts)} · ${new Date(item.ts).toLocaleString("ko-KR")}</small>` : "";
   const popup = new maplibregl.Popup({ offset: 20 }).setHTML(
-    `<strong>${esc(item.name || item.title)}</strong> <small>(${c.label})</small><br>${esc(item.desc || "")}${when}` + (item.photo ? `<a href="${esc(item.photo)}" target="_blank" rel="noopener"><img class="pop-photo" src="${esc(item.photo)}" loading="lazy"></a>` : "") + navLinks(item.name || item.title, item.coord[0], item.coord[1]) + (item.id && item.ts ? `<div class="shop-act">${rxHtml("report", item.id)}</div>` : "")
+    `<strong>${esc(item.name || item.title)}</strong> <small>(${c.icon} ${c.label})</small><br>${esc(item.desc || "")}${when}` + (item.photo ? `<a href="${esc(item.photo)}" target="_blank" rel="noopener"><img class="pop-photo" src="${esc(item.photo)}" loading="lazy"></a>` : "") + navLinks(item.name || item.title, item.coord[0], item.coord[1]) + (item.id && item.ts ? `<div class="shop-act">${rxHtml("report", item.id)}</div>` : "")
   );
   popup.on("open", () => hydrateRx(popup.getElement()));
   el.addEventListener("click", () => playFx(item.cat, el));      // 클릭 연출 (1~2초)
@@ -170,7 +171,7 @@ function renderFeed() {
     const row = document.createElement("div");
     row.className = "feed-row";
     row.innerHTML = `<span class="feed-dot" style="background:${c.color}"></span><div><div class="feed-title">${r.photo ? "📷 " : ""}${esc(r.title)}</div>` +
-      `<div class="feed-meta">${c.label} · ${timeAgo(r.ts)}${r.desc ? " · " + esc(r.desc) : ""}</div></div>`;
+      `<div class="feed-meta">${c.icon} ${c.label} · ${timeAgo(r.ts)}${r.desc ? " · " + esc(r.desc) : ""}</div></div>`;
     row.onclick = () => {
       if (!LIVE) box.hidden = true;
       focusReport(r);
@@ -378,7 +379,7 @@ async function fetchShopEdits() {
     if (src) {
       const feats = shopFeatures();
       src.setData({ type: "FeatureCollection", features: feats });
-      const chip = document.getElementById("shop-chip"); if (chip) chip.textContent = "상가";
+      const chip = document.getElementById("shop-chip"); if (chip) chip.textContent = SHOP_CHIP_LABEL;
     }
     return true;
   } catch (e) { return false; }
@@ -412,7 +413,7 @@ async function sendEdit(payload) {
   const feats = shopFeatures();
   map.getSource("shops").setData({ type: "FeatureCollection", features: feats });
   const chip = document.getElementById("shop-chip");
-  if (chip) chip.textContent = "상가";
+  if (chip) chip.textContent = SHOP_CHIP_LABEL;
 }
 
 async function loadShops() {
@@ -481,7 +482,7 @@ async function loadShops() {
     map.on("mouseenter", "shops-hit", () => { map.getCanvas().style.cursor = "pointer"; });
     map.on("mouseleave", "shops-hit", () => { map.getCanvas().style.cursor = ""; });
     const chip = document.createElement("button");
-    chip.id = "shop-chip"; chip.className = "chip on"; chip.style.flex = "none"; chip.textContent = "상가";
+    chip.id = "shop-chip"; chip.className = "chip cat-chip on"; chip.style.flex = "none"; chip.style.setProperty("--c", "#8D5524"); chip.style.setProperty("--cf", "#fff"); chip.textContent = SHOP_CHIP_LABEL;
     chip.onclick = () => {
       const on = chip.classList.toggle("on");
       for (const id of ["shops-dot", "shops-hit", "shops-label"]) map.setLayoutProperty(id, "visibility", on ? "visible" : "none");
@@ -1399,7 +1400,7 @@ function renderComm() {
     const c = CATEGORIES[r.cat];
     if (expAt(r) <= Date.now()) continue;
     const card = document.createElement("div"); card.className = "comm-card";
-    card.innerHTML = `<div class="comm-meta"><span class="cat-badge" style="background:${c.color};color:${c.fg || '#fff'}">${c.label}</span><span>${timeAgo(r.ts)}</span><span class="exp-badge" data-exp="${expAt(r)}"></span></div>` +
+    card.innerHTML = `<div class="comm-meta"><span class="cat-badge" style="background:${c.color};color:${c.fg || '#fff'}">${c.icon} ${c.label}</span><span>${timeAgo(r.ts)}</span><span class="exp-badge" data-exp="${expAt(r)}"></span></div>` +
       `<div class="comm-title">${esc(r.title)}</div>` + (r.desc ? `<div class="comm-desc">${esc(r.desc)}</div>` : "") + (r.photo ? `<a href="${esc(r.photo)}" target="_blank" rel="noopener"><img class="comm-photo" src="${esc(r.photo)}" loading="lazy"></a>` : "") +
       `<div class="shop-act">${rxHtml("report", r.id)}<button class="chip comm-go">📍 지도에서 보기</button></div>`;
     card.querySelector(".comm-go").onclick = () => {
@@ -1600,7 +1601,7 @@ function shopInfo(id) {
 }
 function edRefresh() {
   const feats = shopFeatures(); map.getSource("shops").setData({ type: "FeatureCollection", features: feats });
-  const chip = document.getElementById("shop-chip"); if (chip) chip.textContent = "상가";
+  const chip = document.getElementById("shop-chip"); if (chip) chip.textContent = SHOP_CHIP_LABEL;
 }
 async function edSave(id, patch, msg) {
   const cur = shopInfo(id) || { id, hidden: false, category: "기타" };
