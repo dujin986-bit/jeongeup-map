@@ -414,7 +414,7 @@ function shopFeatures() {
     out.push({ type: "Feature", geometry: { type: "Point", coordinates: co },
       properties: { id: s.id, name: (e.name || s.name) + (e.hidden ? " (숨김)" : ""), category: cat, address: s.address, lon: co[0], lat: co[1],
                     color: e.hidden ? "#bbbbbb" : shopColor(cat),
-                    brand: bOn ? 1 : 0, bcolor: bOn ? b.color : "", bname: bOn ? (b.name || e.name || s.name) : "", blink: bOn ? safeLink(b.link) : "" } });
+                    brand: bOn ? 1 : 0, bcolor: bOn ? b.color : "", bink: bOn ? brandInk(b.color) : "#fff", bname: bOn ? (b.name || e.name || s.name) : "", blink: bOn ? safeLink(b.link) : "" } });
   }
   return out;
 }
@@ -449,14 +449,16 @@ async function loadShops() {
       layout: { "text-field": ["get", "name"], "text-font": ["Noto Sans Regular"], "text-size": 11,
                 "text-offset": [0, 1.1], "text-anchor": "top", "text-max-width": 8 },
       paint: { "text-color": "#1b1b1b", "text-halo-color": "#fff", "text-halo-width": 1.4 } });
-    map.addLayer({ id: "shops-brand-dot", type: "circle", source: "shops", minzoom: 14, filter: ["==", ["get", "brand"], 1],   // 🎨 간판 꾸미기: 색 동그라미 + ★ + 색 이름표
-      paint: { "circle-radius": ["interpolate", ["linear"], ["zoom"], 14, 8, 17, 12, 19, 15], "circle-color": ["get", "bcolor"], "circle-stroke-color": "#fff", "circle-stroke-width": 2.5 } });
+    map.addLayer({ id: "shops-brand-glow", type: "circle", source: "shops", minzoom: 14, filter: ["==", ["get", "brand"], 1],   // 🎨 간판 꾸미기: 은은한 빛 + 큰 색 동그라미 + ★ + 색 알약 이름표
+      paint: { "circle-radius": ["interpolate", ["linear"], ["zoom"], 14, 16, 17, 24, 19, 30], "circle-color": ["get", "bcolor"], "circle-opacity": 0.35, "circle-blur": 0.7 } });
+    map.addLayer({ id: "shops-brand-dot", type: "circle", source: "shops", minzoom: 14, filter: ["==", ["get", "brand"], 1],
+      paint: { "circle-radius": ["interpolate", ["linear"], ["zoom"], 14, 10, 17, 14, 19, 18], "circle-color": ["get", "bcolor"], "circle-stroke-color": "#fff", "circle-stroke-width": 3 } });
     map.addLayer({ id: "shops-brand-star", type: "symbol", source: "shops", minzoom: 14, filter: ["==", ["get", "brand"], 1],
-      layout: { "text-field": "★", "text-font": ["Noto Sans Regular"], "text-size": ["interpolate", ["linear"], ["zoom"], 14, 10, 18, 15], "text-allow-overlap": true, "text-ignore-placement": true },
-      paint: { "text-color": "#fff" } });
+      layout: { "text-field": "★", "text-font": ["Noto Sans Regular"], "text-size": ["interpolate", ["linear"], ["zoom"], 14, 12, 18, 18], "text-allow-overlap": true, "text-ignore-placement": true },
+      paint: { "text-color": ["get", "bink"] } });
     map.addLayer({ id: "shops-brand-label", type: "symbol", source: "shops", minzoom: 14, filter: ["==", ["get", "brand"], 1],
-      layout: { "text-field": ["get", "bname"], "text-font": ["Noto Sans Regular"], "text-size": ["interpolate", ["linear"], ["zoom"], 14, 12, 18, 16], "text-offset": [0, 1.3], "text-anchor": "top", "text-max-width": 9, "text-allow-overlap": true, "symbol-sort-key": 1 },
-      paint: { "text-color": ["get", "bcolor"], "text-halo-color": "#fff", "text-halo-width": 2.4 } });
+      layout: { "text-field": ["get", "bname"], "text-font": ["Noto Sans Regular"], "text-size": ["interpolate", ["linear"], ["zoom"], 14, 13, 18, 17], "text-offset": [0, 1.5], "text-anchor": "top", "text-max-width": 9, "text-allow-overlap": true, "symbol-sort-key": 1 },
+      paint: { "text-color": ["get", "bink"], "text-halo-color": ["get", "bcolor"], "text-halo-width": 5, "text-halo-blur": 0.3 } });   // 글씨 둘레를 색으로 두껍게 → 색 알약 모양
     const nearShops = pt => {                          // 터치 지점에서 가장 가까운 가게(와 거의 같은 거리의 겹친 가게)만
       const fs = map.queryRenderedFeatures([[pt.x - 26, pt.y - 26], [pt.x + 26, pt.y + 26]], { layers: ["shops-dot"] });
       const arr = fs.map(f => { const p = map.project(f.geometry.coordinates); return { f, d: Math.hypot(p.x - pt.x, p.y - pt.y) }; }).sort((a, b) => a.d - b.d);
@@ -1648,7 +1650,7 @@ const SFX_GAIN = { open: 0.7, close: 0.7, on: 0.8, off: 0.8, done: 0.9, win: 1, 
 const sfxBuf = {}; let sfxLoading = false;
 function sfxLoad() {
   if (sfxLoading || !AC) return; sfxLoading = true;
-  for (const k in SFX_FILES) fetch("sounds/" + SFX_FILES[k] + ".mp3?v=106").then(r => r.arrayBuffer()).then(b => new Promise((ok, no) => AC.decodeAudioData(b, ok, no))).then(buf => { sfxBuf[k] = buf; }).catch(() => {});
+  for (const k in SFX_FILES) fetch("sounds/" + SFX_FILES[k] + ".mp3?v=107").then(r => r.arrayBuffer()).then(b => new Promise((ok, no) => AC.decodeAudioData(b, ok, no))).then(buf => { sfxBuf[k] = buf; }).catch(() => {});
 }
 function sfx(kind) {
   if (!sndOn || !AC) return;
@@ -1723,18 +1725,22 @@ function openEditSheet(ids) {
     edEl("ed-here").onclick = () => { const c = map.getCenter(); edSave(id, { coord: [c.lng, c.lat] }, "위치를 옮겼어요"); };
   };
 }
-const BRAND_COLORS = ["#C83E2B", "#E09F3E", "#F2C400", "#2E8B6A", "#3C7DC4", "#7A5BC4", "#B8447A", "#222222"];
+const BRAND_COLORS = ["#FF4D4F", "#FF9F1C", "#FFD60A", "#2ECC71", "#35A7FF", "#9B6BFF", "#FF5FA2", "#00D1C1"];   // 밝고 선명한 8색
+const brandInk = hex => { const n = parseInt((hex || "#000").slice(1), 16), r = n >> 16, g = (n >> 8) & 255, b = n & 255; return (0.299 * r + 0.587 * g + 0.114 * b) > 150 ? "#1B1B1B" : "#FFFFFF"; };   // 밝은 색엔 검정, 진한 색엔 흰 글씨
 async function openBrandSheet(id) {
   const o = shopInfo(id); if (!o) return; const b = o.brand || {}; let color = b.color || "";
   const sh = edEl("ed-sheet"); sh.hidden = false; edState = "sheet";
   sh.innerHTML = `<div class="ed-h">🎨 간판 꾸미기 · ${esc(o.name)}</div>` +
-    `<div class="bd-sw">${BRAND_COLORS.map(c => `<button class="sw" data-c="${c}" style="background:${c}"></button>`).join("")}<input type="color" id="bd-pick" value="${color || "#C83E2B"}"><button class="sw none" data-c="">해제</button></div>` +
+    `<div id="bd-prev"></div>` +
+    `<div class="bd-sw">${BRAND_COLORS.map(c => `<button class="sw" data-c="${c}" style="background:${c}"></button>`).join("")}<input type="color" id="bd-pick" value="${color || BRAND_COLORS[0]}"><button class="sw none" data-c="">해제</button></div>` +
     `<input id="bd-name" placeholder="지도에 보일 이름 (예: 백프로부동산)" maxlength="30" value="${esc(b.name || "")}">` +
     `<input id="bd-link" type="url" placeholder="🔗 홍보 링크 (http:// 또는 https://)" value="${esc(b.link || "")}">` +
     `<div class="bd-dates"><label>시작일<input type="date" id="bd-from" value="${esc(b.from || "")}"></label><label>종료일<input type="date" id="bd-until" value="${esc(b.until || "")}"></label></div>` +
     `<textarea id="bd-memo" placeholder="📝 메모 (관리자만 볼 수 있어요 · 계약자·금액·연락처 등)" maxlength="500"></textarea>` +
     `<div class="ed-r"><button id="bd-save" class="ok">저장</button><button id="bd-x" class="g">닫기</button></div>`;
-  const mark = () => sh.querySelectorAll(".sw").forEach(x => x.classList.toggle("on", (x.dataset.c || "") === color));
+  const prev = () => { const p = edEl("bd-prev"); if (!p) return; const nm = edEl("bd-name").value.trim() || o.name; p.innerHTML = color ? `<span style="background:${color};color:${brandInk(color)}">★ ${esc(nm)}</span>` : `<small>색을 고르면 지도 모양을 미리 볼 수 있어요</small>`; };
+  const mark = () => { sh.querySelectorAll(".sw").forEach(x => x.classList.toggle("on", (x.dataset.c || "") === color)); prev(); };
+  edEl("bd-name").oninput = prev;
   sh.querySelectorAll(".sw").forEach(x => x.onclick = () => { color = x.dataset.c; if (color) edEl("bd-pick").value = color; mark(); });
   edEl("bd-pick").oninput = e => { color = e.target.value; mark(); }; mark();
   edEl("bd-x").onclick = edClose;
