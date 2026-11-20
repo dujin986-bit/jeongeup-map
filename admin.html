@@ -80,7 +80,7 @@
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.js"></script>
-<script src="data.js"></script>
+<script src="data.js?v=77"></script>
 <script>
 const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 const TABS = [["pending", "대기"], ["approved", "승인됨"], ["hidden", "숨김"], ["notice", "공지"], ["wx", "날씨"], ["fix", "수정요청"], ["log", "편집기록"], ["map", "지도 수정 ↗"]];
@@ -213,6 +213,7 @@ function start() {
     const pb = document.createElement("button"); pb.className = "tab"; pb.id = "pushBtn"; $("tabs").appendChild(pb);
     const paint = async () => { let s = null; try { s = await pushGetSub(false); } catch (e) {} pb.dataset.on = s && Notification.permission === "granted" ? "1" : ""; pb.textContent = pb.dataset.on ? "🔔 켜짐" : "🔕 알림"; };
     pb.onclick = async () => {
+      pb.textContent = "⏳ 처리 중…";
       try {
         if (pb.dataset.on) { const s = await pushGetSub(false); if (s) { await sb.from("push_subscriptions").delete().eq("endpoint", s.endpoint); await s.unsubscribe(); } }
         else { const s = await pushGetSub(true); await sb.from("push_subscriptions").delete().eq("endpoint", s.endpoint); const { error } = await sb.from("push_subscriptions").insert(pushRow(s, "admin")); if (error) throw new Error("등록 실패: " + error.message + "\n(알림 SQL을 실행했는지 확인하세요)"); }

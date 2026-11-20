@@ -59,11 +59,14 @@ const VAPID_PUBLIC_KEY = "BHv-8xukSXPJwfxQEQywKXs84vGhxm443JhfQ6VMcK-dHN41Z0rU_P
 function pushReady() { return !!VAPID_PUBLIC_KEY && !["localhost", "127.0.0.1", "[::1]"].includes(location.hostname) && "serviceWorker" in navigator && "PushManager" in window && "Notification" in window; }
 function pushKeyBytes(b64) { const p = "=".repeat((4 - b64.length % 4) % 4), s = atob((b64 + p).replace(/-/g, "+").replace(/_/g, "/")); return Uint8Array.from(s, c => c.charCodeAt(0)); }
 async function pushGetSub(create) {            // 이 기기의 푸시 구독을 가져오거나(create=true면) 새로 만든다
-  const reg = await navigator.serviceWorker.ready;
+  let reg = await navigator.serviceWorker.getRegistration();
+  if (!reg) reg = await navigator.serviceWorker.register("sw.js");           // 등록이 안 돼 있으면 지금 등록
+  reg = await Promise.race([navigator.serviceWorker.ready, new Promise((_, no) => setTimeout(() => no(new Error("서비스 워커가 준비되지 않았어요. 페이지를 새로고침한 뒤 다시 눌러 주세요.")), 8000))]);
   let sub = await reg.pushManager.getSubscription();
   if (!sub && create) {
     if ((await Notification.requestPermission()) !== "granted") throw new Error("알림이 허용되지 않았어요. 브라우저 설정에서 알림을 허용해 주세요.");
-    sub = await reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: pushKeyBytes(VAPID_PUBLIC_KEY) });
+    try { sub = await reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: pushKeyBytes(VAPID_PUBLIC_KEY) }); }
+    catch (e) { throw new Error("알림 등록에 실패했어요: " + (e && e.message ? e.message : e)); }
   }
   return sub;
 }
