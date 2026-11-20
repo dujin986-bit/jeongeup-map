@@ -1650,7 +1650,7 @@ const SFX_GAIN = { open: 0.7, close: 0.7, on: 0.8, off: 0.8, done: 0.9, win: 1, 
 const sfxBuf = {}; let sfxLoading = false;
 function sfxLoad() {
   if (sfxLoading || !AC) return; sfxLoading = true;
-  for (const k in SFX_FILES) fetch("sounds/" + SFX_FILES[k] + ".mp3?v=108").then(r => r.arrayBuffer()).then(b => new Promise((ok, no) => AC.decodeAudioData(b, ok, no))).then(buf => { sfxBuf[k] = buf; }).catch(() => {});
+  for (const k in SFX_FILES) fetch("sounds/" + SFX_FILES[k] + ".mp3?v=109").then(r => r.arrayBuffer()).then(b => new Promise((ok, no) => AC.decodeAudioData(b, ok, no))).then(buf => { sfxBuf[k] = buf; }).catch(() => {});
 }
 function sfx(kind) {
   if (!sndOn || !AC) return;
@@ -1676,7 +1676,7 @@ setInterval(fetchShopEdits, 60000);   // 관리자가 고친 가게 정보를 1�
 
 
 // ===== 관리자 편집 모드: 일반 지도 그대로에서 가게 이름·위치·숨김·새 가게 수정 (저장: Supabase shop_edits, 관리자만) =====
-const EDIT_CATS = ["음식점", "카페", "숙박", "편의점/마트", "주차장", "기타"];
+const EDIT_CATS = ["음식점", "카페", "주점/술집", "정육점", "반찬/식료품", "옷집/의류", "신발/잡화", "편의점/마트", "약국", "꽃집", "안경점", "학원", "교습소", "미용실/헤어", "세탁소", "병원/의원", "부동산", "자동차(정비/세차)", "숙박", "주차장", "기타"];   // 관리자 업종 목록
 let sbAdmin = null, edState = "none", edSel = null;
 const edEl = id => document.getElementById(id);
 function edToast(t) { const el = edEl("ed-toast"); el.textContent = t; el.hidden = false; clearTimeout(edToast.t); edToast.t = setTimeout(() => el.hidden = true, 2200); }
