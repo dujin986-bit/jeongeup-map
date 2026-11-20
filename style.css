@@ -622,3 +622,7 @@ a.brand-link { display: block; margin-top: 6px; padding: 9px; border-radius: 10p
 body.tools-open #top #ticker:not(.urgent) { max-height: 0; margin-top: 0; opacity: 0; pointer-events: none; }
 body.tools-closing #top #ticker:not(.urgent) { max-height: 28px; margin-top: 2px; opacity: 1; }
 @media (prefers-reduced-motion: reduce) { #top #ticker { transition: none; } }
+
+/* 공지 띠가 있을 때 지도 오른쪽 버튼(내 위치·알림)을 띠 아래로 */
+.maplibregl-ctrl-top-right { transition: transform .3s ease; }
+body.has-notice:not(.tools-open) .maplibregl-ctrl-top-right { transform: translateY(30px); }
