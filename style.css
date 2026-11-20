@@ -234,7 +234,7 @@ body.live #edit-btn, body.live #ed-bar, body.live #ed-sheet { display: none !imp
 #tk-in { white-space: nowrap; font-size: 15px; font-weight: 700; padding-left: 100%; animation: tkmove 20s linear infinite; will-change: transform; }
 #ticker:active #tk-in { animation-play-state: paused; }
 @keyframes tkmove { from { transform: translateX(0); } to { transform: translateX(-100%); } }
-body.has-notice #top { top: 32px; }
+
 #notice-modal { position: fixed; inset: 0; z-index: 20; background: rgba(0,0,0,.55); display: flex; align-items: center; justify-content: center; padding: 20px; }
 #notice-modal[hidden] { display: none; }
 #notice-modal .nm { background: #fff; color: #222; border-radius: 14px; padding: 16px; max-width: 420px; width: 100%; max-height: 70vh; overflow-y: auto; }
@@ -292,7 +292,7 @@ body.live #kk-bar { display: none !important; }
 #top { transition: transform .4s cubic-bezier(.4,0,.2,1); }
 body.rp-pick #top, body.rp-form #top { transform: translateY(-130%); }
 #rp-bar { position: fixed; top: 0; left: 0; right: 0; z-index: 6; display: flex; align-items: center; gap: 8px; padding: 8px 10px; background: rgba(255,255,255,.96); box-shadow: 0 1px 6px rgba(0,0,0,.2); transform: translateY(-160%); transition: transform .4s cubic-bezier(.4,0,.2,1); }
-body.has-notice #rp-bar { top: 32px; }
+
 body.rp-pick #rp-bar { transform: translateY(0); }
 .rp-slot { flex: 1; } .rp-slot #searchbox { max-width: none; width: 100%; }
 .rp-xb { border: 1px solid #ccc; background: #fff; color: #333; border-radius: 50%; width: 40px; height: 40px; font-size: 18px; font-weight: 700; }
@@ -614,3 +614,11 @@ a.brand-link { display: block; margin-top: 6px; padding: 9px; border-radius: 10p
 #bd-prev { min-height: 38px; display: flex; align-items: center; justify-content: center; background: #EDE8E0; border-radius: 12px; padding: 8px; }
 #bd-prev span { padding: 7px 16px; border-radius: 999px; font-weight: 800; font-size: 16px; box-shadow: 0 2px 6px rgba(0,0,0,.25); }
 #bd-prev small { color: #777; }
+
+/* v111 공지 띠: 헤더 안(더 보기 밑)으로 이동. 서랍이 열리면 스르륵 접히고 닫히면 다시 펼쳐짐 (긴급 공지는 항상 보임) */
+#top #ticker { position: static; order: 30; width: 100%; flex: none; height: 28px; max-height: 28px; margin: 2px 0 0; border-radius: 8px; box-shadow: none; overflow: hidden; opacity: 1; transition: max-height .3s ease, margin .3s ease, opacity .25s ease; }
+#top #ticker[hidden] { display: none; }
+#top #tk-in { font-size: 14px; }
+body.tools-open #top #ticker:not(.urgent) { max-height: 0; margin-top: 0; opacity: 0; pointer-events: none; }
+body.tools-closing #top #ticker:not(.urgent) { max-height: 28px; margin-top: 2px; opacity: 1; }
+@media (prefers-reduced-motion: reduce) { #top #ticker { transition: none; } }

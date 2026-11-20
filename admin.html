@@ -81,7 +81,7 @@
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.js"></script>
-<script src="data.js?v=110"></script>
+<script src="data.js?v=111"></script>
 <script>
 const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 const TABS = [["pending", "대기"], ["approved", "승인됨"], ["hidden", "숨김"], ["notice", "공지"], ["wx", "날씨"], ["fix", "수정요청"], ["log", "편집기록"], ["map", "지도 수정 ↗"]];
@@ -110,7 +110,7 @@ async function drawNotice() {
     box.dataset.n = "1";
     box.innerHTML = `<div class="card"><b>새 공지</b><textarea id="nBody" maxlength="120" placeholder="공지 내용 (한 줄로 짧게)" style="width:100%;height:70px;margin:8px 0;padding:8px;font-size:16px;border:1px solid #ccc;border-radius:8px"></textarea>
       <div style="display:flex;gap:8px;margin-bottom:8px"><select id="nLevel" style="flex:1;padding:10px;font-size:16px"><option value="normal">📢 일반 (파랑)</option><option value="urgent">🚨 긴급 (빨강)</option></select>
-      <select id="nHours" style="flex:1;padding:10px;font-size:16px">${Array.from({length:24},(_,i)=>{const m=(i+1)*30,h=Math.floor(m/60),mm=m%60;return `<option value="${m}"${m===60?" selected":""}>${(h?h+"시간":"")+(h&&mm?" ":"")+(mm?mm+"분":"")}</option>`}).join("")}</select></div>
+      <select id="nHours" style="flex:1;padding:10px;font-size:16px">${[[30,"30분"],[60,"1시간"],[120,"2시간"],[180,"3시간"],[300,"5시간"],[720,"12시간"],[1440,"24시간"],[2880,"2일"],[4320,"3일"]].map(([m,t])=>`<option value="${m}"${m===60?" selected":""}>${t}</option>`).join("")}</select></div>
       <label style="display:flex;gap:8px;align-items:center;margin-bottom:8px;font-size:15px"><input type="checkbox" id="nPush"> 📲 손님 폰 알림으로도 보내기</label>
       <button class="act ok" id="nAdd" style="width:100%">등록</button></div><div id="nList"></div>`;
     $("nAdd").onclick = async () => {

@@ -26,7 +26,7 @@
 <meta name="apple-mobile-web-app-title" content="정읍지금">
 <link rel="apple-touch-icon" href="icons/user-apple-180.png">
 <link href="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.css" rel="stylesheet">
-<link rel="stylesheet" href="style.css?v=110">
+<link rel="stylesheet" href="style.css?v=111">
 </head>
 <body>
 <div id="map"></div>
@@ -34,7 +34,6 @@
 <div id="night-haze"></div>
 <canvas id="wx-canvas"></canvas>
 
-<div id="ticker" hidden><div id="tk-in"></div></div>
 <div id="notice-modal" hidden></div>
 <header id="top">
   <strong><svg class="logo" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 1.5l1.9 4.6 3.4-2.1-.6 4.5 4.6-.9-2.6 3.6 3.1 2.2-4.4.9.9 4-4.3-1.8L12 22.5l-.1-5.8-4.3 1.8.9-4-4.4-.9 3.1-2.2L2.6 7l4.6.9-.6-4.5 3.4 2.1z"/></svg>정읍 지금</strong>
@@ -62,6 +61,7 @@
   <a id="live-link" class="chip" href="?live=1" hidden>방송 모드</a>
   </div>
   <div id="tools-grab" role="button" tabindex="0" aria-expanded="false" aria-label="도구 더 보기"><span id="tools-grab-t">더 보기 ▾</span></div>
+  <div id="ticker" hidden><div id="tk-in"></div></div>
   <div id="feed" hidden></div>
 </header>
 
@@ -92,7 +92,7 @@
 <div id="ch-name" hidden></div>
 <a id="live-exit" href="./">방송 모드 끄기 (Esc)</a>
 <div id="tut" hidden><div id="tut-hole"></div><div id="tut-tip"><div id="tut-txt"></div><div id="tut-row"><span id="tut-n"></span><button id="tut-skip">건너뛰기</button><button id="tut-next">다음</button></div></div></div>
-<div id="ver">v110</div>
+<div id="ver">v111</div>
 <div id="comm" hidden>
   <div class="comm-grab" aria-hidden="true"></div>
   <div class="comm-top"><button id="comm-back" class="chip">← 지도</button><strong>정읍 이야기</strong><button id="comm-refresh" class="chip">🔄</button></div>
@@ -107,7 +107,7 @@
 
 <script src="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="data.js?v=110"></script>
-<script src="app.js?v=110"></script>
+<script src="data.js?v=111"></script>
+<script src="app.js?v=111"></script>
 </body>
 </html>
