@@ -1709,7 +1709,7 @@ const SFX_GAIN = { open: 0.7, close: 0.7, on: 0.8, off: 0.8, done: 0.9, win: 1, 
 const sfxBuf = {}; let sfxLoading = false;
 function sfxLoad() {
   if (sfxLoading || !AC) return; sfxLoading = true;
-  for (const k in SFX_FILES) fetch("sounds/" + SFX_FILES[k] + ".mp3?v=120").then(r => r.arrayBuffer()).then(b => new Promise((ok, no) => AC.decodeAudioData(b, ok, no))).then(buf => { sfxBuf[k] = buf; }).catch(() => {});
+  for (const k in SFX_FILES) fetch("sounds/" + SFX_FILES[k] + ".mp3?v=121").then(r => r.arrayBuffer()).then(b => new Promise((ok, no) => AC.decodeAudioData(b, ok, no))).then(buf => { sfxBuf[k] = buf; }).catch(() => {});
 }
 function sfx(kind) {
   if (!sndOn || !AC) return;
@@ -1866,16 +1866,17 @@ async function fetchNotices() {
 }
 function renderTicker() {
   const t = document.getElementById("ticker"), inn = document.getElementById("tk-in");
-  const list = NOTICES.slice().sort((x, y) => (y.level === "urgent") - (x.level === "urgent"));
+  const list = NOTICES.slice().sort((x, y) => noticeType(y.level).rank - noticeType(x.level).rank);
   if (!list.length) { t.hidden = true; document.body.classList.remove("has-notice"); return; }
-  const txt = list.map(n => (n.level === "urgent" ? "🚨 긴급  " : "📢 ") + n.body).join("      ·      ");
+  const txt = list.map(n => noticeType(n.level).icon + " " + (n.level === "urgent" ? "긴급  " : "") + n.body).join("      ·      ");
   if (inn.textContent !== txt) { inn.textContent = txt; inn.style.animationDuration = Math.max(14, txt.length * 0.3) + "s"; }
   t.classList.toggle("urgent", list.some(n => n.level === "urgent"));
+  const top = noticeType(list[0].level); t.style.background = top.color; t.style.color = top.fg || "#fff";     // 가장 급한 종류의 색
   t.hidden = false; document.body.classList.add("has-notice");
 }
 document.getElementById("ticker").onclick = () => {
   const m = document.getElementById("notice-modal");
-  m.innerHTML = '<div class="nm">' + NOTICES.slice().sort((x, y) => (y.level === "urgent") - (x.level === "urgent")).map(n => `<p class="${n.level === "urgent" ? "u" : ""}">${n.level === "urgent" ? "🚨 " : "📢 "}${esc(n.body)}</p>`).join("") + '<button id="nm-x">닫기</button></div>';
+  m.innerHTML = '<div class="nm">' + NOTICES.slice().sort((x, y) => noticeType(y.level).rank - noticeType(x.level).rank).map(n => { const ty = noticeType(n.level); return `<p style="border-left-color:${ty.color};background:${ty.soft}">${ty.icon} ${esc(n.body)}</p>`; }).join("") + '<button id="nm-x">닫기</button></div>';
   m.hidden = false; document.getElementById("nm-x").onclick = () => m.hidden = true;
 };
 fetchNotices(); setInterval(fetchNotices, 60000);

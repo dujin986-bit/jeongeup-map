@@ -81,7 +81,7 @@
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.js"></script>
-<script src="data.js?v=120"></script>
+<script src="data.js?v=121"></script>
 <script>
 const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 const TABS = [["pending", "대기"], ["approved", "승인됨"], ["hidden", "숨김"], ["notice", "공지"], ["wx", "날씨"], ["fix", "수정요청"], ["fb", "고쳐줘"], ["log", "편집기록"], ["map", "지도 수정 ↗"]];
@@ -109,7 +109,7 @@ async function drawNotice() {
   if (!box.dataset.n) {
     box.dataset.n = "1";
     box.innerHTML = `<div class="card"><b>새 공지</b><textarea id="nBody" maxlength="120" placeholder="공지 내용 (한 줄로 짧게)" style="width:100%;height:70px;margin:8px 0;padding:8px;font-size:16px;border:1px solid #ccc;border-radius:8px"></textarea>
-      <div style="display:flex;gap:8px;margin-bottom:8px"><select id="nLevel" style="flex:1;padding:10px;font-size:16px"><option value="normal">📢 일반 (파랑)</option><option value="urgent">🚨 긴급 (빨강)</option></select>
+      <div style="display:flex;gap:8px;margin-bottom:8px"><select id="nLevel" style="flex:1;padding:10px;font-size:16px">${Object.entries(NOTICE_TYPES).map(([k, v]) => `<option value="${k}">${v.icon} ${v.label} (${v.cname})</option>`).join("")}</select>
       <select id="nHours" style="flex:1;padding:10px;font-size:16px">${[[30,"30분"],[60,"1시간"],[120,"2시간"],[180,"3시간"],[300,"5시간"],[720,"12시간"],[1440,"24시간"],[2880,"2일"],[4320,"3일"]].map(([m,t])=>`<option value="${m}"${m===60?" selected":""}>${t}</option>`).join("")}</select></div>
       <label style="display:flex;gap:8px;align-items:center;margin-bottom:8px;font-size:15px"><input type="checkbox" id="nPush"> 📲 손님 폰 알림으로도 보내기</label>
       <button class="act ok" id="nAdd" style="width:100%">등록</button></div><div id="nList"></div>`;
@@ -119,7 +119,7 @@ async function drawNotice() {
       const { error } = await sb.from("notices").insert({ body, level: $("nLevel").value, expires_at: exp });
       if (error) { alert("등록 실패: " + error.message); return; }
       if ($("nPush").checked) {
-        const { data: r, error: pe } = await sb.functions.invoke("send-push", { body: { type: "broadcast", title: $("nLevel").value === "urgent" ? "🚨 긴급 공지" : "📢 공지", body } });
+        const { data: r, error: pe } = await sb.functions.invoke("send-push", { body: { type: "broadcast", title: noticeType($("nLevel").value).icon + " " + ($("nLevel").value === "normal" ? "공지" : noticeType($("nLevel").value).label + " 공지"), body } });
         let why = pe && pe.message; if (pe) { try { const j = await pe.context.json(); why = (j.error || "") + (j.detail ? " · " + j.detail : "") || why; } catch (e) {} }
         alert(pe ? "공지는 등록됐지만 알림 전송에 실패했어요: " + why : "공지 등록 + 알림 " + (r && r.ok != null ? r.ok + "대 전송" : "전송"));
       }
@@ -132,8 +132,8 @@ async function drawNotice() {
   L.innerHTML = "";
   for (const n of data) {
     const live = new Date(n.expires_at) > new Date();
-    const el = document.createElement("div"); el.className = "card"; el.style.opacity = live ? 1 : .5; el.style.borderLeft = "6px solid " + (n.level === "urgent" ? "#D9232D" : "#2B6CD6");
-    el.innerHTML = `<div>${n.level === "urgent" ? "🚨 긴급" : "📢 일반"} · ${live ? "노출중 ~" : "만료 "}${new Date(n.expires_at).toLocaleString("ko-KR")}</div><div style="margin:6px 0">${esc(n.body)}</div><button class="act del" style="width:100%">삭제</button>`;
+    const el = document.createElement("div"); el.className = "card"; el.style.opacity = live ? 1 : .5; el.style.borderLeft = "6px solid " + noticeType(n.level).color;
+    el.innerHTML = `<div>${noticeType(n.level).icon} ${noticeType(n.level).label} · ${live ? "노출중 ~" : "만료 "}${new Date(n.expires_at).toLocaleString("ko-KR")}</div><div style="margin:6px 0">${esc(n.body)}</div><button class="act del" style="width:100%">삭제</button>`;
     el.querySelector("button").onclick = async () => { if (!confirm("삭제할까요?")) return; await sb.from("notices").delete().eq("id", n.id); drawNotice(); };
     L.appendChild(el);
   }

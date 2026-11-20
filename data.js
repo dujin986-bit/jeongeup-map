@@ -82,3 +82,16 @@ async function pushGetSub(create) {            // 이 기기의 푸시 구독을
   return sub;
 }
 function pushRow(sub, role) { const j = sub.toJSON(); return { endpoint: j.endpoint, p256dh: j.keys.p256dh, auth: j.keys.auth, role }; }
+
+
+// 공지 종류(색): 관리자 공지 올리기와 지도 위 띠·공지 창이 같이 씁니다. rank가 클수록 띠 색을 우선 차지합니다.
+const NOTICE_TYPES = {
+  normal:  { icon: "📢", label: "일반",       cname: "파랑",   color: "#2B6CD6", soft: "#EAF2FF", rank: 1 },
+  urgent:  { icon: "🚨", label: "긴급",       cname: "빨강",   color: "#D9232D", soft: "#FDE9E4", rank: 5 },
+  event:   { icon: "🎉", label: "행사·축제",  cname: "초록",   color: "#1F9D61", soft: "#E7F6EE", rank: 2 },
+  traffic: { icon: "🚧", label: "교통·주의",  cname: "주황",   color: "#E8780E", soft: "#FFF0E0", rank: 4 },
+  promo:   { icon: "🎁", label: "이벤트·할인", cname: "노랑",   color: "#F2C230", soft: "#FFF7D6", rank: 2, fg: "#1E1B18" },
+  guide:   { icon: "🛠", label: "점검·안내",  cname: "보라",   color: "#7A5BC4", soft: "#EFE9FA", rank: 1 },
+  season:  { icon: "🍂", label: "계절·날씨",  cname: "갈색",   color: "#8C5A2B", soft: "#F5ECE1", rank: 1 },
+};
+const noticeType = lv => NOTICE_TYPES[lv] || NOTICE_TYPES.normal;
