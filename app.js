@@ -35,7 +35,7 @@ const store = (list) => { try { localStorage.setItem(STORE_KEY, JSON.stringify(l
 
 const LIVE = new URLSearchParams(location.search).get("live") === "1";   // 방송 모드
 if (LIVE) document.body.classList.add("live");
-const IS_LOCAL = ["localhost", "127.0.0.1", "[::1]"].includes(location.hostname);   // 내 PC에서만 가게 수정 가능
+const IS_LOCAL = ["localhost", "127.0.0.1", "[::1]"].includes(location.hostname) && new URLSearchParams(location.search).get("public") !== "1";   // 내 PC에서만 가게 수정 가능 (?public=1 이면 일반 손님 화면)
 let reports = [];                // 시민 제보: 서버(Supabase)에서 승인된 것만 받아옴
 let activeCats = new Set(Object.keys(CATEGORIES));
 let markers = [];
