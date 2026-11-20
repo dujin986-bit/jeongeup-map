@@ -1629,8 +1629,20 @@ const SFX = {                                         // [시작 Hz, 끝 Hz, 길
   off:   [[760, 520, 0.08, 0.7, "triangle", 0]],      // 칩 끄기: 가벼운 "톡↓"
   done:  [[660, 660, 0.14, 1, "sine", 0], [880, 880, 0.24, 1, "sine", 0.11]],   // 제보 완료: "딩-동"
 };
+const SFX_FILES = { open: "open", close: "close", on: "on", off: "off", done: "done", win: "win", tick: "tick" };   // sounds/*.mp3 (Kenney CC0)
+const SFX_GAIN = { open: 0.7, close: 0.7, on: 0.8, off: 0.8, done: 0.9, win: 1, tick: 0.6 };
+const sfxBuf = {}; let sfxLoading = false;
+function sfxLoad() {
+  if (sfxLoading || !AC) return; sfxLoading = true;
+  for (const k in SFX_FILES) fetch("sounds/" + SFX_FILES[k] + ".mp3?v=104").then(r => r.arrayBuffer()).then(b => new Promise((ok, no) => AC.decodeAudioData(b, ok, no))).then(buf => { sfxBuf[k] = buf; }).catch(() => {});
+}
 function sfx(kind) {
-  if (!sndOn || !AC || !SFX[kind]) return;
+  if (!sndOn || !AC) return;
+  sfxLoad();
+  if (sfxBuf[kind]) {   // 진짜 효과음 파일이 준비됐으면 그걸 재생
+    try { const src = AC.createBufferSource(), g = AC.createGain(); src.buffer = sfxBuf[kind]; g.gain.value = (SFX_GAIN[kind] || 1) * 0.9; src.connect(g); g.connect(AC.destination); src.start(); return; } catch (e) {}
+  }
+  if (!SFX[kind]) return;   // 아직 못 불러왔으면 합성음(예비)
   try {
     const t = AC.currentTime;
     for (const [f0, f1, dur, vol, type, delay] of SFX[kind]) {
@@ -2085,9 +2097,9 @@ async function openRoulette() {
     const mid = (win.a0 + win.a1) / 2 + (Math.random() - .5) * (win.a1 - win.a0) * .6, targetDeg = (-90 - mid * 180 / Math.PI) % 360;
     rot += 360 * 5 + (((targetDeg - rot) % 360) + 360) % 360;
     cv.style.transition = "transform 4s cubic-bezier(.12,.7,.15,1)"; cv.style.transform = "rotate(" + rot + "deg)";
-    let ticks = 0; const tk = setInterval(() => { sfx(ticks++ % 2 ? "on" : "off"); if (ticks > 9) clearInterval(tk); }, 330);
+    const tks = []; for (let t = 0, gap = 55; t < 3900; t += gap, gap *= 1.13) tks.push(setTimeout(() => sfx("tick"), t));   // 점점 느려지는 틱틱 소리
     setTimeout(() => {
-      clearInterval(tk); sfx("done"); busy = false; spin.disabled = false; spin.textContent = "🔄 다시 돌리기";
+      tks.forEach(clearTimeout); sfx("win"); busy = false; spin.disabled = false; spin.textContent = "🔄 다시 돌리기";
       res.innerHTML = `<div class="rl-win">🎉 오늘은 <b>${esc(win.s.name)}</b>!</div><div class="rl-act"><button id="rl-go" class="chip">📍 지도에서 보기</button><button id="rl-share" class="chip">💌 친구에게 보내기</button></div>`;
       document.getElementById("rl-go").onclick = () => { m.hidden = true; foodSheet.set(false); map.flyTo({ center: win.s.coord, zoom: 18, pitch: 55, duration: 1500 }); };
       document.getElementById("rl-share").onclick = async () => { const text = `오늘은 "${win.s.name}" 어때? 🍚 정읍 지금 룰렛이 골라줬어!`, url = location.origin + location.pathname; try { if (navigator.share) await navigator.share({ title: "정읍 지금", text, url }); else { await navigator.clipboard.writeText(text + " " + url); alert("복사했어요! 카톡에 붙여넣기 하세요"); } } catch (e) {} };
