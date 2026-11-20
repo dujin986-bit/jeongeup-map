@@ -515,3 +515,9 @@ body.night .soon-b { background: rgba(224,159,62,.16); color: var(--gold); }
 .chip.cat-chip { font-weight: 700; }
 #top .chip.cat-chip { background: var(--card); color: var(--muted); border-color: var(--line); }
 #top .chip.cat-chip.on { background: var(--c); border-color: var(--c); color: var(--cf, #fff); }
+
+/* v90: 커뮤니티 아래로 끌어서 닫기 (손잡이 + 위쪽 줄) */
+.comm-grab { flex: none; height: 22px; display: flex; align-items: flex-end; justify-content: center; background: var(--card); touch-action: none; }
+.comm-grab::after { content: ""; width: 44px; height: 5px; border-radius: 3px; margin-bottom: 4px; background: color-mix(in srgb, var(--muted) 55%, transparent); }
+#comm .comm-top { touch-action: none; }
+#comm, #comm-body { overscroll-behavior: contain; }

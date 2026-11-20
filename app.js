@@ -1459,9 +1459,34 @@ if (commEl) {
   document.getElementById("comm-btn").onclick = openComm;
   document.getElementById("comm-back").onclick = closeComm;
   addEventListener("keydown", e => { if (e.key === "Escape" && !commEl.hidden) closeComm(); });
-  let sy = 0;                                         // 아래로 당겨서 새로고침
-  commEl.addEventListener("touchstart", e => { sy = e.touches[0].clientY; }, { passive: true });
-  commEl.addEventListener("touchend", e => { if (commBody.scrollTop <= 0 && e.changedTouches[0].clientY - sy > 90) manualRefresh(document.getElementById("comm-refresh")); }, { passive: true });
+  let sy = 0, fromGrip = false;                       // 아래로 당겨서 새로고침 (위쪽 줄에서 시작한 끌기는 "닫기"이므로 제외)
+  commEl.addEventListener("touchstart", e => { sy = e.touches[0].clientY; fromGrip = !!(e.target.closest && e.target.closest(".comm-top, .comm-grab")); }, { passive: true });
+  commEl.addEventListener("touchend", e => { if (!fromGrip && commBody.scrollTop <= 0 && e.changedTouches[0].clientY - sy > 90) manualRefresh(document.getElementById("comm-refresh")); }, { passive: true });
+  // 위쪽 줄(손잡이·제목줄)을 아래로 끌어서 닫기: 따라 내려오다가 충분히 끌거나 빠르게 쓸면 닫히고, 아니면 제자리로 돌아온다
+  let gy = 0, gt = 0, gdy = 0, gActive = false;
+  commEl.addEventListener("touchstart", e => {
+    if (!(e.target.closest && e.target.closest(".comm-top, .comm-grab")) || e.touches.length !== 1) return;
+    gActive = true; gy = e.touches[0].clientY; gt = Date.now(); gdy = 0;
+  }, { passive: true });
+  commEl.addEventListener("touchmove", e => {
+    if (!gActive) return;
+    gdy = Math.max(0, e.touches[0].clientY - gy);
+    if (gdy > 6) { commEl.style.transition = "none"; commEl.style.transform = `translateY(${gdy}px)`; }
+  }, { passive: true });
+  const gripEnd = () => {
+    if (!gActive) return; gActive = false;
+    const dt = Math.max(1, Date.now() - gt), far = gdy > Math.max(110, innerHeight * 0.22), flick = gdy > 50 && gdy / dt > 0.6;
+    if (far || flick) {
+      commEl.style.transition = "transform .2s ease"; commEl.style.transform = "translateY(100%)";
+      closeComm();
+      setTimeout(() => { commEl.style.transition = ""; commEl.style.transform = ""; }, 320);
+    } else if (gdy > 0) {
+      commEl.style.transition = "transform .2s ease"; commEl.style.transform = "";
+      setTimeout(() => { commEl.style.transition = ""; }, 240);
+    }
+  };
+  commEl.addEventListener("touchend", gripEnd, { passive: true });
+  commEl.addEventListener("touchcancel", gripEnd, { passive: true });
 }
 
 
