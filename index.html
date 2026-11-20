@@ -26,7 +26,7 @@
 <meta name="apple-mobile-web-app-title" content="정읍지금">
 <link rel="apple-touch-icon" href="icons/user-apple-180.png">
 <link href="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.css" rel="stylesheet">
-<link rel="stylesheet" href="style.css?v=92">
+<link rel="stylesheet" href="style.css?v=93">
 </head>
 <body>
 <div id="map"></div>
@@ -39,7 +39,8 @@
 <header id="top">
   <strong><svg class="logo" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 1.5l1.9 4.6 3.4-2.1-.6 4.5 4.6-.9-2.6 3.6 3.1 2.2-4.4.9.9 4-4.3-1.8L12 22.5l-.1-5.8-4.3 1.8.9-4-4.4-.9 3.1-2.2L2.6 7l4.6.9-.6-4.5 3.4 2.1z"/></svg>정읍 지금</strong>
   <div id="searchbox"><input id="q" type="search" placeholder="🔍 검색" autocomplete="off"><div id="results" hidden></div></div>
-  <button id="filter-btn" class="chip">🎛 필터 ▾</button>
+  <button id="filter-btn" class="chip">👀 골라보기 ▾</button>
+  <div id="filters-hint">👀 보고 싶은 것만 눌러서 켜고 끄세요</div>
   <nav id="filters" hidden></nav>
   <button id="feed-btn" class="chip on feedbtn">제보 0</button>
   <button id="refresh-btn" class="chip" title="새로고침">🔄</button>
@@ -48,7 +49,7 @@
   <span id="wx-badge" class="viewers wx" hidden></span>
   <button id="comm-btn" class="chip">💬 커뮤니티</button>
   <button id="edit-btn" class="chip" hidden>✏️ 편집</button>
-  <button id="help-btn" class="chip" title="도움말">❓</button>
+  <button id="help-btn" class="chip" title="도움말">🙋</button>
   <button id="install-btn" class="chip" hidden>📲 앱 설치</button>
   <button id="share-btn" class="chip" hidden>💌 친구에게 알려주기</button>
   <button id="snd-btn" class="chip" title="배경음">🔇</button>
@@ -91,7 +92,7 @@
 <div id="ch-name" hidden></div>
 <a id="live-exit" href="./">방송 모드 끄기 (Esc)</a>
 <div id="tut" hidden><div id="tut-hole"></div><div id="tut-tip"><div id="tut-txt"></div><div id="tut-row"><span id="tut-n"></span><button id="tut-skip">건너뛰기</button><button id="tut-next">다음</button></div></div></div>
-<div id="ver">v92</div>
+<div id="ver">v93</div>
 <div id="comm" hidden>
   <div class="comm-grab" aria-hidden="true"></div>
   <div class="comm-top"><button id="comm-back" class="chip">← 지도</button><strong>정읍 이야기</strong><button id="comm-refresh" class="chip">🔄</button></div>
@@ -106,7 +107,7 @@
 
 <script src="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="data.js?v=92"></script>
-<script src="app.js?v=92"></script>
+<script src="data.js?v=93"></script>
+<script src="app.js?v=93"></script>
 </body>
 </html>

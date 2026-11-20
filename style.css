@@ -532,3 +532,14 @@ body.tools-open #tools > .viewers { font-size: 13px; }
 #help-btn::after, #snd-btn::after { display: none; }
 body.tools-open #help-btn::after { content: " 도움말"; display: inline; }
 body.tools-open #snd-btn::after { content: " 소리"; display: inline; }
+
+/* v93: 👀 골라보기 — 서랍이 열리면 종류별 칩이 같이 펼쳐지고, 커뮤니티·공유 버튼이 크고 눈에 띄게 바뀐다 */
+#filters-hint { display: none; order: 6; width: 100%; font-size: 13px; font-weight: 800; color: var(--muted); padding: 2px 2px 0; }
+#tools-grab { order: 20; }
+body.tools-open #filters-hint { display: block; }
+body.tools-open #filters, body.tools-open #filters[hidden] { display: flex; flex-wrap: wrap; overflow: visible; order: 7; gap: 6px; width: 100%; }
+body.tools-open #filters .chip { min-height: 40px; font-size: 15px; padding: 0 14px; display: inline-flex; align-items: center; }
+body.tools-open #tools > .viewers { display: none; }
+body.tools-open #top #comm-btn { flex: 0 0 100%; min-height: 48px; justify-content: center; font-size: 17px; font-weight: 800; border-radius: 24px; background: var(--brand); border-color: var(--brand); color: #fff; }
+body.tools-open #top #share-btn { background: var(--gold); border-color: var(--gold); color: #3A2600; }
+body.tools-open #top #install-btn { border-width: 2px; }

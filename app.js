@@ -1702,7 +1702,7 @@ function setEditMode(on) {
 // ===== 헤더 필터 접기 =====
 (function () {
   const b = document.getElementById("filter-btn"), f = document.getElementById("filters");
-  b.onclick = () => { f.hidden = !f.hidden; b.textContent = f.hidden ? "🎛 필터 ▾" : "🎛 필터 ▴"; };
+  b.onclick = () => toolsToggle();   // 👀 골라보기 = 상단 서랍 열기/닫기 (서랍 안에 종류별 칩이 같이 펼쳐진다)
 })();
 
 // ===== 공지사항 띠 (긴급=빨강, 일반=파랑 / 관리자 "공지" 탭에서 등록) =====
@@ -1744,7 +1744,7 @@ fetchNotices(); setInterval(fetchNotices, 60000);
     { t: "여기 <b>제보</b>를 누르면 지금 올라온 소식 목록이 쭉 나와. 하나 누르면 그 위치로 날아가!", r: () => rectOf("feed-btn") },
     { t: "길 막히거나 웨이팅 길면 이걸 눌러서 알려줘.", r: () => rectOf("fab") },
     { t: "제보할 땐 지도를 <b>손으로 움직여서</b> 📍 핀 끝을 일어난 장소에 딱 맞춘 다음 등록하면 돼!", r: center },
-    { t: "이웃 이야기는 💬 커뮤니티, 보고 싶은 정보만 고르려면 🎛 필터를 눌러봐.", r: () => { const a = rectOf("comm-btn"), b = rectOf("filter-btn"); const x = Math.min(a.x, b.x), y = Math.min(a.y, b.y); return { x, y, w: Math.max(a.x + a.w, b.x + b.w) - x, h: Math.max(a.y + a.h, b.y + b.h) - y }; } },
+    { t: "이웃 이야기는 💬 커뮤니티, 보고 싶은 정보만 고르려면 👀 골라보기를 눌러봐.", r: () => { const a = rectOf("comm-btn"), b = rectOf("filter-btn"); const x = Math.min(a.x, b.x), y = Math.min(a.y, b.y); return { x, y, w: Math.max(a.x + a.w, b.x + b.w) - x, h: Math.max(a.y + a.h, b.y + b.h) - y }; } },
   ];
   let i = 0;
   function show() {
@@ -1932,12 +1932,13 @@ if (new URLSearchParams(location.search).get("debug") === "1") {
 
 
 // ===== 상단 도구 서랍: 손잡이를 아래로 끌거나 누르면 도구가 여러 줄로 펼쳐져 글자까지 보인다 =====
-let toolsClose = () => {};
+let toolsClose = () => {}, toolsToggle = () => {};
 (function toolsDrawer() {
   const g = document.getElementById("tools-grab"), tx = document.getElementById("tools-grab-t"); if (!g || LIVE) return;
   const isOpen = () => document.body.classList.contains("tools-open");
-  const set = on => { document.body.classList.toggle("tools-open", !!on); g.setAttribute("aria-expanded", on ? "true" : "false"); tx.textContent = on ? "접기 ▴" : "더 보기 ▾"; };
-  toolsClose = () => set(false);
+  const fb = document.getElementById("filter-btn");
+  const set = on => { document.body.classList.toggle("tools-open", !!on); g.setAttribute("aria-expanded", on ? "true" : "false"); tx.textContent = on ? "접기 ▴" : "더 보기 ▾"; if (fb) fb.textContent = on ? "👀 골라보기 ▴" : "👀 골라보기 ▾"; };
+  toolsClose = () => set(false); toolsToggle = () => set(!isOpen());
   let y0 = null;
   g.addEventListener("touchstart", e => { y0 = e.touches[0].clientY; }, { passive: true });
   g.addEventListener("touchend", e => {
