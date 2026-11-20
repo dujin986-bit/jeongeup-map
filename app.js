@@ -822,7 +822,7 @@ const LABEL_ORIG = {};
 function applyLabelTone(on) {          // 밤: 밝은 글씨 + 어두운 halo (전체 필터를 줄인 대신)
   try {
     for (const l of map.getStyle().layers) {
-      if (l.type !== "symbol" || !map.getLayoutProperty(l.id, "text-field")) continue;
+      if (l.type !== "symbol" || !map.getLayoutProperty(l.id, "text-field") || /^shops-brand-/.test(l.id)) continue;   // 간판 이름표는 밤/낮과 상관없이 항상 밝은 색 유지
       if (!(l.id in LABEL_ORIG)) LABEL_ORIG[l.id] = ["text-color", "text-halo-color", "text-halo-width"].map(k => map.getPaintProperty(l.id, k));
       const o = LABEL_ORIG[l.id];
       map.setPaintProperty(l.id, "text-color", on ? "#eef2f8" : o[0]);
@@ -1650,7 +1650,7 @@ const SFX_GAIN = { open: 0.7, close: 0.7, on: 0.8, off: 0.8, done: 0.9, win: 1, 
 const sfxBuf = {}; let sfxLoading = false;
 function sfxLoad() {
   if (sfxLoading || !AC) return; sfxLoading = true;
-  for (const k in SFX_FILES) fetch("sounds/" + SFX_FILES[k] + ".mp3?v=107").then(r => r.arrayBuffer()).then(b => new Promise((ok, no) => AC.decodeAudioData(b, ok, no))).then(buf => { sfxBuf[k] = buf; }).catch(() => {});
+  for (const k in SFX_FILES) fetch("sounds/" + SFX_FILES[k] + ".mp3?v=108").then(r => r.arrayBuffer()).then(b => new Promise((ok, no) => AC.decodeAudioData(b, ok, no))).then(buf => { sfxBuf[k] = buf; }).catch(() => {});
 }
 function sfx(kind) {
   if (!sndOn || !AC) return;
