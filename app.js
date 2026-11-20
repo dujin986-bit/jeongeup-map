@@ -11,6 +11,7 @@ const map = new maplibregl.Map({
   pitch: 60,
   bearing: -20,
   maxPitch: 80,
+  attributionControl: { compact: true },   // 출처 표시는 유지하되 ⓘ 아이콘으로 줄임
   minZoom: 9.5,
   maxBounds: [[126.55, 35.25], [127.25, 35.85]],   // 정읍시 일대(대략). 경계 파일이 있으면 자동 보정
 });
@@ -2007,7 +2008,7 @@ let toolsClose = () => {}, toolsToggle = () => {};
 // ===== 🍚 오늘의 맛집 바텀시트 (아래에서 슬라이드로 올라옴 · 손가락을 따라 움직임) =====
 const foodSheet = (function () {
   const el = document.createElement("div"); el.id = "food-sheet";
-  el.innerHTML = `<div id="fs-head"><i class="fs-grab"></i><div id="fs-sum">🍚 오늘의 맛집 · 불러오는 중…</div></div>` +
+  el.innerHTML = `<div id="fs-head"><i class="fs-grab"></i><div id="fs-sum">🍚 오늘의 맛집 · 불러오는 중…</div><span id="fs-hint">▴ 더보기</span></div>` +
     `<div id="fs-body"><div class="food-hd"><b>🍚 오늘의 맛집 TOP 3</b><span id="food-total"></span></div><div id="food-list">불러오는 중…</div>` +
     `<button id="food-vote" class="chip">투표하기</button><button id="food-roulette" class="chip" disabled>🎰 오늘 뭐 먹지? · 곧 열려요</button><div id="food-yday"></div></div>`;
   document.body.appendChild(el);
@@ -2016,7 +2017,7 @@ const foodSheet = (function () {
   const peek = () => head.offsetHeight;
   const closedOff = () => Math.max(0, el.offsetHeight - peek());
   function apply(off, anim) { el.style.transition = anim ? "transform .3s cubic-bezier(.22,.8,.3,1)" : "none"; el.style.transform = "translateY(" + off + "px)"; curOff = off; }
-  function set(v) { open = !!v; el.classList.toggle("open", open); apply(open ? 0 : closedOff(), true); if (open) sfx("open"); else if (v === false) sfx("close"); }
+  function set(v) { open = !!v; el.classList.toggle("open", open); const hn = document.getElementById("fs-hint"); if (hn) hn.textContent = open ? "▾ 접기" : "▴ 더보기"; apply(open ? 0 : closedOff(), true); if (open) sfx("open"); else if (v === false) sfx("close"); }
   head.addEventListener("touchstart", e => { if (e.touches.length !== 1) return; dragging = true; moved = 0; y0 = e.touches[0].clientY; t0 = Date.now(); off0 = open ? 0 : closedOff(); apply(off0, false); }, { passive: true });
   head.addEventListener("touchmove", e => { if (!dragging) return; const dy = e.touches[0].clientY - y0; moved = Math.max(moved, Math.abs(dy)); apply(Math.min(closedOff(), Math.max(0, off0 + dy)), false); }, { passive: true });
   const end = () => { if (!dragging) return; dragging = false; if (moved < 6) return;

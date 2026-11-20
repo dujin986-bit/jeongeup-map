@@ -567,3 +567,10 @@ body.tools-closing #tools, body.tools-closing #filters, body.tools-closing #filt
 .food-go { display: flex; width: 100%; justify-content: space-between; align-items: center; font-size: 16px; font-weight: 800; text-align: left; cursor: pointer; font-family: inherit; }
 .food-go span { font-size: 13px; font-weight: 600; color: var(--muted); }
 .maplibregl-ctrl-bottom-left, .maplibregl-ctrl-bottom-right { bottom: 58px; }
+
+/* v98 시트 안내 화살표 */
+#fs-head { position: relative; }
+#fs-sum { padding-right: 62px; padding-left: 62px; }
+#fs-hint { position: absolute; right: 14px; bottom: 11px; font-size: 13px; font-weight: 700; color: var(--brand); animation: fsNudge 1.1s ease-in-out 1.2s 3; }
+@keyframes fsNudge { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-4px); } }
+.maplibregl-ctrl-attrib.maplibregl-compact { margin: 0 8px 4px 0; }
