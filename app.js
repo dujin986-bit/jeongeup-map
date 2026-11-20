@@ -1827,9 +1827,9 @@ async function loadFood() {
   requestAnimationFrame(() => requestAnimationFrame(() => list.querySelectorAll(".food-bar i").forEach(el => { el.style.transform = "scaleX(" + el.dataset.s + ")"; })));
   list.querySelectorAll(".food-row").forEach(el => el.onclick = () => { const s = shopInfo(el.dataset.id); if (!s) return; closeComm(); foodSheet.set(false); map.flyTo({ center: s.coord, zoom: 18, pitch: 55, duration: 1500 }); });
   const y = document.getElementById("food-yday"); if (y) y.innerHTML = yday && yday.length ? `<span class="yday">👑 어제의 1위 <b>${esc(yday[0].shop_name)}</b> · ${yday[0].cnt}표</span>` : "";
-  foodSheet.summary(today && today.length ? `🍚 오늘의 맛집 <b>🥇 ${esc(today[0].shop_name)}</b> · ${today[0].cnt}표` : "🍚 오늘의 맛집 · 아직 투표가 없어요 · 첫 표를 남겨 보세요");
+  foodTop = today && today.length ? today[0] : null; foodDay = kstDay(); foodClock();
   const btn = document.getElementById("food-vote"), mv = myVote();
-  if (mv) { btn.textContent = "✔ 오늘 투표 완료 · " + mv.name; btn.disabled = true; } else btn.onclick = openFoodVote;
+  if (mv) { btn.textContent = "✔ 투표 완료 · " + mv.name + " (내일 0시에 새로 시작)"; btn.disabled = true; } else { btn.textContent = "투표하기"; btn.disabled = false; btn.onclick = openFoodVote; }
   foodSheet.refit();
 }
 function openFoodVote() {
@@ -2010,7 +2010,7 @@ let toolsClose = () => {}, toolsToggle = () => {};
 const foodSheet = (function () {
   const el = document.createElement("div"); el.id = "food-sheet";
   el.innerHTML = `<div id="fs-head"><i class="fs-grab"></i><div id="fs-sum">🍚 오늘의 맛집 · 불러오는 중…</div><span id="fs-hint">▴ 더보기</span></div>` +
-    `<div id="fs-body"><div class="food-hd"><b>🍚 오늘의 맛집 TOP 3</b><span id="food-total"></span></div><div id="food-list">불러오는 중…</div>` +
+    `<div id="fs-body"><div class="food-hd"><b>🍚 오늘의 맛집 TOP 3</b><span id="food-total"></span></div><div id="food-clock"></div><div id="food-list">불러오는 중…</div>` +
     `<button id="food-vote" class="chip">투표하기</button><button id="food-roulette" class="chip" disabled>🎰 오늘 뭐 먹지? · 곧 열려요</button><div id="food-yday"></div></div>`;
   document.body.appendChild(el);
   const head = el.querySelector("#fs-head");
@@ -2018,7 +2018,7 @@ const foodSheet = (function () {
   const peek = () => head.offsetHeight;
   const closedOff = () => Math.max(0, el.offsetHeight - peek());
   function apply(off, anim) { el.style.transition = anim ? "transform .3s cubic-bezier(.22,.8,.3,1)" : "none"; el.style.transform = "translateY(" + off + "px)"; curOff = off; }
-  function set(v) { open = !!v; el.classList.toggle("open", open); const hn = document.getElementById("fs-hint"); if (hn) hn.textContent = open ? "▾ 접기" : "▴ 더보기"; apply(open ? 0 : closedOff(), true); if (open) sfx("open"); else if (v === false) sfx("close"); }
+  function set(v) { open = !!v; el.classList.toggle("open", open); const hn = document.getElementById("fs-hint"); if (hn) hn.textContent = open ? "▾ 접기" : "▴ 더보기"; apply(open ? 0 : closedOff(), true); if (open) { sfx("open"); if (typeof loadFood === "function") loadFood(); } else if (v === false) sfx("close"); }
   head.addEventListener("touchstart", e => { if (e.touches.length !== 1) return; dragging = true; moved = 0; y0 = e.touches[0].clientY; t0 = Date.now(); off0 = open ? 0 : closedOff(); apply(off0, false); }, { passive: true });
   head.addEventListener("touchmove", e => { if (!dragging) return; const dy = e.touches[0].clientY - y0; moved = Math.max(moved, Math.abs(dy)); apply(Math.min(closedOff(), Math.max(0, off0 + dy)), false); }, { passive: true });
   const end = () => { if (!dragging) return; dragging = false; if (moved < 6) return;
@@ -2040,4 +2040,14 @@ const foodSheet = (function () {
   requestAnimationFrame(() => apply(closedOff(), false));
   return { set, isOpen: () => open, summary(t) { const e = document.getElementById("fs-sum"); if (e) e.innerHTML = t; }, refit() { if (!open && !dragging) apply(closedOff(), false); } };
 })();
-loadFood(); setInterval(loadFood, 60000);
+// 집계 시간: 한국시간 0시~24시. 남은 시간은 폰 시계로만 계산(서버 요청 없음), 순위는 화면이 켜져 있을 때만 1분마다 새로 불러옴
+let foodTop = null, foodDay = "";
+function foodLeft() { const ms = 864e5 - ((Date.now() + 9 * 3600e3) % 864e5), m = Math.max(1, Math.ceil(ms / 60000)), h = Math.floor(m / 60); return h ? h + "시간 " + (m % 60) + "분" : m + "분"; }
+function foodClock() {
+  const left = foodLeft(), c = document.getElementById("food-clock");
+  if (c) c.innerHTML = `🕛 오늘 0시~24시 집계 · <b>${left}</b> 후 마감`;
+  foodSheet.summary(foodTop ? `🍚 오늘의 맛집 <b>🥇 ${esc(foodTop.shop_name)}</b> · ${foodTop.cnt}표 · ${left} 후 마감` : `🍚 오늘의 맛집 · 첫 표를 남겨 보세요 · ${left} 후 마감`);
+}
+loadFood();
+setInterval(() => { if (document.hidden) return; if (kstDay() !== foodDay) loadFood(); else { foodClock(); loadFood(); } }, 60000);
+document.addEventListener("visibilitychange", () => { if (!document.hidden) loadFood(); });

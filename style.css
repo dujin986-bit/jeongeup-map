@@ -574,3 +574,7 @@ body.tools-closing #tools, body.tools-closing #filters, body.tools-closing #filt
 #fs-hint { position: absolute; right: 14px; bottom: 11px; font-size: 13px; font-weight: 700; color: var(--brand); animation: fsNudge 1.1s ease-in-out 1.2s 3; }
 @keyframes fsNudge { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-4px); } }
 .maplibregl-ctrl-attrib.maplibregl-compact { margin: 0 8px 4px 0; }
+
+/* v100 집계 시간 */
+#food-clock { font-size: 13px; color: var(--muted); margin: 4px 0 2px; }
+#food-clock b { color: var(--brand); font-weight: 800; }
