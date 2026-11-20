@@ -1741,7 +1741,7 @@ function openEditSheet(ids) {
     edEl("ed-here").onclick = () => { const c = map.getCenter(); edSave(id, { coord: [c.lng, c.lat] }, "위치를 옮겼어요"); };
   };
 }
-const BRAND_COLORS = ["#FF4D4F", "#FF9F1C", "#FFD60A", "#2ECC71", "#35A7FF", "#9B6BFF", "#FF5FA2", "#00D1C1"];   // 밝고 선명한 8색
+const BRAND_COLORS = ["#FF4D4F", "#FF9F1C", "#FFD60A", "#2ECC71", "#35A7FF", "#9B6BFF", "#FF5FA2", "#00D1C1", "#A3E635", "#FFB38A", "#3B5BDB", "#C2255C", "#12B886", "#8B5E3C", "#868E96", "#F783AC"];   // 밝고 선명한 16색
 const brandInk = hex => { const n = parseInt((hex || "#000").slice(1), 16), r = n >> 16, g = (n >> 8) & 255, b = n & 255; return (0.299 * r + 0.587 * g + 0.114 * b) > 150 ? "#1B1B1B" : "#FFFFFF"; };   // 밝은 색엔 검정, 진한 색엔 흰 글씨
 async function openBrandSheet(id) {
   const o = shopInfo(id); if (!o) return; const b = o.brand || {}; let color = b.color || "";

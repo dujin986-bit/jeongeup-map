@@ -20,7 +20,7 @@ try {
 }
 const db = createClient(URL_, SERVICE);
 
-const CORS = { "Access-Control-Allow-Origin": "*", "Access-Control-Allow-Headers": "authorization, apikey, content-type, x-webhook-secret", "Access-Control-Allow-Methods": "POST, OPTIONS" };
+const CORS = { "Access-Control-Allow-Origin": "*", "Access-Control-Allow-Headers": "authorization, apikey, content-type, x-client-info, x-webhook-secret", "Access-Control-Allow-Methods": "POST, OPTIONS" };
 const json = (o: unknown, status = 200) => new Response(JSON.stringify(o), { status, headers: { ...CORS, "Content-Type": "application/json" } });
 const CAT: Record<string, string> = { traffic: "교통", event: "행사", wait: "웨이팅", incident: "사건사고", info: "생활정보" };
 

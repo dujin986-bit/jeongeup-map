@@ -120,7 +120,8 @@ async function drawNotice() {
       if (error) { alert("등록 실패: " + error.message); return; }
       if ($("nPush").checked) {
         const { data: r, error: pe } = await sb.functions.invoke("send-push", { body: { type: "broadcast", title: $("nLevel").value === "urgent" ? "🚨 긴급 공지" : "📢 공지", body } });
-        alert(pe ? "공지는 등록됐지만 알림 전송에 실패했어요: " + pe.message : "공지 등록 + 알림 " + (r && r.ok != null ? r.ok + "대 전송" : "전송"));
+        let why = pe && pe.message; if (pe) { try { const j = await pe.context.json(); why = (j.error || "") + (j.detail ? " · " + j.detail : "") || why; } catch (e) {} }
+        alert(pe ? "공지는 등록됐지만 알림 전송에 실패했어요: " + why : "공지 등록 + 알림 " + (r && r.ok != null ? r.ok + "대 전송" : "전송"));
       }
       $("nBody").value = ""; drawNotice();
     };
