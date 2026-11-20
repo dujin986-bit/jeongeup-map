@@ -15,6 +15,6 @@ if errorlevel 1 (
   exit /b
 )
 echo [2/2] Starting local server: http://localhost:8001  (close this window to stop)
-start "" http://localhost:8001
+start "" http://localhost:8001/%*
 where python >nul 2>nul && (python -m http.server 8001) || (py -m http.server 8001)
 pause
