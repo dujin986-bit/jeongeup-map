@@ -351,12 +351,19 @@ async function fetchShopEdits() {
   } catch (e) { return false; }
 }
 
+// 지도에는 음식점·카페만 표시 (관리자 편집 모드에서는 전부). 진출입 지점·스터디카페 제외, 이름+주소가 같은 중복은 하나만
+function isFoodCafe(cat) { cat = cat || ""; return /음식점|카페|아동복지급식/.test(cat) && !/진출입|독서실|스터디/.test(cat); }
 function shopFeatures() {
-  const out = [];
+  const out = [], seen = new Set();
   for (const s of SHOPS.concat(EDITS.added || [])) {
     const e = (EDITS.edits || {})[s.id] || {};
     if (e.hidden && !(editMode && editShowHidden)) continue;
     const co = e.coord || s.coord, cat = e.category || s.category;
+    if (!editMode) {
+      if (!isFoodCafe(cat)) continue;
+      const k = (e.name || s.name) + "|" + (s.address || "") + "|" + co[0].toFixed(4) + "," + co[1].toFixed(4);
+      if (seen.has(k)) continue; seen.add(k);
+    }
     out.push({ type: "Feature", geometry: { type: "Point", coordinates: co },
       properties: { id: s.id, name: (e.name || s.name) + (e.hidden ? " (숨김)" : ""), category: cat, address: s.address, lon: co[0], lat: co[1],
                     color: e.hidden ? "#bbbbbb" : shopColor(cat) } });
