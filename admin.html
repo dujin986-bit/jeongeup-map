@@ -235,7 +235,7 @@ async function load() {
 
 function draw() {
   const counts = {}; rows.forEach(r => counts[r.status] = (counts[r.status] || 0) + 1);
-  document.querySelectorAll(".tab").forEach(t => { const k = t.dataset.k; t.textContent = TABS.find(x => x[0] === k)[1] + (["pending","approved","hidden"].includes(k) ? " " + (counts[k] || 0) : ""); });
+  document.querySelectorAll(".tab[data-k]").forEach(t => { const k = t.dataset.k; t.textContent = TABS.find(x => x[0] === k)[1] + (["pending","approved","hidden"].includes(k) ? " " + (counts[k] || 0) : ""); });
   const ext = ["notice", "log", "wx", "fix"].includes(tab);
   $("list").hidden = ext; $("mapedit").hidden = true; $("extra").hidden = !ext;
   if (tab === "notice") { drawNotice(); return; }
