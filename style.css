@@ -505,3 +505,8 @@ body.night #comm .comm-go { color: #FFB4A6; }
 .soon { color: var(--ink); } .soon-d { color: var(--muted); font-size: 16px; }
 .soon-b { background: #FBEBC8; color: #7A5200; }
 body.night .soon-b { background: rgba(224,159,62,.16); color: var(--gold); }
+
+/* v86: 지도 알림 버튼 */
+.bell-ctrl button { font-size: 18px; line-height: 1; }
+.bell-ctrl button.on { background: var(--brand); }
+.bell-ctrl[hidden] { display: none; }

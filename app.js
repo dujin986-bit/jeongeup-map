@@ -28,6 +28,40 @@ function vecSrc() {                // 스타일의 벡터 타일 소스 이름 (
 map.addControl(new maplibregl.NavigationControl({ visualizePitch: true }), "top-right");
 map.addControl(new maplibregl.GeolocateControl({ trackUserLocation: true }), "top-right");
 
+// ---------- 지도 알림 버튼 (GPS 아래): 켜짐 🔔(단풍 레드) / 꺼짐 🔕 ----------
+class BellControl {
+  onAdd() {
+    const d = this.el = document.createElement("div"); d.className = "maplibregl-ctrl maplibregl-ctrl-group bell-ctrl";
+    const b = document.createElement("button"); b.type = "button"; b.id = "bell-btn"; b.title = "알림 받기"; b.setAttribute("aria-label", "알림 받기");
+    b.textContent = "🔕"; b.onclick = bellClick; d.appendChild(b);
+    // (LIVE·IS_LOCAL 상수는 아래에서 선언되므로 여기서는 직접 계산)
+    if (new URLSearchParams(location.search).get("live") === "1" || ["localhost", "127.0.0.1", "[::1]"].includes(location.hostname) || !VAPID_PUBLIC_KEY) d.hidden = true;
+    setTimeout(refreshBell, 0); return d;
+  }
+  onRemove() { this.el.remove(); }
+}
+map.addControl(new BellControl(), "top-right");
+async function refreshBell() {
+  const b = document.getElementById("bell-btn"); if (!b) return;
+  let on = false;
+  try { if (pushReady()) { const sub = await pushGetSub(false); on = !!sub && Notification.permission === "granted"; } } catch (e) {}
+  b.classList.toggle("on", on); b.textContent = on ? "🔔" : "🔕"; b.title = on ? "알림 켜짐 (누르면 끄기)" : "알림 받기";
+}
+async function bellClick() {
+  if (!pushReady()) { alert("이 화면(인스타·카톡 등)에서는 알림을 켤 수 없어요.\n크롬·사파리 같은 브라우저로 열어 주세요.\n(아이폰은 '홈 화면에 추가'한 앱에서만 알림이 와요)"); return; }
+  const b = document.getElementById("bell-btn");
+  try {
+    const sub = await pushGetSub(false);
+    if (sub && Notification.permission === "granted") { if (confirm("알림을 끌까요?")) await sub.unsubscribe(); }
+    else {
+      const s = await pushGetSub(true);
+      const r = await fetch(SUPABASE_URL + "/rest/v1/push_subscriptions", { method: "POST", headers: { ...rxHdr, Prefer: "return=minimal" }, body: JSON.stringify(pushRow(s, "guest")) });
+      if (!r.ok && r.status !== 409) throw new Error("알림 등록에 실패했어요. 잠시 뒤 다시 해 주세요.");
+    }
+  } catch (e) { alert(e.message || "알림을 켜지 못했어요."); }
+  refreshBell(); setupPushCard();
+}
+
 // ---------- 데이터 ----------
 const STORE_KEY = "jeongeup-reports-v1";
 const load = () => { try { return JSON.parse(localStorage.getItem(STORE_KEY)) || []; } catch { return []; } };
@@ -1391,7 +1425,7 @@ async function setupPushCard() {              // 손님 알림 켜기/끄기
         if (!r.ok && r.status !== 409) throw new Error("알림 등록에 실패했어요. 잠시 뒤 다시 해 주세요.");
       }
     } catch (e) { alert(e.message || "알림을 켜지 못했어요."); }
-    setupPushCard();
+    refreshBell(); setupPushCard();
   };
 }
 // ----- 제보 만료 배지: 1분 간격, 배지 텍스트만 갱신, 숨김/닫힘이면 정지 -----
@@ -1621,6 +1655,7 @@ function setEditMode(on) {
     const u = data && data.session && data.session.user;
     if (!u || u.email !== ADMIN_EMAIL) return;             // 관리자가 아니면 편집 버튼 자체가 안 보임 (서버에서도 막힘)
     edEl("edit-btn").hidden = false;
+    { const bb = document.getElementById("bell-btn"); if (bb && bb.parentElement) bb.parentElement.hidden = true; }   // 관리자 폰은 admin.html에서 알림 관리
     edEl("edit-btn").onclick = () => setEditMode(!editMode);
     edEl("ed-add").onclick = edAddNew;
     edEl("ed-hid").onclick = () => { editShowHidden = !editShowHidden; edEl("ed-hid").classList.toggle("on", editShowHidden); if (map.getSource("shops")) edRefresh(); };
