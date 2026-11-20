@@ -12,7 +12,12 @@ const CATEGORIES = {
 };
 
 // 제보 자동 만료 (시간 단위). 지나면 지도·목록에서 자동으로 사라짐 (DB에는 남음)
-const EXPIRE_HOURS = { traffic: 6, wait: 3, incident: 24, event: 72, info: 72 };
+const EXPIRE_HOURS = { traffic: 3, wait: 2, incident: 12, event: 48, info: 24 };
+// 만료 시각(ms): 관리자가 정한 expires_at 이 있으면 그것, 없으면 작성 시각 + 분류별 기본 시간
+function reportExpMs(createdAt, category, expiresAt) {
+  const t = expiresAt ? Date.parse(expiresAt) : NaN;
+  return Number.isFinite(t) ? t : new Date(createdAt).getTime() + (EXPIRE_HOURS[category] || 72) * 3600e3;
+}
 
 // 큰 틀: 주요 거점 (이후 구역별로 채워나갈 곳)
 const LANDMARKS = [

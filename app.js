@@ -668,9 +668,9 @@ async function fetchReports() {
       { headers: { apikey: SUPABASE_KEY, Authorization: "Bearer " + SUPABASE_KEY } });
     if (!res.ok) return false;
     const rows = await res.json();
-    const next = rows.filter(r => CATEGORIES[r.category] && (Date.now() - new Date(r.created_at)) < (EXPIRE_HOURS[r.category] || 72) * 3600e3).map(r => ({
+    const next = rows.filter(r => CATEGORIES[r.category] && reportExpMs(r.created_at, r.category, r.expires_at) > Date.now()).map(r => ({
       id: r.id, title: r.title, desc: r.description || "", cat: r.category,
-      coord: [r.lon, r.lat], ts: r.created_at, photo: r.photo_url || "" }));
+      coord: [r.lon, r.lat], ts: r.created_at, exp: r.expires_at || null, photo: r.photo_url || "" }));
     // 새로 승인된 제보 감지 (방송 모드: 그 위치로 카메라 이동). 첫 로딩은 제외
     const fresh = next.filter(r => !knownIds.has(r.id));
     const firstLoad = !started; started = true;
@@ -1429,7 +1429,7 @@ async function setupPushCard() {              // 손님 알림 켜기/끄기
   };
 }
 // ----- 제보 만료 배지: 1분 간격, 배지 텍스트만 갱신, 숨김/닫힘이면 정지 -----
-function expAt(r) { return new Date(r.ts).getTime() + (EXPIRE_HOURS[r.cat] || 72) * 3600e3; }
+function expAt(r) { return reportExpMs(r.ts, r.cat, r.exp); }
 function expText(ms) { const m = Math.ceil(ms / 60000); return m <= 10 ? "곧 만료" : m < 60 ? m + "분 남음" : Math.floor(m / 60) + "시간" + (m % 60 >= 30 && m < 600 ? " 30분" : "") + " 남음"; }
 let expTimer = 0;
 function tickExp() {
