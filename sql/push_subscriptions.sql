@@ -22,3 +22,6 @@ create policy "push_admin_all" on public.push_subscriptions for all to authentic
 
 grant insert on public.push_subscriptions to anon, authenticated;
 grant select, update, delete on public.push_subscriptions to authenticated;
+-- Edge Function(send-push)이 구독 목록을 읽고 죽은 구독을 지울 수 있게 함
+grant usage on schema public to service_role;
+grant all on table public.push_subscriptions to service_role;
