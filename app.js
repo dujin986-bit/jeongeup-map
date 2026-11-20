@@ -1935,9 +1935,34 @@ if (new URLSearchParams(location.search).get("debug") === "1") {
 let toolsClose = () => {}, toolsToggle = () => {};
 (function toolsDrawer() {
   const g = document.getElementById("tools-grab"), tx = document.getElementById("tools-grab-t"); if (!g || LIVE) return;
-  const isOpen = () => document.body.classList.contains("tools-open");
-  const fb = document.getElementById("filter-btn");
-  const set = on => { document.body.classList.toggle("tools-open", !!on); g.setAttribute("aria-expanded", on ? "true" : "false"); tx.textContent = on ? "접기 ▴" : "더 보기 ▾"; if (fb) fb.textContent = on ? "👀 골라보기 ▴" : "👀 골라보기 ▾"; };
+  const top = document.getElementById("top"), body = document.body, fb = document.getElementById("filter-btn");
+  const calm = matchMedia("(prefers-reduced-motion: reduce)").matches;
+  let state = false, timer = 0;                       // state: 논리적 열림 여부 (애니메이션 중에도 즉시 바뀐다)
+  const isOpen = () => state;
+  const settle = () => {                              // 진행 중인 애니메이션을 바로 끝낸다
+    clearTimeout(timer); timer = 0;
+    top.style.height = ""; top.style.overflow = ""; top.style.transition = "";
+    body.classList.remove("tools-closing"); body.classList.toggle("tools-open", state);
+  };
+  const set = on => {
+    on = !!on; if (on === state) return;
+    settle(); state = on;
+    g.setAttribute("aria-expanded", on ? "true" : "false"); tx.textContent = on ? "접기 ▴" : "더 보기 ▾";
+    if (fb) fb.textContent = on ? "👀 골라보기 ▴" : "👀 골라보기 ▾";
+    if (calm) { body.classList.toggle("tools-open", on); return; }
+    const h0 = top.getBoundingClientRect().height;
+    let h1;
+    if (on) {                                         // 열기: 펼친 모양으로 바꾼 뒤 높이를 0.3초 동안 늘린다 (내용은 서서히 나타남)
+      body.classList.add("tools-open");
+      top.style.height = "auto"; h1 = top.getBoundingClientRect().height;
+    } else {                                          // 닫기: 내용을 서서히 지우며 높이를 줄인 뒤, 끝에서 접힌 모양으로 바꾼다
+      body.classList.remove("tools-open"); top.style.height = "auto"; h1 = top.getBoundingClientRect().height; body.classList.add("tools-open");
+      body.classList.add("tools-closing");
+    }
+    top.style.height = h0 + "px"; top.style.overflow = "hidden"; void top.offsetHeight;
+    top.style.transition = "height .3s ease"; top.style.height = h1 + "px";
+    timer = setTimeout(settle, 320);
+  };
   toolsClose = () => set(false); toolsToggle = () => set(!isOpen());
   let y0 = null;
   g.addEventListener("touchstart", e => { y0 = e.touches[0].clientY; }, { passive: true });
