@@ -460,17 +460,12 @@ async function loadShops() {
 
 // ---------- 기본 지도(OpenStreetMap)의 상호/시설 글자 ----------
 // 옛 이름이나 없는 가게가 섞여 있어 고칠 수 없으므로, 기본은 끄고 우리 가게 데이터만 보여준다.
-// 위쪽 "지도 상호" 칩으로 다시 켤 수 있다.
 function setupBasePoi() {
   const ids = map.getStyle().layers.filter(l => l["source-layer"] === "poi").map(l => l.id);
   if (!ids.length) return;
   const set = on => ids.forEach(id => map.setLayoutProperty(id, "visibility", on ? "visible" : "none"));
   set(false);
-  const chip = document.createElement("button");
-  chip.className = "chip"; chip.style.flex = "none"; chip.textContent = "지도 상호";
-  chip.title = "기본 지도에 들어 있는 상호(고칠 수 없음) 보기";
-  chip.onclick = () => set(chip.classList.toggle("on"));
-  document.getElementById("filters").appendChild(chip);
+  // (v85: "지도 상호" 칩 제거. 기본 지도 상호 글자는 항상 숨김)
 }
 
 // ---------- 제보 ----------
