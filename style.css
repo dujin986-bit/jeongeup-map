@@ -677,3 +677,6 @@ button, input, textarea, select, .maplibregl-popup-content, .maplibregl-ctrl, .m
 #fs-head #fs-hint { right: 14px; top: 6px; bottom: auto; font-size: 12px; }
 #fs-sum { padding-left: 8px; padding-right: 8px; }
 #tools-grab { font-size: 14px; }
+
+/* v119 버전 표시: 맛집 시트 손잡이 줄 왼쪽 */
+#fs-head #ver { position: absolute; left: 14px; top: 7px; bottom: auto; z-index: auto; font-size: 11px; color: var(--muted); opacity: .8; }

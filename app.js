@@ -1709,7 +1709,7 @@ const SFX_GAIN = { open: 0.7, close: 0.7, on: 0.8, off: 0.8, done: 0.9, win: 1, 
 const sfxBuf = {}; let sfxLoading = false;
 function sfxLoad() {
   if (sfxLoading || !AC) return; sfxLoading = true;
-  for (const k in SFX_FILES) fetch("sounds/" + SFX_FILES[k] + ".mp3?v=118").then(r => r.arrayBuffer()).then(b => new Promise((ok, no) => AC.decodeAudioData(b, ok, no))).then(buf => { sfxBuf[k] = buf; }).catch(() => {});
+  for (const k in SFX_FILES) fetch("sounds/" + SFX_FILES[k] + ".mp3?v=119").then(r => r.arrayBuffer()).then(b => new Promise((ok, no) => AC.decodeAudioData(b, ok, no))).then(buf => { sfxBuf[k] = buf; }).catch(() => {});
 }
 function sfx(kind) {
   if (!sndOn || !AC) return;
@@ -2187,6 +2187,7 @@ const foodSheet = (function () {
     `<button id="food-vote" class="chip">📍 지도에서 내가 아는 가게 판정하기</button><button id="food-roulette" class="chip">🎰 오늘 뭐 먹지? 룰렛 돌리기</button><div id="food-yday"></div></div>`;
   document.body.appendChild(el);
   const head = el.querySelector("#fs-head");
+  const verEl = document.getElementById("ver"); if (verEl) head.appendChild(verEl);   // 버전 글씨가 시트에 가려지지 않게 손잡이 줄 왼쪽으로
   let open = false, dragging = false, y0 = 0, off0 = 0, curOff = 0, moved = 0, t0 = 0;
   const peek = () => head.offsetHeight;
   const closedOff = () => Math.max(0, el.offsetHeight - peek());
