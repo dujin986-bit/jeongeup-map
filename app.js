@@ -15,6 +15,7 @@ const map = new maplibregl.Map({
   minZoom: 9.5,
   maxBounds: [[126.55, 35.25], [127.25, 35.85]],   // 정읍시 일대(대략). 경계 파일이 있으면 자동 보정
 });
+map.once("load", () => { const a = document.querySelector(".maplibregl-ctrl-attrib"); if (a) { a.classList.remove("maplibregl-compact-show"); a.removeAttribute("open"); } });   // 출처 표시를 처음부터 ⓘ로 접어 둠
 // 시험용 밤 지도 스타일: 주소 끝에 ?style=dark (CARTO Dark Matter, 무료·키 불필요)
 const DARKSTYLE = new URLSearchParams(location.search).get("style") === "dark";
 if (DARKSTYLE) {
