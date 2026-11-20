@@ -81,10 +81,10 @@
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.js"></script>
-<script src="data.js?v=114"></script>
+<script src="data.js?v=115"></script>
 <script>
 const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
-const TABS = [["pending", "대기"], ["approved", "승인됨"], ["hidden", "숨김"], ["notice", "공지"], ["wx", "날씨"], ["fix", "수정요청"], ["log", "편집기록"], ["map", "지도 수정 ↗"]];
+const TABS = [["pending", "대기"], ["approved", "승인됨"], ["hidden", "숨김"], ["notice", "공지"], ["wx", "날씨"], ["fix", "수정요청"], ["fb", "고쳐줘"], ["log", "편집기록"], ["map", "지도 수정 ↗"]];
 let tab = "pending", rows = [];
 const $ = id => document.getElementById(id);
 const esc = s => String(s == null ? "" : s).replace(/[&<>"']/g, c => ({ "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;" }[c]));
@@ -186,6 +186,29 @@ async function drawWx() {
   $("wAuto").onclick = async () => { await sb.from("weather_override").upsert({ id: 1, kind: null, expires_at: new Date().toISOString() }); drawWx(); };
 }
 
+let fbNew = 0;
+async function loadFbCount() { try { const { count } = await sb.from("feedback").select("id", { count: "exact", head: true }).eq("status", "new"); fbNew = count || 0; const t = document.querySelector('.tab[data-k="fb"]'); if (t) t.textContent = "고쳐줘" + (fbNew ? " 🔴" + fbNew : ""); } catch (e) {} }
+async function drawFb() {
+  const box = $("extra"); delete box.dataset.n;
+  const { data, error } = await sb.from("feedback").select("*").order("status", { ascending: true }).order("created_at", { ascending: false }).limit(100);
+  if (error) { box.innerHTML = '<div class="empty">불러오기 실패: ' + esc(error.message) + '<br>(Supabase에서 sql/feedback.sql 을 실행했는지 확인하세요)</div>'; return; }
+  if (!data.length) { box.innerHTML = '<div class="empty">아직 들어온 의견이 없어요</div>'; loadFbCount(); return; }
+  const K = { bug: "🐞 오류", idea: "💡 아이디어", etc: "💬 기타" };
+  box.innerHTML = "";
+  for (const r of data) {
+    const el = document.createElement("div"); el.className = "card"; if (r.status === "done") el.style.opacity = ".55";
+    el.innerHTML = `<div style="font-size:12px;color:#666">${new Date(r.created_at).toLocaleString("ko-KR")} · ${K[r.kind] || r.kind}${r.status === "done" ? " · ✅ 처리함" : ""}</div>` +
+      `<div style="margin:6px 0;white-space:pre-wrap;font-size:16px">${esc(r.body)}</div>` + (r.contact ? `<div style="font-size:13px;color:#555">📞 ${esc(r.contact)}</div>` : "") +
+      `<div style="display:flex;gap:8px;margin-top:8px">${r.status === "done" ? "" : '<button class="act ok" data-a="done" style="flex:1">✅ 처리함</button>'}<button class="act hide" data-a="del" style="flex:1">🗑 삭제</button></div>`;
+    el.querySelectorAll("button").forEach(b => b.onclick = async () => {
+      if (b.dataset.a === "del") { if (!confirm("삭제할까요?")) return; await sb.from("feedback").delete().eq("id", r.id); }
+      else await sb.from("feedback").update({ status: "done" }).eq("id", r.id);
+      drawFb(); loadFbCount();
+    });
+    box.appendChild(el);
+  }
+  loadFbCount();
+}
 async function drawFix() {
   const box = $("extra"); delete box.dataset.n;
   const { data, error } = await sb.from("shop_corrections").select("*").eq("status", "pending").order("created_at", { ascending: false }).limit(100);
@@ -202,6 +225,7 @@ async function drawFix() {
 }
 
 function start() {
+  setTimeout(loadFbCount, 800);
   cleanupPhotos(false);
   $("login").hidden = true; $("app").hidden = false;
   $("tabs").innerHTML = "";
@@ -237,13 +261,14 @@ async function load() {
 
 function draw() {
   const counts = {}; rows.forEach(r => counts[r.status] = (counts[r.status] || 0) + 1);
-  document.querySelectorAll(".tab[data-k]").forEach(t => { const k = t.dataset.k; t.textContent = TABS.find(x => x[0] === k)[1] + (["pending","approved","hidden"].includes(k) ? " " + (counts[k] || 0) : ""); });
-  const ext = ["notice", "log", "wx", "fix"].includes(tab);
+  document.querySelectorAll(".tab[data-k]").forEach(t => { const k = t.dataset.k; t.textContent = TABS.find(x => x[0] === k)[1] + (["pending","approved","hidden"].includes(k) ? " " + (counts[k] || 0) : k === "fb" && fbNew ? " 🔴" + fbNew : ""); });
+  const ext = ["notice", "log", "wx", "fix", "fb"].includes(tab);
   $("list").hidden = ext; $("mapedit").hidden = true; $("extra").hidden = !ext;
   if (tab === "notice") { drawNotice(); return; }
   if (tab === "log") { drawLog(); return; }
   if (tab === "wx") { drawWx(); return; }
   if (tab === "fix") { drawFix(); return; }
+  if (tab === "fb") { drawFb(); return; }
   const list = rows.filter(r => r.status === tab);
   const box = $("list");
   if (!list.length) { box.innerHTML = '<div class="empty">없어요</div>'; return; }

@@ -68,6 +68,14 @@ Deno.serve(async (req) => {
     const r2 = await sendTo(["admin"], { title: "📍 새 제보 " + (CAT[r.category] ? "· " + CAT[r.category] : ""), body: String(r.title || "").slice(0, 80), url: "admin.html", tag: "new-report" });
     return json(r2);
   }
+  // 1-2) 새 의견(고쳐줘) → 관리자에게 (Database Webhook: feedback INSERT)
+  if (p?.type === "INSERT" && p?.table === "feedback") {
+    if (!fromWebhook) return json({ error: "forbidden" }, 403);
+    const r = p.record || {};
+    const K: Record<string, string> = { bug: "오류", idea: "아이디어", etc: "기타" };
+    const r3 = await sendTo(["admin"], { title: "💬 새 의견 · " + (K[r.kind] || "기타"), body: String(r.body || "").slice(0, 80), url: "admin.html", tag: "new-feedback" });
+    return json(r3);
+  }
   // 2) 손님 공지 → 관리자 로그인 사용자만
   if (p?.type === "broadcast") {
     if (!(await isAdminUser(req))) return json({ error: "forbidden" }, 403);

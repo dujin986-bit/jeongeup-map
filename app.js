@@ -692,7 +692,7 @@ document.getElementById("save").onclick = async () => {
         description: ((document.getElementById("desc").value.trim() + (pendingPlace ? "\n📍 " + pendingPlace.name : "")).trim()).slice(0, 300),
         lon: pending[0], lat: pending[1], ...(photoUrl ? { photo_url: photoUrl } : {}) }),
     });
-    if (!res.ok) throw new Error("제보 전송 실패 (" + res.status + ")");
+    if (!res.ok) { const tx = await res.text().catch(() => ""); throw new Error(/badword/.test(tx) ? "욕설이나 비속어가 들어 있어요. 순화해서 다시 적어 주세요 🙏" : "제보 전송 실패 (" + res.status + ")"); }
     try { localStorage.setItem("jeongeup-last-report", String(Date.now())); } catch {}
     document.getElementById("title").value = ""; document.getElementById("desc").value = ""; clearPhoto();
     closePanel(); sfx("done");
@@ -1412,6 +1412,29 @@ addEventListener("pageshow", autoRefresh);
 // ===== 커뮤니티 화면 (제보 피드 + 오늘의 주제) =====
 const commEl = document.getElementById("comm"), commBody = document.getElementById("comm-body");
 let commTab = "news";
+// ---------- 🛠 고쳐줘 (베타 의견함: 관리자만 읽음. 욕설은 서버에서 차단) ----------
+let fbKind = "bug";
+function renderFeedbackForm() {
+  const K = [["bug", "🐞 오류"], ["idea", "💡 아이디어"], ["etc", "💬 기타"]];
+  commBody.innerHTML = `<div class="comm-topic"><b style="font-size:18px">🛠 고쳐줘</b><div style="margin-top:6px;color:var(--muted);font-size:14px;line-height:1.5">지금은 베타 테스트 중이에요. 불편한 점이나 바라는 점을 남겨 주세요.<br><b>운영자만</b> 볼 수 있고, 다른 사람에게는 보이지 않아요.</div></div>` +
+    `<div class="fb-kinds">${K.map(([k, t]) => `<button class="chip fb-k${k === fbKind ? " on" : ""}" data-k="${k}">${t}</button>`).join("")}</div>` +
+    `<textarea id="fb-body" maxlength="300" placeholder="예: 제보 올릴 때 사진이 안 올라가요 / 이런 기능이 있으면 좋겠어요"></textarea><div id="fb-cnt">0 / 300</div>` +
+    `<input id="fb-contact" maxlength="60" placeholder="답장 받을 연락처 (선택 · 안 적어도 돼요)">` +
+    `<button id="fb-send" class="chip fb-send">보내기</button>`;
+  commBody.querySelectorAll(".fb-k").forEach(b => b.onclick = () => { fbKind = b.dataset.k; commBody.querySelectorAll(".fb-k").forEach(x => x.classList.toggle("on", x === b)); });
+  const ta = document.getElementById("fb-body"); ta.oninput = () => { document.getElementById("fb-cnt").textContent = ta.value.length + " / 300"; };
+  document.getElementById("fb-send").onclick = async () => {
+    const body = ta.value.trim(); if (body.length < 2) { alert("내용을 두 글자 이상 적어 주세요"); return; }
+    const btn = document.getElementById("fb-send"); btn.disabled = true; btn.textContent = "보내는 중…";
+    try {
+      const res = await fetch(SUPABASE_URL + "/rest/v1/feedback", { method: "POST", headers: { apikey: SUPABASE_KEY, Authorization: "Bearer " + SUPABASE_KEY, "Content-Type": "application/json", Prefer: "return=minimal" },
+        body: JSON.stringify({ kind: fbKind, body: body.slice(0, 300), contact: document.getElementById("fb-contact").value.trim().slice(0, 60) || null, voter: voterId() }) });
+      if (res.ok) { sfx("done"); ta.value = ""; document.getElementById("fb-cnt").textContent = "0 / 300"; alert("접수됐어요! 고맙습니다 🙏 빠르게 확인할게요."); }
+      else { const tx = await res.text().catch(() => ""); alert(/badword/.test(tx) ? "욕설이나 비속어가 들어 있어요. 순화해서 다시 적어 주세요 🙏" : /ratelimit/.test(tx) ? "오늘 보낼 수 있는 횟수를 넘었어요. 내일 다시 남겨 주세요 🙏" : "아직 의견함이 준비 중이에요. 잠시 뒤 다시 시도해 주세요."); }
+    } catch (e) { alert("전송에 실패했어요. 인터넷을 확인해 주세요."); }
+    btn.disabled = false; btn.textContent = "보내기";
+  };
+}
 const SOON = {
   job: ["💼", "알바 구인·구직", "급하게 사람이 필요할 때, 일자리를 찾을 때.<br>정읍 동네 알바를 지도에서 바로 찾는 곳이에요."],
   used: ["🛒", "중고 거래", "이웃끼리 편하게 사고파는 곳.<br>가까운 동네 물건을 지도에서 바로 찾아요."],
@@ -1424,6 +1447,7 @@ document.querySelectorAll("#comm-tabs button").forEach(b => b.onclick = () => {
 });
 function renderComm() {
   if (!commBody) return;
+  if (commTab === "fb") { renderFeedbackForm(); return; }
   if (commTab !== "news") {
     const s = SOON[commTab];
     commBody.innerHTML = `<div class="soon"><div class="soon-ic">${s[0]}</div><div class="soon-t">${s[1]}</div><div class="soon-d">${s[2]}</div><div class="soon-b">🛠 곧 열려요 · 업데이트 예정</div></div>`;
