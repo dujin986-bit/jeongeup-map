@@ -53,3 +53,18 @@ const COMM_TOPIC = "내장산 단풍, 지금 어디가 제일 예뻐요?";
 
 // 관리자 이메일 (화면에 편집 버튼을 보여 주는 용도. 실제 쓰기 권한은 서버(RLS)에서 따로 막는다)
 const ADMIN_EMAIL = "dujin986@gmail.com";
+
+// ===== 웹푸시 (공개키만 넣는 자리. 비공개 키는 절대 여기에 넣지 마세요) =====
+const VAPID_PUBLIC_KEY = "";   // npx web-push generate-vapid-keys 로 만든 Public Key
+function pushReady() { return !!VAPID_PUBLIC_KEY && !["localhost", "127.0.0.1", "[::1]"].includes(location.hostname) && "serviceWorker" in navigator && "PushManager" in window && "Notification" in window; }
+function pushKeyBytes(b64) { const p = "=".repeat((4 - b64.length % 4) % 4), s = atob((b64 + p).replace(/-/g, "+").replace(/_/g, "/")); return Uint8Array.from(s, c => c.charCodeAt(0)); }
+async function pushGetSub(create) {            // 이 기기의 푸시 구독을 가져오거나(create=true면) 새로 만든다
+  const reg = await navigator.serviceWorker.ready;
+  let sub = await reg.pushManager.getSubscription();
+  if (!sub && create) {
+    if ((await Notification.requestPermission()) !== "granted") throw new Error("알림이 허용되지 않았어요. 브라우저 설정에서 알림을 허용해 주세요.");
+    sub = await reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: pushKeyBytes(VAPID_PUBLIC_KEY) });
+  }
+  return sub;
+}
+function pushRow(sub, role) { const j = sub.toJSON(); return { endpoint: j.endpoint, p256dh: j.keys.p256dh, auth: j.keys.auth, role }; }

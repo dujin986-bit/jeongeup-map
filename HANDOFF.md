@@ -92,3 +92,9 @@
 - 투표·👍👎는 기기 기준이라 브라우저 데이터를 지우면 다시 누를 수 있다(동네 규모에서는 허용).
 - 사진 정리는 관리자 페이지를 열어야 실행된다. 필요하면 서버 쪽 자동화로 옮긴다.
 - 유료 구인·구직 중개는 직업안정법상 신고/등록이 필요할 수 있어 수익화 전에 관할 기관 확인이 필요하다.
+
+## v75 웹푸시 (코드만 올림 — 설정 대기)
+- 코드: `data.js`(VAPID_PUBLIC_KEY 비어 있음 → 비어 있으면 알림 버튼이 안 보임), `sw.js`(push/notificationclick), `app.js`(커뮤니티 🔔 카드), `admin.html`(🔕 알림 탭, 공지에 "손님 폰 알림으로도 보내기"), `sql/push_subscriptions.sql`, `supabase/functions/send-push/index.ts`, 설정 순서 `docs/webpush-setup.md`
+- 사용자가 할 일: 키 생성 → Public Key를 data.js에 → SQL 실행 → Edge Function 배포(Verify JWT 끔) → Secrets 5개 → reports INSERT Webhook(헤더 x-webhook-secret)
+- 비공개 키는 요청·저장하지 않는다.
+- 로컬(localhost)에서는 pushReady()가 false.

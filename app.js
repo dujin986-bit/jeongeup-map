@@ -1342,10 +1342,11 @@ function renderComm() {
   }
   let html = `<div class="comm-topic" id="food-card"><div class="food-hd"><b>🍚 오늘의 맛집 TOP 3</b><span id="food-total"></span></div><div id="food-list">불러오는 중…</div><button id="food-vote" class="chip">투표하기</button><div id="food-yday"></div></div>`;
   html += `<div class="comm-note">💬 이야기 글쓰기는 곧 열려요. 지금은 지도 제보로 참여할 수 있어요.</div>`;
+  if (pushReady()) html += `<div class="comm-note" id="push-card"></div>`;
   html += `<div class="comm-head">실시간 제보 ${reports.length}건</div>`;
   if (!reports.length) html += `<div class="feed-empty">아직 제보가 없어요. 첫 제보를 남겨 보세요!</div>`;
   commBody.innerHTML = html;
-  loadFood();
+  loadFood(); setupPushCard();
   for (const r of reports) {
     const c = CATEGORIES[r.cat];
     if (expAt(r) <= Date.now()) continue;
@@ -1361,6 +1362,23 @@ function renderComm() {
   }
   hydrateRx(commBody);
   tickExp();
+}
+async function setupPushCard() {              // 손님 알림 켜기/끄기
+  const box = document.getElementById("push-card"); if (!box) return;
+  let sub = null; try { sub = await pushGetSub(false); } catch (e) {}
+  const on = !!sub && Notification.permission === "granted";
+  box.innerHTML = on ? `🔔 알림이 켜져 있어요 <button class="chip" id="push-btn">끄기</button>` : `🔔 긴급 공지·동네 소식을 알림으로 받아보세요 <button class="chip" id="push-btn">알림 받기</button>`;
+  document.getElementById("push-btn").onclick = async () => {
+    try {
+      if (on) { await sub.unsubscribe(); }
+      else {
+        const s = await pushGetSub(true);
+        const r = await fetch(SUPABASE_URL + "/rest/v1/push_subscriptions", { method: "POST", headers: { ...rxHdr, Prefer: "return=minimal" }, body: JSON.stringify(pushRow(s, "guest")) });
+        if (!r.ok && r.status !== 409) throw new Error("알림 등록에 실패했어요. 잠시 뒤 다시 해 주세요.");
+      }
+    } catch (e) { alert(e.message || "알림을 켜지 못했어요."); }
+    setupPushCard();
+  };
 }
 // ----- 제보 만료 배지: 1분 간격, 배지 텍스트만 갱신, 숨김/닫힘이면 정지 -----
 function expAt(r) { return new Date(r.ts).getTime() + (EXPIRE_HOURS[r.cat] || 72) * 3600e3; }

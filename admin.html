@@ -110,12 +110,17 @@ async function drawNotice() {
     box.innerHTML = `<div class="card"><b>새 공지</b><textarea id="nBody" maxlength="120" placeholder="공지 내용 (한 줄로 짧게)" style="width:100%;height:70px;margin:8px 0;padding:8px;font-size:16px;border:1px solid #ccc;border-radius:8px"></textarea>
       <div style="display:flex;gap:8px;margin-bottom:8px"><select id="nLevel" style="flex:1;padding:10px;font-size:16px"><option value="normal">📢 일반 (파랑)</option><option value="urgent">🚨 긴급 (빨강)</option></select>
       <select id="nHours" style="flex:1;padding:10px;font-size:16px">${Array.from({length:24},(_,i)=>{const m=(i+1)*30,h=Math.floor(m/60),mm=m%60;return `<option value="${m}"${m===60?" selected":""}>${(h?h+"시간":"")+(h&&mm?" ":"")+(mm?mm+"분":"")}</option>`}).join("")}</select></div>
+      <label style="display:flex;gap:8px;align-items:center;margin-bottom:8px;font-size:15px"><input type="checkbox" id="nPush"> 📲 손님 폰 알림으로도 보내기</label>
       <button class="act ok" id="nAdd" style="width:100%">등록</button></div><div id="nList"></div>`;
     $("nAdd").onclick = async () => {
       const body = $("nBody").value.trim(); if (!body) { alert("내용을 써 주세요"); return; }
       const exp = new Date(Date.now() + Number($("nHours").value) * 60000).toISOString();
       const { error } = await sb.from("notices").insert({ body, level: $("nLevel").value, expires_at: exp });
       if (error) { alert("등록 실패: " + error.message); return; }
+      if ($("nPush").checked) {
+        const { data: r, error: pe } = await sb.functions.invoke("send-push", { body: { type: "broadcast", title: $("nLevel").value === "urgent" ? "🚨 긴급 공지" : "📢 공지", body } });
+        alert(pe ? "공지는 등록됐지만 알림 전송에 실패했어요: " + pe.message : "공지 등록 + 알림 " + (r && r.ok != null ? r.ok + "대 전송" : "전송"));
+      }
       $("nBody").value = ""; drawNotice();
     };
   }
@@ -203,6 +208,18 @@ function start() {
     b.className = "tab" + (k === tab ? " on" : ""); b.dataset.k = k; b.textContent = label;
     b.onclick = () => { if (k === "map") { location.href = "./?edit=1"; return; } tab = k; document.querySelectorAll(".tab").forEach(t => t.classList.toggle("on", t.dataset.k === k)); draw(); };
     $("tabs").appendChild(b);
+  }
+  if (typeof pushReady === "function" && pushReady()) {            // 이 기기로 새 제보 알림 받기
+    const pb = document.createElement("button"); pb.className = "tab"; pb.id = "pushBtn"; $("tabs").appendChild(pb);
+    const paint = async () => { let s = null; try { s = await pushGetSub(false); } catch (e) {} pb.dataset.on = s && Notification.permission === "granted" ? "1" : ""; pb.textContent = pb.dataset.on ? "🔔 켜짐" : "🔕 알림"; };
+    pb.onclick = async () => {
+      try {
+        if (pb.dataset.on) { const s = await pushGetSub(false); if (s) { await sb.from("push_subscriptions").delete().eq("endpoint", s.endpoint); await s.unsubscribe(); } }
+        else { const s = await pushGetSub(true); await sb.from("push_subscriptions").delete().eq("endpoint", s.endpoint); const { error } = await sb.from("push_subscriptions").insert(pushRow(s, "admin")); if (error) throw new Error("등록 실패: " + error.message + "\n(알림 SQL을 실행했는지 확인하세요)"); }
+      } catch (e) { alert(e.message); }
+      paint();
+    };
+    paint();
   }
   load();
   setInterval(load, 10000);
