@@ -67,16 +67,5 @@
     "kind": "spot",
     "cat": "info",
     "desc": "부영1차아파트 뒤 공원"
-  },
-  {
-    "name": "안나감성",
-    "address": "전북특별자치도 정읍시 학산로 97",
-    "coord": [
-      126.87355910046361,
-      35.559613101777316
-    ],
-    "color": "#e5484d",
-    "textColor": "#ffffff",
-    "kind": "office"
   }
 ]
