@@ -32,8 +32,10 @@ async function isAdminUser(req: Request) {
 }
 
 async function sendTo(roles: string[], msg: { title: string; body: string; url: string; tag?: string }) {
-  const { data } = await db.from("push_subscriptions").select("endpoint,p256dh,auth").in("role", roles);
+  const { data, error } = await db.from("push_subscriptions").select("endpoint,p256dh,auth").in("role", roles);
   let ok = 0, gone = 0;
+  const fail: { status?: number; host: string; body: string }[] = [];
+  if (error) fail.push({ host: "db", body: String(error.message) });
   await Promise.all((data || []).map(async (s) => {
     try {
       await webpush.sendNotification({ endpoint: s.endpoint, keys: { p256dh: s.p256dh, auth: s.auth } }, JSON.stringify(msg), { TTL: 3600 });
@@ -41,9 +43,14 @@ async function sendTo(roles: string[], msg: { title: string; body: string; url: 
     } catch (e) {
       const code = (e as { statusCode?: number }).statusCode;
       if (code === 404 || code === 410) { gone++; await db.from("push_subscriptions").delete().eq("endpoint", s.endpoint); }
+      else {
+        let host = ""; try { host = new URL(s.endpoint).host; } catch { /* */ }
+        const f = { status: code, host, body: String((e as { body?: string }).body || (e as Error).message || e).slice(0, 200) };
+        fail.push(f); console.error("푸시 실패:", JSON.stringify(f));
+      }
     }
   }));
-  return { ok, gone };
+  return { ok, gone, subs: (data || []).length, fail };
 }
 
 Deno.serve(async (req) => {
