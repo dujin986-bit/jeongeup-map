@@ -1259,13 +1259,17 @@ qEl.addEventListener("blur", () => setTimeout(() => { if (document.activeElement
   const ios = /iPhone|iPad|iPod/.test(ua), android = /Android/.test(ua);
   const url = location.origin + location.pathname;
   const KAKAO_OPEN = "kakaotalk://web/openExternal?url=" + encodeURIComponent(url);
-  if (/KAKAOTALK/i.test(ua)) {            // 카톡 안에서 열면 안내 띠 → 외부 브라우저(크롬/사파리)로 열기
+  if (inapp) {            // 카톡·인스타·스레드 등 안에서 열면 안내 띠 → 외부 브라우저(크롬/사파리)로 열기
     let hid = false; try { hid = sessionStorage.getItem("kk_bar") === "1"; } catch (e) {}
     if (!hid) {
       const bar = document.createElement("div"); bar.id = "kk-bar";
-      bar.innerHTML = '<span>🌐 크롬·사파리로 열면 앱처럼 <b>설치</b>할 수 있어요</span><button id="kk-go">브라우저로 열기</button><button id="kk-x" aria-label="닫기">✕</button>';
+      bar.innerHTML = '<span>🌐 크롬·사파리로 열면 앱처럼 <b>설치</b>할 수 있어요</span><button id="kk-go">' + (/KAKAOTALK/i.test(ua) || android ? "브라우저로 열기" : "여는 방법 보기") + '</button><button id="kk-x" aria-label="닫기">✕</button>';
       document.body.appendChild(bar);
-      document.getElementById("kk-go").onclick = () => { location.href = KAKAO_OPEN; };
+      document.getElementById("kk-go").onclick = () => {
+        if (/KAKAOTALK/i.test(ua)) location.href = KAKAO_OPEN;
+        else if (android) location.href = "intent://" + url.replace(/^https?:\/\//, "") + "#Intent;scheme=https;package=com.android.chrome;end";
+        else btn.click();
+      };
       document.getElementById("kk-x").onclick = () => { bar.remove(); try { sessionStorage.setItem("kk_bar", "1"); } catch (e) {} };
     }
   }
@@ -1304,6 +1308,22 @@ qEl.addEventListener("blur", () => setTimeout(() => { if (document.activeElement
   };
 })();
 
+
+// ===== 친구에게 알려주기 (기기 공유창 → 안 되면 주소 복사) =====
+(function shareBtn() {
+  const b = document.getElementById("share-btn"); if (!b || LIVE) return;
+  b.hidden = false;
+  const url = location.origin + location.pathname;
+  b.onclick = async () => {
+    const old = b.textContent;
+    try {
+      if (navigator.share) { await navigator.share({ title: "정읍 지금", text: "정읍 사람들이 지금 올리는 실시간 제보 지도", url }); return; }
+    } catch (e) { if (e && e.name === "AbortError") return; }
+    try { await navigator.clipboard.writeText(url); b.textContent = "✓ 주소 복사됨"; }
+    catch (e) { b.textContent = "주소창에서 복사해 주세요"; }
+    setTimeout(() => { b.textContent = old; }, 2000);
+  };
+})();
 
 // ===== 새로고침 버튼 + 앱으로 돌아올 때 자동 갱신 =====
 async function manualRefresh(btn) {

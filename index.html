@@ -4,6 +4,21 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>정읍 지금</title>
+<meta name="description" content="정읍 사람들이 지금 올리는 실시간 제보 지도 (교통 · 웨이팅 · 맛집 · 행사)">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="정읍 지금">
+<meta property="og:locale" content="ko_KR">
+<meta property="og:url" content="https://dujin986-bit.github.io/jeongeup-map/">
+<meta property="og:title" content="정읍 지금">
+<meta property="og:description" content="정읍 사람들이 지금 올리는 실시간 제보 지도 (교통 · 웨이팅 · 맛집 · 행사)">
+<meta property="og:image" content="https://dujin986-bit.github.io/jeongeup-map/og-image.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="정읍 지금 - 정읍 사람들이 지금 올리는 실시간 제보 지도">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="정읍 지금">
+<meta name="twitter:description" content="정읍 사람들이 지금 올리는 실시간 제보 지도 (교통 · 웨이팅 · 맛집 · 행사)">
+<meta name="twitter:image" content="https://dujin986-bit.github.io/jeongeup-map/og-image.png">
 <link rel="manifest" href="manifest.json">
 <meta name="theme-color" content="#1f6feb">
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -11,7 +26,7 @@
 <meta name="apple-mobile-web-app-title" content="정읍지금">
 <link rel="apple-touch-icon" href="icons/user-apple-180.png">
 <link href="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.css" rel="stylesheet">
-<link rel="stylesheet" href="style.css?v=81">
+<link rel="stylesheet" href="style.css?v=82">
 </head>
 <body>
 <div id="map"></div>
@@ -35,6 +50,7 @@
   <button id="edit-btn" class="chip" hidden>✏️ 편집</button>
   <button id="help-btn" class="chip" title="도움말">❓</button>
   <button id="install-btn" class="chip" hidden>📲 앱 설치</button>
+  <button id="share-btn" class="chip" hidden>💌 친구에게 알려주기</button>
   <button id="snd-btn" class="chip" title="배경음">🔇</button>
   <button id="night-btn" class="chip">🌙 밤</button>
   <select id="wx-select" class="chip" hidden>
@@ -74,7 +90,7 @@
 <div id="ch-name" hidden></div>
 <a id="live-exit" href="./">방송 모드 끄기 (Esc)</a>
 <div id="tut" hidden><div id="tut-hole"></div><div id="tut-tip"><div id="tut-txt"></div><div id="tut-row"><span id="tut-n"></span><button id="tut-skip">건너뛰기</button><button id="tut-next">다음</button></div></div></div>
-<div id="ver">v81</div>
+<div id="ver">v82</div>
 <div id="comm" hidden>
   <div class="comm-top"><button id="comm-back" class="chip">← 지도</button><strong>정읍 이야기</strong><button id="comm-refresh" class="chip">🔄</button></div>
   <div id="comm-tabs"><button data-t="news" class="on">💬 소식</button><button data-t="job">💼 알바</button><button data-t="used">🛒 중고</button><button data-t="home">🏠 부동산</button></div>
@@ -88,7 +104,7 @@
 
 <script src="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="data.js?v=81"></script>
-<script src="app.js?v=81"></script>
+<script src="data.js?v=82"></script>
+<script src="app.js?v=82"></script>
 </body>
 </html>
