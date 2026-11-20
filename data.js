@@ -64,8 +64,11 @@ async function pushGetSub(create) {            // 이 기기의 푸시 구독을
   reg = await Promise.race([navigator.serviceWorker.ready, new Promise((_, no) => setTimeout(() => no(new Error("서비스 워커가 준비되지 않았어요. 페이지를 새로고침한 뒤 다시 눌러 주세요.")), 8000))]);
   let sub = await reg.pushManager.getSubscription();
   if (!sub && create) {
-    if ((await Notification.requestPermission()) !== "granted") throw new Error("알림이 허용되지 않았어요. 브라우저 설정에서 알림을 허용해 주세요.");
-    try { sub = await reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: pushKeyBytes(VAPID_PUBLIC_KEY) }); }
+    const to = (ms, msg) => new Promise((_, no) => setTimeout(() => no(new Error(msg)), ms));
+    if (Notification.permission === "denied") throw new Error("이 사이트의 알림이 차단돼 있어요. 주소창 왼쪽 자물쇠(또는 ⓘ) → 권한/사이트 설정 → 알림을 '허용'으로 바꿔 주세요.");
+    const perm = await Promise.race([Notification.requestPermission(), to(20000, "알림 허용창이 나타나지 않았어요. (현재 상태: " + Notification.permission + ") 브라우저 설정에서 알림 권한을 확인해 주세요.")]);
+    if (perm !== "granted") throw new Error("알림이 허용되지 않았어요. (상태: " + perm + ")");
+    try { sub = await Promise.race([reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: pushKeyBytes(VAPID_PUBLIC_KEY) }), to(20000, "알림 서버(구글/삼성) 연결 응답이 없어요. 인터넷·절전 설정을 확인하고 다시 시도해 주세요.")]); }
     catch (e) { throw new Error("알림 등록에 실패했어요: " + (e && e.message ? e.message : e)); }
   }
   return sub;
