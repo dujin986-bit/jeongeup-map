@@ -107,9 +107,9 @@ function addMarker(item, isLandmark) {
   el.className = "pin";
   el.style.background = c.color;
   if (isLandmark) el.style.outline = "2px solid #fff";
-  const when = item.ts ? `<br><small>${timeAgo(item.ts)} · ${new Date(item.ts).toLocaleString("ko-KR")}</small>` : "";
+  const when = item.ts ? `<div class="pop-time">${timeAgo(item.ts)}</div>` : "";
   const popup = new maplibregl.Popup({ offset: 20 }).setHTML(
-    `<strong>${esc(item.name || item.title)}</strong> <small>(${c.icon} ${c.label})</small><br>${esc(item.desc || "")}${when}` + (item.photo ? `<a href="${esc(item.photo)}" target="_blank" rel="noopener"><img class="pop-photo" src="${esc(item.photo)}" loading="lazy"></a>` : "") + navLinks(item.name || item.title, item.coord[0], item.coord[1]) + (item.id && item.ts ? `<div class="shop-act">${rxHtml("report", item.id)}<button class="chip share-r">🔗 공유</button></div>` : "")
+    `<div class="pop-cat" style="background:${c.color};color:${c.fg || "#fff"}">${c.icon} ${c.label}</div><div class="pop-title">${esc(item.name || item.title)}</div>${item.desc ? `<div class="pop-desc">${esc(item.desc)}</div>` : ""}${when}` + (item.photo ? `<a href="${esc(item.photo)}" target="_blank" rel="noopener"><img class="pop-photo" src="${esc(item.photo)}" loading="lazy"></a>` : "") + navLinks(item.name || item.title, item.coord[0], item.coord[1]) + (item.id && item.ts ? `<div class="shop-act">${rxHtml("report", item.id)}<button class="chip share-r">🔗 공유</button></div>` : "")
   );
   popup.on("open", () => { hydrateRx(popup.getElement()); popup.getElement().querySelectorAll(".share-r").forEach(b => b.onclick = () => shareReport(item)); });
   el.addEventListener("click", () => playFx(item.cat, el));      // 클릭 연출 (1~2초)
@@ -1719,7 +1719,7 @@ const SFX_GAIN = { open: 0.7, close: 0.7, on: 0.8, off: 0.8, done: 0.9, win: 1, 
 const sfxBuf = {}; let sfxLoading = false;
 function sfxLoad() {
   if (sfxLoading || !AC) return; sfxLoading = true;
-  for (const k in SFX_FILES) fetch("sounds/" + SFX_FILES[k] + ".mp3?v=123").then(r => r.arrayBuffer()).then(b => new Promise((ok, no) => AC.decodeAudioData(b, ok, no))).then(buf => { sfxBuf[k] = buf; }).catch(() => {});
+  for (const k in SFX_FILES) fetch("sounds/" + SFX_FILES[k] + ".mp3?v=124").then(r => r.arrayBuffer()).then(b => new Promise((ok, no) => AC.decodeAudioData(b, ok, no))).then(buf => { sfxBuf[k] = buf; }).catch(() => {});
 }
 function sfx(kind) {
   if (!sndOn || !AC) return;
