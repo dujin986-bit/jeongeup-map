@@ -351,8 +351,8 @@ async function fetchShopEdits() {
   } catch (e) { return false; }
 }
 
-// 지도에는 음식점·카페만 표시 (관리자 편집 모드에서는 전부). 진출입 지점·스터디카페 제외, 이름+주소가 같은 중복은 하나만
-function isFoodCafe(cat) { cat = cat || ""; return /음식점|카페|아동복지급식/.test(cat) && !/진출입|독서실|스터디/.test(cat); }
+// 지도에는 음식점·카페·술집만 표시 (관리자 편집 모드에서는 전부). 진출입 지점·스터디카페 제외, 이름+주소가 같은 중복은 하나만
+function isFoodCafe(cat) { cat = cat || ""; return /음식점|카페|주점|아동복지급식/.test(cat) && !/진출입|독서실|스터디/.test(cat); }
 function shopFeatures() {
   const out = [], seen = new Set();
   for (const s of SHOPS.concat(EDITS.added || [])) {
@@ -395,20 +395,27 @@ async function loadShops() {
     map.addLayer({ id: "shops-dot", type: "circle", source: "shops", minzoom: 14,
       paint: { "circle-radius": ["interpolate", ["linear"], ["zoom"], 14, 2, 16, 3.5, 18, 7],   // 멀리서는 작고 얇게 → 겹침 완화
                "circle-color": ["get", "color"], "circle-stroke-color": "#fff", "circle-stroke-width": ["interpolate", ["linear"], ["zoom"], 14, 0.4, 16, 1, 18, 1.5] } });
+    map.addLayer({ id: "shops-hit", type: "circle", source: "shops", minzoom: 14,      // 눈에 안 보이는 넓은 터치 영역
+      paint: { "circle-radius": ["interpolate", ["linear"], ["zoom"], 14, 12, 17, 18, 19, 22], "circle-color": "#000", "circle-opacity": 0 } });
     map.addLayer({ id: "shops-label", type: "symbol", source: "shops", minzoom: 16.5,
       layout: { "text-field": ["get", "name"], "text-font": ["Noto Sans Regular"], "text-size": 11,
                 "text-offset": [0, 1.1], "text-anchor": "top", "text-max-width": 8 },
       paint: { "text-color": "#1b1b1b", "text-halo-color": "#fff", "text-halo-width": 1.4 } });
-    map.on("click", "shops-dot", e => {
+    const nearShops = pt => {                          // 터치 지점에서 가장 가까운 가게(와 거의 같은 거리의 겹친 가게)만
+      const fs = map.queryRenderedFeatures([[pt.x - 26, pt.y - 26], [pt.x + 26, pt.y + 26]], { layers: ["shops-dot"] });
+      const arr = fs.map(f => { const p = map.project(f.geometry.coordinates); return { f, d: Math.hypot(p.x - pt.x, p.y - pt.y) }; }).sort((a, b) => a.d - b.d);
+      return arr.length ? arr.filter(o => o.d <= arr[0].d + 8).map(o => o.f) : [];
+    };
+    map.on("click", "shops-hit", e => {
       if (editMode) {                                   // 관리자 편집 모드: 팝업 대신 수정 창
-        const pt0 = e.point, f0 = map.queryRenderedFeatures([[pt0.x - 12, pt0.y - 12], [pt0.x + 12, pt0.y + 12]], { layers: ["shops-dot"] });
+        const f0 = nearShops(e.point);
         const ids = [...new Set(f0.map(x => x.properties.id))];
         if (ids.length) openEditSheet(ids);
         return;
       }
       // 같은 위치에 겹친 가게도 모두 찾는다 (건물 하나에 여러 가게가 있는 경우)
       const pt = e.point;
-      const found = map.queryRenderedFeatures([[pt.x - 8, pt.y - 8], [pt.x + 8, pt.y + 8]], { layers: ["shops-dot"] });
+      const found = nearShops(pt);
       const seen = new Set(), list = [];
       for (const f of found) {
         const id = f.properties.id;
@@ -438,13 +445,13 @@ async function loadShops() {
         };
       });
     });
-    map.on("mouseenter", "shops-dot", () => { map.getCanvas().style.cursor = "pointer"; });
-    map.on("mouseleave", "shops-dot", () => { map.getCanvas().style.cursor = ""; });
+    map.on("mouseenter", "shops-hit", () => { map.getCanvas().style.cursor = "pointer"; });
+    map.on("mouseleave", "shops-hit", () => { map.getCanvas().style.cursor = ""; });
     const chip = document.createElement("button");
     chip.id = "shop-chip"; chip.className = "chip on"; chip.style.flex = "none"; chip.textContent = "상가";
     chip.onclick = () => {
       const on = chip.classList.toggle("on");
-      for (const id of ["shops-dot", "shops-label"]) map.setLayoutProperty(id, "visibility", on ? "visible" : "none");
+      for (const id of ["shops-dot", "shops-hit", "shops-label"]) map.setLayoutProperty(id, "visibility", on ? "visible" : "none");
       try { if (map.getLayer("shops-glow")) map.setLayoutProperty("shops-glow", "visibility", on && nightOn ? "visible" : "none"); } catch (e) {}   // 밤 후광도 같이
     };
     document.getElementById("filters").appendChild(chip);
