@@ -2046,7 +2046,7 @@ function foodLeft() { const ms = 864e5 - ((Date.now() + 9 * 3600e3) % 864e5), m 
 function foodClock() {
   const left = foodLeft(), c = document.getElementById("food-clock");
   if (c) c.innerHTML = `🕛 오늘 0시~24시 집계 · <b>${left}</b> 후 마감`;
-  foodSheet.summary(foodTop ? `🍚 <b>🥇 ${esc(foodTop.shop_name)}</b> ${foodTop.cnt}표 · ⏰ ${left} 남음` : `🍚 오늘의 맛집 · 첫 표를 남겨 보세요 · ⏰ ${left}`);
+  foodSheet.summary(foodTop ? `🍚 <b>🥇 ${esc(foodTop.shop_name)}</b> ${foodTop.cnt}표 · ⏰${left}` : `🍚 오늘의 맛집 · 첫 표를 남겨 보세요 · ⏰ ${left}`);
 }
 loadFood();
 setInterval(() => { if (document.hidden) return; if (kstDay() !== foodDay) loadFood(); else { foodClock(); loadFood(); } }, 60000);
