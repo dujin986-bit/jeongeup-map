@@ -20,13 +20,13 @@
 <meta name="twitter:description" content="정읍 사람들이 지금 올리는 실시간 제보 지도 (교통 · 웨이팅 · 맛집 · 행사)">
 <meta name="twitter:image" content="https://dujin986-bit.github.io/jeongeup-map/og-image.png">
 <link rel="manifest" href="manifest.json">
-<meta name="theme-color" content="#1f6feb">
+<meta name="theme-color" content="#C83E2B">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="정읍지금">
 <link rel="apple-touch-icon" href="icons/user-apple-180.png">
 <link href="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.css" rel="stylesheet">
-<link rel="stylesheet" href="style.css?v=82">
+<link rel="stylesheet" href="style.css?v=83">
 </head>
 <body>
 <div id="map"></div>
@@ -37,7 +37,7 @@
 <div id="ticker" hidden><div id="tk-in"></div></div>
 <div id="notice-modal" hidden></div>
 <header id="top">
-  <strong>정읍 지금</strong>
+  <strong><svg class="logo" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 1.5l1.9 4.6 3.4-2.1-.6 4.5 4.6-.9-2.6 3.6 3.1 2.2-4.4.9.9 4-4.3-1.8L12 22.5l-.1-5.8-4.3 1.8.9-4-4.4-.9 3.1-2.2L2.6 7l4.6.9-.6-4.5 3.4 2.1z"/></svg>정읍 지금</strong>
   <div id="searchbox"><input id="q" type="search" placeholder="🔍 검색" autocomplete="off"><div id="results" hidden></div></div>
   <button id="filter-btn" class="chip">🎛 필터 ▾</button>
   <nav id="filters" hidden></nav>
@@ -90,7 +90,7 @@
 <div id="ch-name" hidden></div>
 <a id="live-exit" href="./">방송 모드 끄기 (Esc)</a>
 <div id="tut" hidden><div id="tut-hole"></div><div id="tut-tip"><div id="tut-txt"></div><div id="tut-row"><span id="tut-n"></span><button id="tut-skip">건너뛰기</button><button id="tut-next">다음</button></div></div></div>
-<div id="ver">v82</div>
+<div id="ver">v83</div>
 <div id="comm" hidden>
   <div class="comm-top"><button id="comm-back" class="chip">← 지도</button><strong>정읍 이야기</strong><button id="comm-refresh" class="chip">🔄</button></div>
   <div id="comm-tabs"><button data-t="news" class="on">💬 소식</button><button data-t="job">💼 알바</button><button data-t="used">🛒 중고</button><button data-t="home">🏠 부동산</button></div>
@@ -104,7 +104,7 @@
 
 <script src="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="data.js?v=82"></script>
-<script src="app.js?v=82"></script>
+<script src="data.js?v=83"></script>
+<script src="app.js?v=83"></script>
 </body>
 </html>

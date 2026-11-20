@@ -1371,7 +1371,7 @@ function renderComm() {
     const c = CATEGORIES[r.cat];
     if (expAt(r) <= Date.now()) continue;
     const card = document.createElement("div"); card.className = "comm-card";
-    card.innerHTML = `<div class="comm-meta"><span class="feed-dot" style="background:${c.color}"></span>${c.label} · ${timeAgo(r.ts)}<span class="exp-badge" data-exp="${expAt(r)}"></span></div>` +
+    card.innerHTML = `<div class="comm-meta"><span class="cat-badge" style="background:${c.color};color:${c.fg || '#fff'}">${c.label}</span><span>${timeAgo(r.ts)}</span><span class="exp-badge" data-exp="${expAt(r)}"></span></div>` +
       `<div class="comm-title">${esc(r.title)}</div>` + (r.desc ? `<div class="comm-desc">${esc(r.desc)}</div>` : "") + (r.photo ? `<a href="${esc(r.photo)}" target="_blank" rel="noopener"><img class="comm-photo" src="${esc(r.photo)}" loading="lazy"></a>` : "") +
       `<div class="shop-act">${rxHtml("report", r.id)}<button class="chip comm-go">📍 지도에서 보기</button></div>`;
     card.querySelector(".comm-go").onclick = () => {
@@ -1735,7 +1735,7 @@ async function loadFood() {
   const medal = ["🥇", "🥈", "🥉"];
   const tot = today ? today.reduce((a, r) => a + (+r.cnt || 0), 0) : 0, top = today && today.length ? Math.max(...today.map(r => +r.cnt || 0)) || 1 : 1;
   const ft = document.getElementById("food-total"); if (ft) ft.textContent = tot ? "총 " + tot + "표" : "";
-  list.innerHTML = !today ? "<small>투표 준비 중이에요</small>" : today.length ? today.slice(0, 3).map((r, i) => { const p = tot ? Math.round(r.cnt / tot * 100) : 0; return `<div class="food-row r${i + 1}" data-id="${esc(r.shop_id)}"><div class="food-line"><span class="food-rank">${i + 1}</span><b>${esc(r.shop_name)}</b><span class="food-cnt">${r.cnt}표 · ${p}%</span></div><div class="food-bar"><i data-s="${(r.cnt / top).toFixed(3)}"></i></div></div>`; }).join("") : "<small>아직 투표가 없어요. 첫 표를 남겨 보세요!</small>";
+  list.innerHTML = !today ? "<small>투표 준비 중이에요</small>" : today.length ? today.slice(0, 3).map((r, i) => { const p = tot ? Math.round(r.cnt / tot * 100) : 0; return `<div class="food-row r${i + 1}" data-id="${esc(r.shop_id)}"><div class="food-line"><span class="food-rank">${i + 1}</span><b>${esc(r.shop_name)}</b>${yday && yday.length && String(yday[0].shop_id) === String(r.shop_id) ? '<span class="yd-badge">어제 1등</span>' : ""}<span class="food-cnt">${r.cnt}표 · ${p}%</span></div><div class="food-bar"><i data-s="${(r.cnt / top).toFixed(3)}"></i></div></div>`; }).join("") : "<small>아직 투표가 없어요. 첫 표를 남겨 보세요!</small>";
   requestAnimationFrame(() => requestAnimationFrame(() => list.querySelectorAll(".food-bar i").forEach(el => { el.style.transform = "scaleX(" + el.dataset.s + ")"; })));
   list.querySelectorAll(".food-row").forEach(el => el.onclick = () => { const s = shopInfo(el.dataset.id); if (!s) return; closeComm(); map.flyTo({ center: s.coord, zoom: 18, pitch: 55, duration: 1500 }); });
   const y = document.getElementById("food-yday"); if (y) y.innerHTML = yday && yday.length ? `<span class="yday">👑 어제의 1위 <b>${esc(yday[0].shop_name)}</b> · ${yday[0].cnt}표</span>` : "";
@@ -1771,7 +1771,7 @@ function openFoodVote() {
 const rxMine = () => { try { return JSON.parse(localStorage.getItem("rx") || "{}"); } catch (e) { return {}; } };
 const rxSave = o => { try { localStorage.setItem("rx", JSON.stringify(o)); } catch (e) {} };
 const rxHdr = { apikey: SUPABASE_KEY, Authorization: "Bearer " + SUPABASE_KEY, "Content-Type": "application/json" };
-function rxHtml(type, id) { return `<span class="rx" data-t="${type}" data-id="${esc(id)}"><button class="rx-b" data-v="1">👍 <i>0</i></button><button class="rx-b" data-v="-1">👎 <i>0</i></button></span>`; }
+function rxHtml(type, id) { return `<span class="rx" data-t="${type}" data-id="${esc(id)}"><button class="rx-b" data-v="1">👍 맞아요 <i>0</i></button><button class="rx-b" data-v="-1">👎 글쎄요 <i>0</i></button></span>`; }
 async function hydrateRx(root) {
   const els = [...root.querySelectorAll(".rx")]; if (!els.length) return;
   const mine = rxMine();

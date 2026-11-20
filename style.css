@@ -397,3 +397,111 @@ body.searching .res-empty { font-size: 17px; padding: 16px; }
 .op-addr { font-size: 15px; color: #333; margin-bottom: 6px; }
 .op-tel { display: block; text-align: center; background: #14306b; color: #fff !important; font-size: 17px; font-weight: 800; border-radius: 10px; padding: 10px; margin: 6px 0; text-decoration: none; }
 .op-note { font-size: 12px; color: #8a5a00; background: #fff3d6; border-radius: 8px; padding: 6px 8px; margin: 6px 0; }
+
+
+/* ===== v83: 디자인 통일 (내장산 단풍 테라코타 & 웜 스톤) =====
+   원칙: #top 과 #comm 만 밤 모드 연동(변수), 팝업·시트·모달은 낮 팔레트의 흰 카드 고정 */
+:root {
+  --brand: #C83E2B; --brand-soft: #FBEAE6; --gold: #E09F3E;
+  --bg: #F7F4EF; --card: #FFFFFF; --line: #E5E0D8; --ink: #1E1B18; --muted: #6B6259; --track: #ECE6DC;
+  --note-bg: #FFF4DC; --note-ink: #7A5A00; --chip-soft: #F3EEE6;
+  --r: 14px; --tap: 44px;
+}
+body.night {
+  --bg: #14171D; --card: #1E232D; --line: rgba(255,255,255,.12); --ink: #F1F5F9; --muted: #A7AFBD; --track: #2A303C;
+  --note-bg: #272B35; --note-ink: #C9CFD9; --chip-soft: #262B36; --brand-soft: #3A2622;
+}
+
+/* 공통: 기본 버튼·칩 */
+button { background: var(--brand); font-family: inherit; }
+button.ghost { background: #EFEAE2; color: #3A342E; }
+.chip { border: 1px solid var(--line); background: #fff; color: #1E1B18; }
+.chip.on, .chip.feedbtn, .chip.feedbtn.on { background: var(--brand); border-color: var(--brand); color: #fff; }
+.viewers { color: var(--brand); }
+.nav-links a { background: var(--brand-soft); color: #A8301F; min-height: 40px; display: inline-flex; align-items: center; padding: 0 14px; font-size: 15px; }
+
+/* 상단 (낮=아이보리, 밤=딥 차콜) */
+#top { background: rgba(247,244,239,.96); }
+body.night #top { background: rgba(20,23,29,.96); }
+#top { background: color-mix(in srgb, var(--bg) 96%, transparent); color: var(--ink); border-bottom: 1px solid var(--line); box-shadow: 0 1px 4px rgba(30,27,24,.08); }
+#top strong { display: inline-flex; align-items: center; gap: 5px; color: var(--ink); font-weight: 800; }
+#top strong .logo { width: 20px; height: 20px; flex: none; fill: var(--brand); }
+#top .chip { background: var(--card); color: var(--ink); border: 1px solid var(--line); }
+#top .chip.on, #top .chip.feedbtn { background: var(--brand); color: #fff; border-color: var(--brand); }
+#top #install-btn, #top #share-btn { background: var(--card); color: var(--brand); border-color: var(--brand); font-weight: 700; }
+#top #q { background: var(--card); color: var(--ink); border: 1px solid var(--line); }
+#top .wx, #top .viewers { color: var(--ink); }
+body.searching #top #q { border: 2px solid var(--brand); }
+#filters .chip { min-height: 34px; }
+#results, #feed { color: #1E1B18; }
+#ticker { background: #3A332C; }
+#ticker.urgent { background: var(--brand); }
+#notice-modal .nm p.u { border-color: var(--brand); background: var(--brand-soft); color: #1E1B18; }
+
+/* 지도 위 버튼 */
+#fab { background: var(--brand); min-height: 52px; font-size: 17px; padding: 0 22px; display: inline-flex; align-items: center; gap: 4px; }
+#hint { background: rgba(30,27,24,.72); }
+#rp-pick, #panel, #install-box, #notice-modal .nm, #ed-sheet, #tut-tip { border-radius: 16px; color: #1E1B18; }
+.rp-r button { min-height: 48px; }
+.rp-r #rp-go { background: var(--brand); }
+#panel input, #panel select, #panel textarea { font-size: 16px; padding: 10px; border: 1px solid var(--line); }
+#panel .row button, #panel #save, #panel #cancel { min-height: var(--tap); font-size: 16px; font-weight: 700; }
+#rp-back { background: var(--brand-soft); color: #A8301F; min-height: 40px; }
+#photo-btn { border-color: var(--brand); background: var(--brand-soft); color: #A8301F; min-height: var(--tap); }
+.im-row button { min-height: var(--tap); }
+.im-row button:first-child:not(:last-child) { background: var(--brand); border-color: var(--brand); }
+#kk-bar { background: #3A332C; }
+#tut-next { background: var(--brand); min-height: var(--tap); } #tut-skip { min-height: var(--tap); }
+#notice-modal .nm button { min-height: var(--tap); }
+.maplibregl-popup-content { border-radius: 14px !important; color: #1E1B18; }
+
+/* 커뮤니티 (낮: 아이보리/흰 카드, 밤: 차콜/슬레이트) */
+#comm { background: var(--bg); color: var(--ink); font-size: 16px; }
+.comm-top { background: var(--card); color: var(--ink); border-bottom: 1px solid var(--line); box-shadow: none; }
+.comm-top strong { font-size: 18px; }
+#comm .chip { background: var(--card); color: var(--ink); border: 1px solid var(--line); border-radius: 22px; min-height: var(--tap); padding: 0 14px; font-size: 15px; font-weight: 700; }
+#comm-tabs { background: var(--card); border-bottom: 1px solid var(--line); gap: 8px; padding: 8px 12px; }
+#comm-tabs button { background: var(--card); color: var(--ink); border: 1px solid var(--line); min-height: var(--tap); border-radius: 22px; padding: 0 16px; font-size: 15px; font-weight: 700; }
+#comm-tabs button.on { background: var(--brand); color: #fff; border-color: var(--brand); }
+.comm-topic { background: var(--card); color: var(--ink); border: 1px solid var(--line); border-radius: var(--r); }
+.comm-topic .food-hd b { font-size: 18px; font-weight: 800; }
+.comm-note { background: var(--note-bg); color: var(--note-ink); border: 0; font-size: 15px; line-height: 1.5; }
+.comm-head { color: var(--muted); font-size: 15px; font-weight: 700; }
+.comm-card { background: var(--card); color: var(--ink); border: 1px solid var(--line); border-radius: var(--r); box-shadow: none; padding: 14px 16px; }
+.comm-meta { color: var(--muted); font-size: 14px; gap: 8px; flex-wrap: wrap; }
+.comm-title { font-size: 18px; font-weight: 800; margin: 8px 0 4px; line-height: 1.4; }
+.comm-desc { font-size: 16px; color: var(--ink); opacity: .85; line-height: 1.5; }
+.cat-badge { display: inline-block; padding: 3px 11px; border-radius: 12px; font-size: 14px; font-weight: 800; line-height: 1.4; }
+.exp-badge { margin-left: auto; font-size: 13px; font-weight: 800; color: var(--note-ink); background: var(--chip-soft); border-radius: 10px; padding: 3px 10px; }
+.exp-badge.warn { color: var(--brand); background: var(--brand-soft); }
+.shop-act { gap: 8px; }
+.rx { gap: 8px; }
+.rx-b { min-height: var(--tap); padding: 0 14px; font-size: 15px; font-weight: 700; border-radius: 22px; border: 1px solid var(--line); background: #fff; color: #1E1B18; }
+.rx-b.mine { background: var(--brand); border-color: var(--brand); color: #fff; }
+.rx-b[data-v="-1"].mine { background: #4A433B; border-color: #4A433B; color: #fff; }
+#comm .rx-b { background: var(--card); color: var(--ink); border: 1px solid var(--line); }
+#comm .rx-b.mine { background: var(--brand); color: #fff; border-color: var(--brand); }
+#comm .rx-b[data-v="-1"].mine { background: #4A433B; border-color: #4A433B; color: #fff; }
+#comm .comm-go { background: var(--brand-soft); color: #A8301F; border: 1px solid transparent; }
+body.night #comm .comm-go { color: #FFB4A6; }
+#comm .chip:active, #comm .rx-b:active, #comm-tabs button:active { transform: scale(.97); }
+
+/* 맛집 TOP 3: 1위 은행잎 골드 */
+#food-total { color: var(--muted); font-size: 14px; }
+.food-line { font-size: 16px; }
+.food-line b { font-weight: 700; }
+.food-rank { background: var(--track); color: var(--muted); font-size: 13px; width: 24px; height: 24px; }
+.food-row.r1 .food-rank { background: var(--gold); color: #3A2600; }
+.food-row.r1 .food-line b::before { content: "👑 "; }
+.food-cnt { color: var(--muted); font-size: 14px; }
+.food-bar { height: 8px; border-radius: 4px; background: var(--track); }
+.food-bar i { background: #B9B0A3; }
+.food-row.r1 .food-bar i { background: linear-gradient(90deg, #C98320, #E09F3E 55%, #F2C46D); }
+.yd-badge { flex: none; font-size: 12px; font-weight: 800; color: #3A2600; background: #F7DFA8; border-radius: 9px; padding: 2px 8px; }
+#food-vote { width: 100%; min-height: 48px; margin-top: 8px; font-size: 16px; font-weight: 800; background: var(--brand) !important; color: #fff !important; border: 0 !important; border-radius: 24px; }
+#food-vote:disabled { background: var(--track) !important; color: var(--muted) !important; }
+#food-yday .yday { background: var(--chip-soft); color: var(--ink); font-size: 14px; }
+#food-yday .yday b { color: #A8691A; }
+.soon { color: var(--ink); } .soon-d { color: var(--muted); font-size: 16px; }
+.soon-b { background: #FBEBC8; color: #7A5200; }
+body.night .soon-b { background: rgba(224,159,62,.16); color: var(--gold); }

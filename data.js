@@ -4,11 +4,11 @@
 const JEONGEUP_CENTER = [126.8560, 35.5700];
 
 const CATEGORIES = {
-  traffic: { label: "교통",   color: "#e5484d" },
-  event:   { label: "행사",   color: "#8e4ec6" },
-  wait:    { label: "웨이팅", color: "#f76b15" },
-  incident:{ label: "사건사고", color: "#111111" },
-  info:    { label: "생활정보", color: "#1f6feb" },
+  traffic: { label: "교통",   color: "#EF4444" },
+  event:   { label: "행사",   color: "#A855F7" },
+  wait:    { label: "웨이팅", color: "#F59E0B", fg: "#1E1B18" },
+  incident:{ label: "사건사고", color: "#C2410C" },
+  info:    { label: "생활정보", color: "#10B981", fg: "#06281D" },
 };
 
 // 제보 자동 만료 (시간 단위). 지나면 지도·목록에서 자동으로 사라짐 (DB에는 남음)
