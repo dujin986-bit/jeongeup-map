@@ -88,7 +88,7 @@ for (const [key, c] of Object.entries(CATEGORIES)) {
   b.style.setProperty("--c", c.color); b.style.setProperty("--cf", c.fg || "#fff");
   b.onclick = () => {
     activeCats.has(key) ? activeCats.delete(key) : activeCats.add(key);
-    b.classList.toggle("on");
+    b.classList.toggle("on"); sfx(b.classList.contains("on") ? "on" : "off");
     render();
   };
   filtersEl.appendChild(b);
@@ -490,7 +490,7 @@ async function loadShops() {
     const chip = document.createElement("button");
     chip.id = "shop-chip"; chip.className = "chip cat-chip on"; chip.style.flex = "none"; chip.style.setProperty("--c", "#8D5524"); chip.style.setProperty("--cf", "#fff"); chip.textContent = SHOP_CHIP_LABEL;
     chip.onclick = () => {
-      const on = chip.classList.toggle("on");
+      const on = chip.classList.toggle("on"); sfx(on ? "on" : "off");
       for (const id of ["shops-dot", "shops-hit", "shops-label"]) map.setLayoutProperty(id, "visibility", on ? "visible" : "none");
       try { if (map.getLayer("shops-glow")) map.setLayoutProperty("shops-glow", "visibility", on && nightOn ? "visible" : "none"); } catch (e) {}   // 밤 후광도 같이
     };
@@ -635,7 +635,7 @@ document.getElementById("save").onclick = async () => {
       if (!r.ok) throw new Error("보내지 못했어요 (" + r.status + "). 잠시 뒤 다시 해 주세요.");
       try { localStorage.setItem("jeongeup-last-report", String(Date.now())); } catch {}
       document.getElementById("title").value = ""; document.getElementById("desc").value = ""; catSel.selectedIndex = 0; syncCat();
-      closePanel(); alert("알려주셔서 고마워요! 확인 후 지도에 추가할게요 🙏");
+      closePanel(); sfx("done"); alert("알려주셔서 고마워요! 확인 후 지도에 추가할게요 🙏");
     } catch (err) { alert(err.message); }
     btn0.disabled = false; return;
   }
@@ -661,7 +661,7 @@ document.getElementById("save").onclick = async () => {
     if (!res.ok) throw new Error("제보 전송 실패 (" + res.status + ")");
     try { localStorage.setItem("jeongeup-last-report", String(Date.now())); } catch {}
     document.getElementById("title").value = ""; document.getElementById("desc").value = ""; clearPhoto();
-    closePanel();
+    closePanel(); sfx("done");
     alert("제보가 접수됐어요! 확인 후 지도에 표시됩니다.");
   } catch (err) { alert(err.message); }
   btn.disabled = false; btn.textContent = "등록";
@@ -1610,12 +1610,36 @@ thunderLoop();
   const label = () => { b.textContent = sndOn ? "🔊" : "🔇"; b.classList.toggle("on", sndOn); };
   b.onclick = () => {
     sndOn = !sndOn; try { localStorage.setItem("snd", sndOn ? "1" : "0"); } catch (e) {}
-    if (sndOn) startAmbience(); else if (amb) amb.master.gain.setTargetAtTime(0, AC.currentTime, 0.3);
+    if (sndOn) { startAmbience(); sfx("on"); } else if (amb) amb.master.gain.setTargetAtTime(0, AC.currentTime, 0.3);
     label();
   };
   document.addEventListener("visibilitychange", () => { if (!AC) return; if (document.hidden) AC.suspend(); else if (sndOn) AC.resume(); });
   label();
 })();
+
+// ===== 효과음 (파일 없이 브라우저가 직접 만드는 짧은 소리). 🔊 소리가 켜져 있을 때만 난다 =====
+const SFX_VOL = 0.1;                                  // 전체 크기 (0~1, 배경음보다 작게)
+const SFX = {                                         // [시작 Hz, 끝 Hz, 길이(초), 크기, 파형, 시작 지연(초)] 들의 목록
+  open:  [[380, 620, 0.16, 1, "sine", 0]],            // 서랍 열기: 올라가는 "퐁"
+  close: [[560, 360, 0.16, 0.9, "sine", 0]],          // 서랍 닫기: 내려가는 "퐁"
+  on:    [[620, 880, 0.08, 0.8, "triangle", 0]],      // 칩 켜기: 가벼운 "톡↑"
+  off:   [[760, 520, 0.08, 0.7, "triangle", 0]],      // 칩 끄기: 가벼운 "톡↓"
+  done:  [[660, 660, 0.14, 1, "sine", 0], [880, 880, 0.24, 1, "sine", 0.11]],   // 제보 완료: "딩-동"
+};
+function sfx(kind) {
+  if (!sndOn || !AC || !SFX[kind]) return;
+  try {
+    const t = AC.currentTime;
+    for (const [f0, f1, dur, vol, type, delay] of SFX[kind]) {
+      const o = AC.createOscillator(), g = AC.createGain(); o.type = type;
+      o.frequency.setValueAtTime(f0, t + delay); if (f1 !== f0) o.frequency.exponentialRampToValueAtTime(f1, t + delay + dur);
+      g.gain.setValueAtTime(0.0001, t + delay);
+      g.gain.exponentialRampToValueAtTime(SFX_VOL * vol, t + delay + 0.012);   // 딱 소리가 나지 않게 부드럽게 시작·끝
+      g.gain.exponentialRampToValueAtTime(0.0001, t + delay + dur);
+      o.connect(g); g.connect(AC.destination); o.start(t + delay); o.stop(t + delay + dur + 0.03);
+    }
+  } catch (e) {}
+}
 
 setInterval(fetchShopEdits, 60000);   // 관리자가 고친 가게 정보를 1분마다 반영
 
@@ -1946,7 +1970,7 @@ let toolsClose = () => {}, toolsToggle = () => {};
   };
   const set = on => {
     on = !!on; if (on === state) return;
-    settle(); state = on;
+    settle(); state = on; sfx(on ? "open" : "close");
     g.setAttribute("aria-expanded", on ? "true" : "false"); tx.textContent = on ? "접기 ▴" : "더 보기 ▾";
     if (fb) fb.textContent = on ? "👀 골라보기 ▴" : "👀 골라보기 ▾";
     if (calm) { body.classList.toggle("tools-open", on); return; }
