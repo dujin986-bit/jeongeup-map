@@ -1,3 +1,8 @@
+// 큰 데이터(건물·가게·신호)는 지도 준비를 기다리지 않고 바로 내려받기 시작한다. (화면에 올리는 순서는 그대로)
+const PRE = {};
+try { const pf = u => fetch(u).catch(() => null); for (const z of ["naejangsan", "downtown", "residential"]) PRE[z] = pf(`data/${z}.geojson`); PRE.shops = pf("data/shops.json"); PRE.signals = pf("data/signals.json?" + Date.now()); } catch (e) {}
+const usePre = (k, url) => { const p = PRE[k]; PRE[k] = null; return p ? p.then(r => r || fetch(url)) : fetch(url); };   // 한 번만 사용
+const T0 = performance.now(), TM = {}; const mark = k => { if (!(k in TM)) TM[k] = Math.round(performance.now() - T0); };
 const map = new maplibregl.Map({
   container: "map",
   style: "https://tiles.openfreemap.org/styles/liberty", // 무료, API 키 불필요
@@ -205,7 +210,8 @@ map.on("load", () => {
   setupRoads();
   setupBasePoi();
   loadBoundary();
-  loadLocalBuildings().then(() => { bldReady = true; setBuildingNight(nightOn); loadShops(); loadSignals(); });   // 건물 레이어 뒤에 올려야 가려지지 않음
+  mark("지도준비");
+  loadLocalBuildings().then(() => { mark("건물끝"); bldReady = true; setBuildingNight(nightOn); loadShops().then(() => mark("가게끝")); loadSignals(); });   // 건물 레이어 뒤에 올려야 가려지지 않음
   loadPlaces();
   render();
 });
@@ -228,7 +234,7 @@ async function loadLocalBuildings() {
   const groups = new Map();         // 이름 -> 라벨 위치(평균), 최고층
   for (const z of ZONES) {
     try {
-      const res = await fetch(`data/${z.id}.geojson`);
+      const res = await usePre(z.id, `data/${z.id}.geojson`);
       if (!res.ok) continue;
       const gj = await res.json();
       gj.features = gj.features.filter(f => {
@@ -418,7 +424,7 @@ async function sendEdit(payload) {
 
 async function loadShops() {
   try {
-    const res = await fetch("data/shops.json");
+    const res = await usePre("shops", "data/shops.json");
     if (!res.ok) return;
     SHOPS = await res.json();
     try { const er = await fetch("data/shop_edits.json"); if (er.ok) { EDITS_FILE = await er.json(); EDITS = EDITS_FILE; } } catch (e) {}
@@ -1105,7 +1111,7 @@ function sigBox(lon, lat, dm, props) {          // 가로세로 dm(미터) 크�
 }
 async function loadSignals() {
   try {
-    const res = await fetch("data/signals.json?" + Date.now());
+    const res = await usePre("signals", "data/signals.json?" + Date.now());
     if (!res.ok) return;
     const pts = await res.json();
     if (!pts.length) return;
@@ -1887,3 +1893,13 @@ function openFix(id, name) {
     history.pushState({ jg: 1 }, "");
   });
 })();
+
+
+// ===== 로딩 시간 확인용: 주소 끝에 ?debug=1 을 붙이면 화면 왼쪽 아래에 단계별 시간(ms)이 보인다 =====
+if (new URLSearchParams(location.search).get("debug") === "1") {
+  const box = document.createElement("div");
+  box.style.cssText = "position:fixed;left:6px;bottom:24px;z-index:99;background:rgba(0,0,0,.75);color:#fff;font:12px/1.5 monospace;padding:6px 10px;border-radius:8px;pointer-events:none";
+  document.body.appendChild(box);
+  const tick = () => { box.textContent = Object.entries(TM).map(([k, v]) => k + " " + v).join("\n"); box.style.whiteSpace = "pre"; };
+  setInterval(tick, 500);
+}
