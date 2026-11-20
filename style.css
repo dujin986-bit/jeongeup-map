@@ -1,5 +1,5 @@
 * { box-sizing: border-box; }
-html, body { margin: 0; height: 100%; font-family: -apple-system, "Malgun Gothic", sans-serif; }
+html, body { margin: 0; height: 100%; font-family: "Pretendard", -apple-system, "Malgun Gothic", sans-serif; }
 #map { position: absolute; inset: 0; }
 
 #top {
@@ -667,3 +667,6 @@ body.has-notice:not(.tools-open) .maplibregl-ctrl-top-right { transform: transla
 #vd-bar { position: fixed; top: calc(env(safe-area-inset-top) + 6px); left: 8px; right: 8px; z-index: 14; display: flex; align-items: center; gap: 8px; padding: 10px 12px; background: var(--brand); color: #fff; border-radius: 14px; font-size: 15px; font-weight: 700; box-shadow: 0 4px 14px rgba(0,0,0,.35); }
 #vd-bar[hidden] { display: none; } #vd-bar span { flex: 1; line-height: 1.35; }
 #vd-x { border: 0; background: rgba(255,255,255,.22); color: #fff; border-radius: 10px; padding: 8px 12px; min-height: 40px; font-weight: 800; }
+
+/* v117 글씨체: Pretendard (버튼·입력칸·지도 팝업도 같은 글씨) */
+button, input, textarea, select, .maplibregl-popup-content, .maplibregl-ctrl, .maplibregl-ctrl-attrib { font-family: inherit; }

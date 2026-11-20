@@ -1709,7 +1709,7 @@ const SFX_GAIN = { open: 0.7, close: 0.7, on: 0.8, off: 0.8, done: 0.9, win: 1, 
 const sfxBuf = {}; let sfxLoading = false;
 function sfxLoad() {
   if (sfxLoading || !AC) return; sfxLoading = true;
-  for (const k in SFX_FILES) fetch("sounds/" + SFX_FILES[k] + ".mp3?v=116").then(r => r.arrayBuffer()).then(b => new Promise((ok, no) => AC.decodeAudioData(b, ok, no))).then(buf => { sfxBuf[k] = buf; }).catch(() => {});
+  for (const k in SFX_FILES) fetch("sounds/" + SFX_FILES[k] + ".mp3?v=117").then(r => r.arrayBuffer()).then(b => new Promise((ok, no) => AC.decodeAudioData(b, ok, no))).then(buf => { sfxBuf[k] = buf; }).catch(() => {});
 }
 function sfx(kind) {
   if (!sndOn || !AC) return;
@@ -2243,7 +2243,7 @@ async function openRoulette() {
   if (!cv || !list.length) { if (res) res.textContent = "후보가 아직 없어요. 지도에서 가게를 판정해 주세요!"; return; }
   const tot = list.reduce((a, c) => a + c.wt, 0), g = cv.getContext("2d"), R = 280; let a0 = 0;
   list.forEach((c, i) => { c.a0 = a0; c.a1 = a0 + c.wt / tot * Math.PI * 2; a0 = c.a1; g.beginPath(); g.moveTo(R, R); g.arc(R, R, R - 4, c.a0, c.a1); g.closePath(); g.fillStyle = RL_COLORS[i % RL_COLORS.length]; g.fill(); g.strokeStyle = "#fff"; g.lineWidth = 4; g.stroke();
-    g.save(); g.translate(R, R); g.rotate((c.a0 + c.a1) / 2); g.fillStyle = "#fff"; g.font = "bold 30px sans-serif"; g.textAlign = "right"; g.textBaseline = "middle";
+    g.save(); g.translate(R, R); g.rotate((c.a0 + c.a1) / 2); g.fillStyle = "#fff"; g.font = "bold 30px Pretendard, sans-serif"; g.textAlign = "right"; g.textBaseline = "middle";
     let n = c.s.name; if (n.length > 8) n = n.slice(0, 7) + "…"; g.fillText(n, R - 26, 0); g.restore(); });
   res.innerHTML = "오늘 투표가 많은 가게일수록 칸이 넓어요"; spin.disabled = false;
   let rot = 0, busy = false;
