@@ -20,3 +20,7 @@
 
 	Follow on Twitter for updates:
 	http://twitter.com/KenneyNL
+
+--- 배경음악 ---
+sounds/music/day.mp3   : "Lovely Piano Song" (freepd.com, Public Domain / CC0)
+sounds/music/night.mp3 : "Nostalgic Piano" (freepd.com, Public Domain / CC0)

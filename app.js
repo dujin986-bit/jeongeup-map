@@ -1629,12 +1629,28 @@ thunderLoop();
   const label = () => { b.textContent = sndOn ? "🔊" : "🔇"; b.classList.toggle("on", sndOn); };
   b.onclick = () => {
     sndOn = !sndOn; try { localStorage.setItem("snd", sndOn ? "1" : "0"); } catch (e) {}
-    if (sndOn) { startAmbience(); sfx("on"); } else if (amb) amb.master.gain.setTargetAtTime(0, AC.currentTime, 0.3);
+    if (sndOn) { startAmbience(); sfx("on"); bgmSync(); } else { if (amb) amb.master.gain.setTargetAtTime(0, AC.currentTime, 0.3); bgmStop(); }
     label();
   };
-  document.addEventListener("visibilitychange", () => { if (!AC) return; if (document.hidden) AC.suspend(); else if (sndOn) AC.resume(); });
+  document.addEventListener("visibilitychange", () => { if (!AC) return; if (document.hidden) { AC.suspend(); if (bgm) bgm.pause(); } else if (sndOn) { AC.resume(); bgmSync(); } });
   label();
 })();
+
+// ===== 🎵 배경음악: 낮엔 day.mp3, 밤 지도에선 night.mp3 (freepd.com · 퍼블릭 도메인/CC0). 🔊를 켰을 때만 재생, 낮밤이 바뀌면 부드럽게 교체 =====
+const BGM_FILES = { day: "sounds/music/day.mp3", night: "sounds/music/night.mp3" }, BGM_VOL = 0.3;   // BGM_VOL: 음악 크기(0~1)
+let bgm = null, bgmKind = "";
+function bgmFade(a, to, ms, done) { const from = a.volume, t0 = Date.now(); const id = setInterval(() => { const k = Math.min(1, (Date.now() - t0) / ms); try { a.volume = from + (to - from) * k; } catch (e) {} if (k >= 1) { clearInterval(id); if (done) done(); } }, 50); }
+function bgmSync() {
+  if (!sndOn) return;
+  const kind = document.body.classList.contains("night") ? "night" : "day";
+  if (bgm && bgmKind === kind) { if (bgm.paused) bgm.play().catch(() => {}); return; }
+  const old = bgm; bgmKind = kind;
+  bgm = new Audio(BGM_FILES[kind] + "?v=110"); bgm.loop = true; bgm.volume = 0;
+  const cur = bgm; cur.play().then(() => bgmFade(cur, BGM_VOL, 1800)).catch(() => {});
+  if (old) bgmFade(old, 0, 1200, () => old.pause());
+}
+function bgmStop() { if (!bgm) return; const o = bgm; bgm = null; bgmKind = ""; bgmFade(o, 0, 500, () => o.pause()); }
+new MutationObserver(bgmSync).observe(document.body, { attributes: true, attributeFilter: ["class"] });
 
 // ===== 효과음 (파일 없이 브라우저가 직접 만드는 짧은 소리). 🔊 소리가 켜져 있을 때만 난다 =====
 const SFX_VOL = 0.1;                                  // 전체 크기 (0~1, 배경음보다 작게)
@@ -1650,7 +1666,7 @@ const SFX_GAIN = { open: 0.7, close: 0.7, on: 0.8, off: 0.8, done: 0.9, win: 1, 
 const sfxBuf = {}; let sfxLoading = false;
 function sfxLoad() {
   if (sfxLoading || !AC) return; sfxLoading = true;
-  for (const k in SFX_FILES) fetch("sounds/" + SFX_FILES[k] + ".mp3?v=109").then(r => r.arrayBuffer()).then(b => new Promise((ok, no) => AC.decodeAudioData(b, ok, no))).then(buf => { sfxBuf[k] = buf; }).catch(() => {});
+  for (const k in SFX_FILES) fetch("sounds/" + SFX_FILES[k] + ".mp3?v=110").then(r => r.arrayBuffer()).then(b => new Promise((ok, no) => AC.decodeAudioData(b, ok, no))).then(buf => { sfxBuf[k] = buf; }).catch(() => {});
 }
 function sfx(kind) {
   if (!sndOn || !AC) return;
