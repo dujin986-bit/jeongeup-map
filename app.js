@@ -2011,7 +2011,7 @@ const foodSheet = (function () {
   const el = document.createElement("div"); el.id = "food-sheet";
   el.innerHTML = `<div id="fs-head"><i class="fs-grab"></i><div id="fs-sum">🍚 오늘의 맛집 · 불러오는 중…</div><span id="fs-hint">▴ 더보기</span></div>` +
     `<div id="fs-body"><div class="food-hd"><b>🍚 오늘의 맛집 TOP 3</b><span id="food-total"></span></div><div id="food-clock"></div><div id="food-list">불러오는 중…</div>` +
-    `<button id="food-vote" class="chip">투표하기</button><button id="food-roulette" class="chip" disabled>🎰 오늘 뭐 먹지? · 곧 열려요</button><div id="food-yday"></div></div>`;
+    `<button id="food-vote" class="chip">투표하기</button><button id="food-roulette" class="chip">🎰 오늘 뭐 먹지? 룰렛 돌리기</button><div id="food-yday"></div></div>`;
   document.body.appendChild(el);
   const head = el.querySelector("#fs-head");
   let open = false, dragging = false, y0 = 0, off0 = 0, curOff = 0, moved = 0, t0 = 0;
@@ -2051,3 +2051,47 @@ function foodClock() {
 loadFood();
 setInterval(() => { if (document.hidden) return; if (kstDay() !== foodDay) loadFood(); else { foodClock(); loadFood(); } }, 60000);
 document.addEventListener("visibilitychange", () => { if (!document.hidden) loadFood(); });
+
+
+// ===== 🎰 오늘 뭐 먹지? 룰렛 (오늘 맛집 투표가 많을수록 칸이 넓음 · 부족하면 최근 7일·정읍 음식점으로 채움) =====
+const RL_COLORS = ["#C83E2B", "#E09F3E", "#2E8B6A", "#7A5BC4", "#D9622B", "#3C7DC4", "#B8447A", "#8C6A3F"];
+async function rlCandidates() {
+  const pool = SHOPS.concat((EDITS && EDITS.added) || []).map(x => shopInfo(x.id)).filter(x => x && !x.hidden && /음식점/.test(x.category || ""));
+  const w = new Map();   // id → 가중치
+  try {
+    const r = await fetch(SUPABASE_URL + "/rest/v1/food_votes?select=day,shop_id&day=gte." + kstDay(-6) + "&limit=2000", { headers: { apikey: SUPABASE_KEY, Authorization: "Bearer " + SUPABASE_KEY } });
+    if (r.ok) for (const v of await r.json()) w.set(v.shop_id, (w.get(v.shop_id) || 0) + (v.day === kstDay() ? 3 : 1));   // 오늘 표는 3배
+  } catch (e) {}
+  let list = [...w].map(([id, wt]) => ({ s: shopInfo(id), wt })).filter(c => c.s && !c.s.hidden).sort((a, b) => b.wt - a.wt).slice(0, 8);
+  const have = new Set(list.map(c => c.s.id)), rest = pool.filter(x => !have.has(x.id));
+  while (list.length < 6 && rest.length) list.push({ s: rest.splice(Math.floor(Math.random() * rest.length), 1)[0], wt: 1 });
+  return list;
+}
+async function openRoulette() {
+  const m = document.getElementById("notice-modal");
+  m.innerHTML = '<div class="nm rl"><b>🎰 오늘 뭐 먹지?</b><div id="rl-wrap"><i id="rl-pin">▼</i><canvas id="rl-cv" width="560" height="560"></canvas></div><div id="rl-res">후보를 불러오는 중…</div><div class="rl-btns"><button id="rl-spin" class="chip" disabled>돌리기!</button><button id="nm-x">닫기</button></div></div>';
+  m.hidden = false; document.getElementById("nm-x").onclick = () => m.hidden = true;
+  const list = await rlCandidates(), cv = document.getElementById("rl-cv"), res = document.getElementById("rl-res"), spin = document.getElementById("rl-spin");
+  if (!cv || !list.length) { if (res) res.textContent = "후보가 아직 없어요. 오늘의 맛집에 투표해 주세요!"; return; }
+  const tot = list.reduce((a, c) => a + c.wt, 0), g = cv.getContext("2d"), R = 280; let a0 = 0;
+  list.forEach((c, i) => { c.a0 = a0; c.a1 = a0 + c.wt / tot * Math.PI * 2; a0 = c.a1; g.beginPath(); g.moveTo(R, R); g.arc(R, R, R - 4, c.a0, c.a1); g.closePath(); g.fillStyle = RL_COLORS[i % RL_COLORS.length]; g.fill(); g.strokeStyle = "#fff"; g.lineWidth = 4; g.stroke();
+    g.save(); g.translate(R, R); g.rotate((c.a0 + c.a1) / 2); g.fillStyle = "#fff"; g.font = "bold 30px sans-serif"; g.textAlign = "right"; g.textBaseline = "middle";
+    let n = c.s.name; if (n.length > 8) n = n.slice(0, 7) + "…"; g.fillText(n, R - 26, 0); g.restore(); });
+  res.innerHTML = "오늘 투표가 많은 가게일수록 칸이 넓어요"; spin.disabled = false;
+  let rot = 0, busy = false;
+  spin.onclick = () => {
+    if (busy) return; busy = true; spin.disabled = true; res.textContent = "두근두근…";
+    let x = Math.random() * tot, win = list[list.length - 1]; for (const c of list) { if (x < c.wt) { win = c; break; } x -= c.wt; }
+    const mid = (win.a0 + win.a1) / 2 + (Math.random() - .5) * (win.a1 - win.a0) * .6, targetDeg = (-90 - mid * 180 / Math.PI) % 360;
+    rot += 360 * 5 + (((targetDeg - rot) % 360) + 360) % 360;
+    cv.style.transition = "transform 4s cubic-bezier(.12,.7,.15,1)"; cv.style.transform = "rotate(" + rot + "deg)";
+    let ticks = 0; const tk = setInterval(() => { sfx(ticks++ % 2 ? "on" : "off"); if (ticks > 9) clearInterval(tk); }, 330);
+    setTimeout(() => {
+      clearInterval(tk); sfx("done"); busy = false; spin.disabled = false; spin.textContent = "🔄 다시 돌리기";
+      res.innerHTML = `<div class="rl-win">🎉 오늘은 <b>${esc(win.s.name)}</b>!</div><div class="rl-act"><button id="rl-go" class="chip">📍 지도에서 보기</button><button id="rl-share" class="chip">💌 친구에게 보내기</button></div>`;
+      document.getElementById("rl-go").onclick = () => { m.hidden = true; foodSheet.set(false); map.flyTo({ center: win.s.coord, zoom: 18, pitch: 55, duration: 1500 }); };
+      document.getElementById("rl-share").onclick = async () => { const text = `오늘은 "${win.s.name}" 어때? 🍚 정읍 지금 룰렛이 골라줬어!`, url = location.origin + location.pathname; try { if (navigator.share) await navigator.share({ title: "정읍 지금", text, url }); else { await navigator.clipboard.writeText(text + " " + url); alert("복사했어요! 카톡에 붙여넣기 하세요"); } } catch (e) {} };
+    }, 4100);
+  };
+}
+document.getElementById("food-roulette").onclick = openRoulette;
