@@ -552,3 +552,18 @@ body.tools-open #filters .chip { min-height: 38px; }
 body.tools-open:not(.tools-closing) #tools, body.tools-open:not(.tools-closing) #filters, body.tools-open:not(.tools-closing) #filters-hint { animation: drawerIn .3s ease both; }
 body.tools-closing #tools, body.tools-closing #filters, body.tools-closing #filters-hint { opacity: 0; transition: opacity .2s ease; }
 @media (prefers-reduced-motion: reduce) { body.tools-open #tools, body.tools-open #filters, body.tools-open #filters-hint { animation: none; } }
+
+/* v97 오늘의 맛집 바텀시트 */
+#food-sheet { position: fixed; left: 0; right: 0; bottom: 0; z-index: 7; background: var(--card); color: var(--ink); border-radius: 18px 18px 0 0; border: 1px solid var(--line); border-bottom: 0; box-shadow: 0 -4px 18px rgba(40,30,20,.16); max-height: 75vh; display: flex; flex-direction: column; will-change: transform; padding-bottom: env(safe-area-inset-bottom); transition: opacity .2s; }
+#food-sheet.away { opacity: 0; pointer-events: none; }
+#fs-head { display: flex; flex-direction: column; align-items: center; padding: 8px 16px 10px; cursor: pointer; touch-action: none; flex: none; }
+.fs-grab { width: 44px; height: 5px; border-radius: 3px; background: color-mix(in srgb, var(--muted) 55%, transparent); margin-bottom: 8px; }
+#fs-sum { font-size: 15px; font-weight: 600; width: 100%; text-align: center; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+#fs-sum b { color: #A8691A; font-weight: 800; }
+#fs-body { padding: 4px 16px 16px; overflow-y: auto; }
+#fs-body .food-hd b { font-size: 18px; font-weight: 800; }
+#food-roulette { width: 100%; min-height: 44px; margin-top: 8px; font-size: 15px; font-weight: 700; }
+#food-roulette:disabled { background: var(--track) !important; color: var(--muted) !important; }
+.food-go { display: flex; width: 100%; justify-content: space-between; align-items: center; font-size: 16px; font-weight: 800; text-align: left; cursor: pointer; font-family: inherit; }
+.food-go span { font-size: 13px; font-weight: 600; color: var(--muted); }
+.maplibregl-ctrl-bottom-left, .maplibregl-ctrl-bottom-right { bottom: 58px; }
