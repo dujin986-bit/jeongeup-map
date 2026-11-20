@@ -9,7 +9,15 @@ const URL_ = Deno.env.get("SUPABASE_URL")!;
 const SERVICE = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 const ADMIN_EMAIL = (Deno.env.get("ADMIN_EMAIL") || "").toLowerCase();
 const WEBHOOK_SECRET = Deno.env.get("WEBHOOK_SECRET") || "";
-webpush.setVapidDetails(Deno.env.get("VAPID_SUBJECT")!, Deno.env.get("VAPID_PUBLIC_KEY")!, Deno.env.get("VAPID_PRIVATE_KEY")!);
+// 키에 섞인 공백·따옴표·"Private Key:" 글자·끝의 = 를 걸러서 쓴다
+const cleanKey = (v: string | undefined) => (v || "").replace(/^\s*(public|private)\s*key\s*:/i, "").replace(/[\s"'`]/g, "").replace(/=+$/, "");
+let vapidError = "";
+try {
+  webpush.setVapidDetails((Deno.env.get("VAPID_SUBJECT") || "").trim(), cleanKey(Deno.env.get("VAPID_PUBLIC_KEY")), cleanKey(Deno.env.get("VAPID_PRIVATE_KEY")));
+} catch (e) {
+  vapidError = String((e as Error).message || e) + " (공개키 길이 " + cleanKey(Deno.env.get("VAPID_PUBLIC_KEY")).length + ", 비공개키 길이 " + cleanKey(Deno.env.get("VAPID_PRIVATE_KEY")).length + ")";
+  console.error("VAPID 설정 오류:", vapidError);
+}
 const db = createClient(URL_, SERVICE);
 
 const CORS = { "Access-Control-Allow-Origin": "*", "Access-Control-Allow-Headers": "authorization, apikey, content-type, x-webhook-secret", "Access-Control-Allow-Methods": "POST, OPTIONS" };
@@ -41,6 +49,7 @@ async function sendTo(roles: string[], msg: { title: string; body: string; url: 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: CORS });
   if (req.method !== "POST") return json({ error: "POST only" }, 405);
+  if (vapidError) return json({ error: "VAPID 키 설정 오류", detail: vapidError }, 500);
   let p: any; try { p = await req.json(); } catch { return json({ error: "bad json" }, 400); }
 
   const fromWebhook = !!WEBHOOK_SECRET && req.headers.get("x-webhook-secret") === WEBHOOK_SECRET;
