@@ -670,3 +670,10 @@ body.has-notice:not(.tools-open) .maplibregl-ctrl-top-right { transform: transla
 
 /* v117 글씨체: Pretendard (버튼·입력칸·지도 팝업도 같은 글씨) */
 button, input, textarea, select, .maplibregl-popup-content, .maplibregl-ctrl, .maplibregl-ctrl-attrib { font-family: inherit; }
+
+/* v118 슬라이드 안내: 손잡이 막대를 굵고 밝게 + 방향 글씨 */
+.fs-grab { width: 56px; height: 6px; border-radius: 3px; background: color-mix(in srgb, var(--ink) 38%, transparent); margin-bottom: 6px; }
+#tools-grab::before { width: 56px; height: 6px; border-radius: 3px; background: color-mix(in srgb, var(--ink) 38%, transparent); }
+#fs-head #fs-hint { right: 14px; top: 6px; bottom: auto; font-size: 12px; }
+#fs-sum { padding-left: 8px; padding-right: 8px; }
+#tools-grab { font-size: 14px; }

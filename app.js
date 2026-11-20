@@ -1709,7 +1709,7 @@ const SFX_GAIN = { open: 0.7, close: 0.7, on: 0.8, off: 0.8, done: 0.9, win: 1, 
 const sfxBuf = {}; let sfxLoading = false;
 function sfxLoad() {
   if (sfxLoading || !AC) return; sfxLoading = true;
-  for (const k in SFX_FILES) fetch("sounds/" + SFX_FILES[k] + ".mp3?v=117").then(r => r.arrayBuffer()).then(b => new Promise((ok, no) => AC.decodeAudioData(b, ok, no))).then(buf => { sfxBuf[k] = buf; }).catch(() => {});
+  for (const k in SFX_FILES) fetch("sounds/" + SFX_FILES[k] + ".mp3?v=118").then(r => r.arrayBuffer()).then(b => new Promise((ok, no) => AC.decodeAudioData(b, ok, no))).then(buf => { sfxBuf[k] = buf; }).catch(() => {});
 }
 function sfx(kind) {
   if (!sndOn || !AC) return;
@@ -2130,10 +2130,14 @@ if (new URLSearchParams(location.search).get("debug") === "1") {
 
 
 // ===== 상단 도구 서랍: 손잡이를 아래로 끌거나 누르면 도구가 여러 줄로 펼쳐져 글자까지 보인다 =====
+const SLIDE_N = (() => { try { const n = (+localStorage.getItem("slide_n") || 0) + 1; localStorage.setItem("slide_n", n); return n; } catch (e) { return 1; } })();
+const SLIDE_LEARNED = SLIDE_N > 6;     // 여섯 번 넘게 쓰셨으면 안내 글씨를 짧게
+const toolsTxt = on => SLIDE_LEARNED ? (on ? "접기 ▴" : "더 보기 ▾") : (on ? "▴ 밀어서 접기" : "▾ 밀어서 더 보기");
 let toolsClose = () => {}, toolsToggle = () => {};
 (function toolsDrawer() {
   const g = document.getElementById("tools-grab"), tx = document.getElementById("tools-grab-t"); if (!g || LIVE) return;
   const top = document.getElementById("top"), body = document.body, fb = document.getElementById("filter-btn");
+  tx.textContent = toolsTxt(false);
   const calm = matchMedia("(prefers-reduced-motion: reduce)").matches;
   let state = false, timer = 0;                       // state: 논리적 열림 여부 (애니메이션 중에도 즉시 바뀐다)
   const isOpen = () => state;
@@ -2145,7 +2149,7 @@ let toolsClose = () => {}, toolsToggle = () => {};
   const set = on => {
     on = !!on; if (on === state) return;
     settle(); state = on; sfx(on ? "open" : "close");
-    g.setAttribute("aria-expanded", on ? "true" : "false"); tx.textContent = on ? "접기 ▴" : "더 보기 ▾";
+    g.setAttribute("aria-expanded", on ? "true" : "false"); tx.textContent = toolsTxt(on);
     if (fb) fb.textContent = on ? "👀 골라보기 ▴" : "👀 골라보기 ▾";
     if (calm) { body.classList.toggle("tools-open", on); return; }
     const h0 = top.getBoundingClientRect().height;
@@ -2176,8 +2180,9 @@ let toolsClose = () => {}, toolsToggle = () => {};
 
 // ===== 🍚 오늘의 맛집 바텀시트 (아래에서 슬라이드로 올라옴 · 손가락을 따라 움직임) =====
 const foodSheet = (function () {
+  const hintTxt = o => SLIDE_LEARNED ? (o ? "▾ 접기" : "▴ 더보기") : (o ? "▾ 아래로 밀어 접기" : "▴ 위로 밀어 보기");
   const el = document.createElement("div"); el.id = "food-sheet";
-  el.innerHTML = `<div id="fs-head"><i class="fs-grab"></i><div id="fs-sum">🍚 오늘의 맛집 · 불러오는 중…</div><span id="fs-hint">▴ 더보기</span></div>` +
+  el.innerHTML = `<div id="fs-head"><i class="fs-grab"></i><div id="fs-sum">🍚 오늘의 맛집 · 불러오는 중…</div><span id="fs-hint">${hintTxt(false)}</span></div>` +
     `<div id="fs-body"><div class="food-hd"><b>🍚 오늘의 맛집 TOP 3</b><span id="food-total"></span></div><div id="food-clock"></div><div id="food-list">불러오는 중…</div>` +
     `<button id="food-vote" class="chip">📍 지도에서 내가 아는 가게 판정하기</button><button id="food-roulette" class="chip">🎰 오늘 뭐 먹지? 룰렛 돌리기</button><div id="food-yday"></div></div>`;
   document.body.appendChild(el);
@@ -2186,7 +2191,7 @@ const foodSheet = (function () {
   const peek = () => head.offsetHeight;
   const closedOff = () => Math.max(0, el.offsetHeight - peek());
   function apply(off, anim) { el.style.transition = anim ? "transform .3s cubic-bezier(.22,.8,.3,1)" : "none"; el.style.transform = "translateY(" + off + "px)"; curOff = off; }
-  function set(v) { open = !!v; el.classList.toggle("open", open); const hn = document.getElementById("fs-hint"); if (hn) hn.textContent = open ? "▾ 접기" : "▴ 더보기"; apply(open ? 0 : closedOff(), true); if (open) { sfx("open"); if (typeof loadFood === "function") loadFood(); } else if (v === false) sfx("close"); }
+  function set(v) { open = !!v; el.classList.toggle("open", open); const hn = document.getElementById("fs-hint"); if (hn) hn.textContent = hintTxt(open); apply(open ? 0 : closedOff(), true); if (open) { sfx("open"); if (typeof loadFood === "function") loadFood(); } else if (v === false) sfx("close"); }
   head.addEventListener("touchstart", e => { if (e.touches.length !== 1) return; dragging = true; moved = 0; y0 = e.touches[0].clientY; t0 = Date.now(); off0 = open ? 0 : closedOff(); apply(off0, false); }, { passive: true });
   head.addEventListener("touchmove", e => { if (!dragging) return; const dy = e.touches[0].clientY - y0; moved = Math.max(moved, Math.abs(dy)); apply(Math.min(closedOff(), Math.max(0, off0 + dy)), false); }, { passive: true });
   const end = () => { if (!dragging) return; dragging = false; if (moved < 6) return;
@@ -2195,6 +2200,10 @@ const foodSheet = (function () {
   let ignoreClick = false;
   head.addEventListener("touchend", end); head.addEventListener("touchcancel", end);
   head.addEventListener("click", () => { if (ignoreClick) return; set(!open); });
+  if (SLIDE_N <= 3 && !matchMedia("(prefers-reduced-motion: reduce)").matches) setTimeout(() => {   // "끌어올리는 곳"이라고 몸으로 알려주기
+    const bump = k => { if (open || dragging || el.classList.contains("away")) return; apply(Math.max(0, closedOff() - 18), true); setTimeout(() => { if (!open && !dragging) apply(closedOff(), true); }, 260); if (k) setTimeout(() => bump(0), 620); };
+    bump(1);
+  }, 2600);
   // 지도를 누르면 접힘
   const hookMap = () => { if (typeof map === "undefined" || !map.on) return setTimeout(hookMap, 300); map.on("mousedown", () => { if (open) set(false); }); map.on("touchstart", () => { if (open) set(false); }); };
   hookMap();
