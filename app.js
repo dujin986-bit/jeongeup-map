@@ -1719,7 +1719,7 @@ const SFX_GAIN = { open: 0.7, close: 0.7, on: 0.8, off: 0.8, done: 0.9, win: 1, 
 const sfxBuf = {}; let sfxLoading = false;
 function sfxLoad() {
   if (sfxLoading || !AC) return; sfxLoading = true;
-  for (const k in SFX_FILES) fetch("sounds/" + SFX_FILES[k] + ".mp3?v=122").then(r => r.arrayBuffer()).then(b => new Promise((ok, no) => AC.decodeAudioData(b, ok, no))).then(buf => { sfxBuf[k] = buf; }).catch(() => {});
+  for (const k in SFX_FILES) fetch("sounds/" + SFX_FILES[k] + ".mp3?v=123").then(r => r.arrayBuffer()).then(b => new Promise((ok, no) => AC.decodeAudioData(b, ok, no))).then(buf => { sfxBuf[k] = buf; }).catch(() => {});
 }
 function sfx(kind) {
   if (!sndOn || !AC) return;
@@ -1918,11 +1918,12 @@ const HELP = [
   { id: "share", ic: "🔗", t: "친구에게 공유", s: "카톡·인스타로 보내기",
     b: `<p>제보 팝업이나 커뮤니티 글의 <b>🔗 공유</b>를 누르면 카톡·인스타로 보낼 수 있어요.</p><p>받은 사람이 누르면 <b>그 제보로 바로 이동</b>해요.</p>` },
 ];
+const helpPulse = on => ["help-btn", "help-ctl"].forEach(id => { const e = document.getElementById(id); if (e) e.classList.toggle("pulse", on); });
 function closeHelp() { const h = document.getElementById("help"); if (h) h.hidden = true; document.body.classList.remove("help-open"); }
 function openHelp(id) {
   const h = document.getElementById("help"); if (!h) return;
   try { localStorage.setItem("help_seen", "1"); } catch (e) {}
-  document.getElementById("help-btn").classList.remove("pulse");
+  helpPulse(false);
   h.innerHTML = `<div class="hp-top"><b>🙋 도움말</b><button id="hp-x" aria-label="닫기">✕</button></div><div class="hp-scroll"><button id="hp-tour" class="hp-tour">🎓 처음이세요? 1분 투어 다시 보기</button><p class="hp-lead">궁금한 칸을 눌러 보세요. <b>[지금 해보기]</b> 버튼으로 바로 따라 할 수 있어요.</p>` +
     HELP.map(c => `<details class="hp-c" id="hp-${c.id}"><summary><span class="hp-ic">${c.ic}</span><span class="hp-st"><b>${c.t}</b><small>${c.s}</small></span></summary><div class="hp-b">${c.b}${c.a ? `<button class="hp-go" data-id="${c.id}">▶ ${c.a[0]}</button>` : ""}</div></details>`).join("") + `<p class="hp-end">그래도 모르겠으면 💬 커뮤니티 → 🛠 고쳐줘에 물어보세요.</p></div>`;
   h.hidden = false; document.body.classList.add("help-open");
@@ -1935,14 +1936,15 @@ function openHelp(id) {
 (function () {
   const tut = document.getElementById("tut"), hole = document.getElementById("tut-hole"), tip = document.getElementById("tut-tip");
   const txt = document.getElementById("tut-txt"), nEl = document.getElementById("tut-n");
+  if (!LIVE && typeof map !== "undefined") map.addControl({ onAdd() { const c = document.createElement("div"); c.className = "maplibregl-ctrl maplibregl-ctrl-group"; c.innerHTML = '<button type="button" id="help-ctl" title="도움말" aria-label="도움말"><span>🙋</span><small>도움말</small></button>'; c.firstChild.onclick = () => openHelp(); return c; }, onRemove() {} }, "top-right");
   const hand = document.createElement("div"); hand.id = "tut-hand"; hand.textContent = "👆"; hand.hidden = true; tut.appendChild(hand);
   const center = () => ({ x: innerWidth / 2 - 60, y: innerHeight * 0.5 - 60, w: 120, h: 120 });
   const rectOf = id => { const r = document.getElementById(id).getBoundingClientRect(); return { x: r.left, y: r.top, w: r.width, h: r.height }; };
-  const helpVisible = () => { const e = document.getElementById("help-btn"); return !!(e && e.offsetParent && e.getBoundingClientRect().width > 0); };
+  const helpVisible = () => { const e = document.getElementById("help-ctl"); if (!e) return false; const b = e.getBoundingClientRect(); return b.width > 0 && b.left >= 0 && b.right <= innerWidth && b.top >= 0 && b.bottom <= innerHeight; };
   const STEPS = [
     { t: "어서 와요! 👋<br>정읍에서 <b>지금 무슨 일이 있는지</b> 한눈에 볼 수 있어요.", r: () => rectOf("top") },
     { t: "지도 위 <b>점을 직접 눌러보세요.</b><br>가게 정보나 이웃 소식이 떠요.", r: center, hand: true },
-    { t: () => helpVisible() ? "어려운 건 <b>🙋 도움말</b>에서 알려드려요.<br>제보하는 법, 소리, 알림까지 한곳에 있어요." : "어려운 건 <b>▾ 더 보기</b>를 열면 있는<br><b>🙋 도움말</b>에서 알려드려요.", r: () => helpVisible() ? rectOf("help-btn") : rectOf("tools-grab") },
+    { t: () => helpVisible() ? "어려운 건 오른쪽 위 <b>🙋 도움말</b>에서 알려드려요.<br>제보하는 법, 소리, 알림까지 한곳에 있어요." : "어려운 건 <b>🙋 도움말</b>에서 알려드려요.<br>제보하는 법, 소리, 알림까지 한곳에 있어요.", r: () => helpVisible() ? rectOf("help-ctl") : rectOf("top") },
   ];
   let i = 0;
   function show() {
@@ -1955,7 +1957,7 @@ function openHelp(id) {
     tip.style.top = below ? Math.min(r.y + r.h + p + 14, innerHeight - 190) + "px" : "auto";
     tip.style.bottom = below ? "auto" : innerHeight - r.y + p + 14 + "px";
   }
-  function end() { tut.hidden = true; hand.hidden = true; try { localStorage.setItem("tut_done", "1"); } catch (e) {} const hb = document.getElementById("help-btn"); try { if (hb && localStorage.getItem("help_seen") !== "1") hb.classList.add("pulse"); } catch (e) {} }
+  function end() { tut.hidden = true; hand.hidden = true; try { localStorage.setItem("tut_done", "1"); } catch (e) {} try { if (localStorage.getItem("help_seen") !== "1") helpPulse(true); } catch (e) {} }
   function start() { i = 0; tut.hidden = false; show(); }
   window.startTour = start;
   document.getElementById("tut-next").onclick = () => { if (++i >= STEPS.length) end(); else show(); };
@@ -1964,7 +1966,7 @@ function openHelp(id) {
   addEventListener("resize", () => { if (!tut.hidden) show(); });
   let done = false; try { done = localStorage.getItem("tut_done") === "1"; } catch (e) {}
   if (!done && !LIVE && !/[?&]edit=1/.test(location.search)) setTimeout(start, 1800);
-  else { try { if (localStorage.getItem("help_seen") !== "1" && (+localStorage.getItem("slide_n") || 0) <= 6) document.getElementById("help-btn").classList.add("pulse"); } catch (e) {} }
+  else { try { if (localStorage.getItem("help_seen") !== "1" && (+localStorage.getItem("slide_n") || 0) <= 6) setTimeout(() => helpPulse(true), 800); } catch (e) {} }
 })();
 
 

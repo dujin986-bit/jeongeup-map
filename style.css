@@ -722,3 +722,8 @@ body.rp-seen .rp-tip { font-size: 14px; font-weight: 700; padding: 6px 10px; }
 #rp-me { width: 100%; min-height: 46px; margin: 0 0 8px; border: 2px solid var(--brand); background: #fff; color: var(--brand); border-radius: 12px; font-size: 16px; font-weight: 800; }
 #crosshair::after { content: "여기로 등록돼요"; position: absolute; left: 50%; top: 100%; transform: translate(-50%, 4px); white-space: nowrap; font-size: 12px; font-weight: 800; color: #fff; background: rgba(30,27,24,.88); border-radius: 10px; padding: 3px 9px; font-family: inherit; }
 #rp-help { position: absolute; right: 12px; top: 10px; border: 0; background: #FFF3C4; color: #1E1B18; border-radius: 12px; padding: 7px 11px; font-size: 13px; font-weight: 800; }
+
+/* v123 도움말 버튼: 지도 오른쪽 위 버튼 줄(항상 보임) */
+#help-ctl { width: 44px !important; height: auto !important; padding: 4px 0 3px; display: flex; flex-direction: column; align-items: center; line-height: 1.1; }
+#help-ctl span { font-size: 22px; } #help-ctl small { font-size: 10px; font-weight: 800; color: #1E1B18; }
+#help-ctl.pulse { animation: helpPulse 1.3s ease-in-out infinite; }
