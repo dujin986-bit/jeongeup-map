@@ -109,9 +109,9 @@ function addMarker(item, isLandmark) {
   if (isLandmark) el.style.outline = "2px solid #fff";
   const when = item.ts ? `<br><small>${timeAgo(item.ts)} · ${new Date(item.ts).toLocaleString("ko-KR")}</small>` : "";
   const popup = new maplibregl.Popup({ offset: 20 }).setHTML(
-    `<strong>${esc(item.name || item.title)}</strong> <small>(${c.icon} ${c.label})</small><br>${esc(item.desc || "")}${when}` + (item.photo ? `<a href="${esc(item.photo)}" target="_blank" rel="noopener"><img class="pop-photo" src="${esc(item.photo)}" loading="lazy"></a>` : "") + navLinks(item.name || item.title, item.coord[0], item.coord[1]) + (item.id && item.ts ? `<div class="shop-act">${rxHtml("report", item.id)}</div>` : "")
+    `<strong>${esc(item.name || item.title)}</strong> <small>(${c.icon} ${c.label})</small><br>${esc(item.desc || "")}${when}` + (item.photo ? `<a href="${esc(item.photo)}" target="_blank" rel="noopener"><img class="pop-photo" src="${esc(item.photo)}" loading="lazy"></a>` : "") + navLinks(item.name || item.title, item.coord[0], item.coord[1]) + (item.id && item.ts ? `<div class="shop-act">${rxHtml("report", item.id)}<button class="chip share-r">🔗 공유</button></div>` : "")
   );
-  popup.on("open", () => hydrateRx(popup.getElement()));
+  popup.on("open", () => { hydrateRx(popup.getElement()); popup.getElement().querySelectorAll(".share-r").forEach(b => b.onclick = () => shareReport(item)); });
   el.addEventListener("click", () => playFx(item.cat, el));      // 클릭 연출 (1~2초)
   const m = new maplibregl.Marker({ element: el }).setLngLat(item.coord).setPopup(popup).addTo(map);
   m._item = item; markers.push(m);
@@ -132,6 +132,22 @@ function navLinks(name, lon, lat) {         // 길찾기/지도 링크 (카카�
   const nm = String(name || "").replace(/[,]/g, " ");
   return `<div class="nav-links"><a href="https://map.kakao.com/link/to/${encodeURIComponent(nm)},${lat},${lon}" target="_blank" rel="noopener">🚗 길찾기</a>` +
          `<a href="https://map.naver.com/p/search/${encodeURIComponent("정읍 " + nm)}" target="_blank" rel="noopener">네이버지도</a></div>`;
+}
+// ---------- 제보 공유 (?r=제보번호) : 카톡 등으로 보내면 받은 사람이 열자마자 그 제보 위치로 이동 ----------
+const SHARED_R = new URLSearchParams(location.search).get("r");
+let sharedDone = false;
+function shareToast(t) { let el = document.getElementById("share-toast"); if (!el) { el = document.createElement("div"); el.id = "share-toast"; document.body.appendChild(el); } el.textContent = t; el.classList.add("on"); clearTimeout(shareToast.t); shareToast.t = setTimeout(() => el.classList.remove("on"), 2600); }
+async function shareReport(r) {
+  const url = location.origin + location.pathname + "?r=" + encodeURIComponent(r.id), c = CATEGORIES[r.cat] || {};
+  const text = `📍 ${r.title || r.name}${c.label ? " (" + c.icon + " " + c.label + ")" : ""} · 정읍 지금`;
+  try { if (navigator.share) { await navigator.share({ title: "정읍 지금", text, url }); return; } } catch (e) { if (e && e.name === "AbortError") return; }
+  try { await navigator.clipboard.writeText(text + "\n" + url); shareToast("링크를 복사했어요! 카톡에 붙여넣기 하세요"); } catch (e) { prompt("이 링크를 복사해서 보내세요", url); }
+}
+function openShared() {
+  if (!SHARED_R || sharedDone) return; sharedDone = true;
+  const r = reports.find(x => String(x.id) === String(SHARED_R));
+  if (r) { setTimeout(() => focusReport(r, 1800), 900); try { history.replaceState(null, "", location.pathname); } catch (e) {} }
+  else shareToast("공유된 제보가 이미 끝났거나 찾을 수 없어요");
 }
 function esc(s) { return String(s).replace(/[&<>"']/g, ch => ({ "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;" }[ch])); }
 
@@ -700,9 +716,9 @@ async function fetchReports() {
     const fresh = next.filter(r => !knownIds.has(r.id));
     const firstLoad = !started; started = true;
     next.forEach(r => knownIds.add(r.id));
-    if (JSON.stringify(next) === JSON.stringify(reports)) return true;   // 변화 없으면 다시 그리지 않음(열린 팝업 유지)
+    if (JSON.stringify(next) === JSON.stringify(reports)) { openShared(); return true; }   // 변화 없으면 다시 그리지 않음(열린 팝업 유지)
     reports = next;
-    render();
+    render(); openShared();
     if (LIVE && !firstLoad && fresh.length) showReport(fresh[0]);
     return true;
   } catch (e) { return false; }
@@ -1310,13 +1326,13 @@ qEl.addEventListener("blur", () => setTimeout(() => { if (document.activeElement
   if (standalone) return;
   const inapp = /KAKAOTALK|Instagram|FBAN|FBAV|Threads|NAVER\(inapp|DaumApps|Line\//i.test(ua);
   const ios = /iPhone|iPad|iPod/.test(ua), android = /Android/.test(ua);
-  const url = location.origin + location.pathname;
+  const url = location.origin + location.pathname + (SHARED_R ? "?r=" + encodeURIComponent(SHARED_R) : "");   // 공유 링크로 들어왔으면 크롬으로 넘어가도 같은 제보로
   const KAKAO_OPEN = "kakaotalk://web/openExternal?url=" + encodeURIComponent(url);
   if (inapp) {            // 카톡·인스타·스레드 등 안에서 열면 안내 띠 → 외부 브라우저(크롬/사파리)로 열기
-    let hid = false; try { hid = sessionStorage.getItem("kk_bar") === "1"; } catch (e) {}
+    let hid = false; try { hid = !SHARED_R && sessionStorage.getItem("kk_bar") === "1"; } catch (e) {}
     if (!hid) {
       const bar = document.createElement("div"); bar.id = "kk-bar";
-      bar.innerHTML = '<span>🌐 크롬·사파리로 열면 앱처럼 <b>설치</b>할 수 있어요</span><button id="kk-go">' + (/KAKAOTALK/i.test(ua) || android ? "브라우저로 열기" : "여는 방법 보기") + '</button><button id="kk-x" aria-label="닫기">✕</button>';
+      bar.innerHTML = '<span>' + (SHARED_R ? '🌐 크롬·사파리로 열면 <b>더 빠르고 편해요</b>' : '🌐 크롬·사파리로 열면 앱처럼 <b>설치</b>할 수 있어요') + '</span><button id="kk-go">' + (/KAKAOTALK/i.test(ua) || android ? "브라우저로 열기" : "여는 방법 보기") + '</button><button id="kk-x" aria-label="닫기">✕</button>';
       document.body.appendChild(bar);
       document.getElementById("kk-go").onclick = () => {
         if (/KAKAOTALK/i.test(ua)) location.href = KAKAO_OPEN;
@@ -1427,7 +1443,8 @@ function renderComm() {
     const card = document.createElement("div"); card.className = "comm-card";
     card.innerHTML = `<div class="comm-meta"><span class="cat-badge" style="background:${c.color};color:${c.fg || '#fff'}">${c.icon} ${c.label}</span><span>${timeAgo(r.ts)}</span><span class="exp-badge" data-exp="${expAt(r)}"></span></div>` +
       `<div class="comm-title">${esc(r.title)}</div>` + (r.desc ? `<div class="comm-desc">${esc(r.desc)}</div>` : "") + (r.photo ? `<a href="${esc(r.photo)}" target="_blank" rel="noopener"><img class="comm-photo" src="${esc(r.photo)}" loading="lazy"></a>` : "") +
-      `<div class="shop-act">${rxHtml("report", r.id)}<button class="chip comm-go">📍 지도에서 보기</button></div>`;
+      `<div class="shop-act">${rxHtml("report", r.id)}<button class="chip comm-go">📍 지도에서 보기</button><button class="chip comm-share">🔗 공유</button></div>`;
+    card.querySelector(".comm-share").onclick = () => shareReport(r);
     card.querySelector(".comm-go").onclick = () => {
       closeComm();
       focusReport(r);

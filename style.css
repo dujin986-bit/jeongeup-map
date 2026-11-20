@@ -626,3 +626,8 @@ body.tools-closing #top #ticker:not(.urgent) { max-height: 28px; margin-top: 2px
 /* 공지 띠가 있을 때 지도 오른쪽 버튼(내 위치·알림)을 띠 아래로 */
 .maplibregl-ctrl-top-right { transition: transform .3s ease; }
 body.has-notice:not(.tools-open) .maplibregl-ctrl-top-right { transform: translateY(30px); }
+
+/* v114 제보 공유 */
+#share-toast { position: fixed; left: 50%; bottom: 96px; transform: translate(-50%, 12px); z-index: 60; background: rgba(20,24,32,.94); color: #fff; padding: 10px 16px; border-radius: 22px; font-size: 14px; opacity: 0; pointer-events: none; transition: opacity .25s, transform .25s; max-width: 88vw; text-align: center; }
+#share-toast.on { opacity: 1; transform: translate(-50%, 0); }
+.chip.share-r, .chip.comm-share { font-weight: 700; }
