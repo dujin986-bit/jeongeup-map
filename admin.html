@@ -81,7 +81,7 @@
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.js"></script>
-<script src="data.js?v=119"></script>
+<script src="data.js?v=120"></script>
 <script>
 const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 const TABS = [["pending", "대기"], ["approved", "승인됨"], ["hidden", "숨김"], ["notice", "공지"], ["wx", "날씨"], ["fix", "수정요청"], ["fb", "고쳐줘"], ["log", "편집기록"], ["map", "지도 수정 ↗"]];
@@ -132,7 +132,7 @@ async function drawNotice() {
   L.innerHTML = "";
   for (const n of data) {
     const live = new Date(n.expires_at) > new Date();
-    const el = document.createElement("div"); el.className = "card"; el.style.opacity = live ? 1 : .5;
+    const el = document.createElement("div"); el.className = "card"; el.style.opacity = live ? 1 : .5; el.style.borderLeft = "6px solid " + (n.level === "urgent" ? "#D9232D" : "#2B6CD6");
     el.innerHTML = `<div>${n.level === "urgent" ? "🚨 긴급" : "📢 일반"} · ${live ? "노출중 ~" : "만료 "}${new Date(n.expires_at).toLocaleString("ko-KR")}</div><div style="margin:6px 0">${esc(n.body)}</div><button class="act del" style="width:100%">삭제</button>`;
     el.querySelector("button").onclick = async () => { if (!confirm("삭제할까요?")) return; await sb.from("notices").delete().eq("id", n.id); drawNotice(); };
     L.appendChild(el);

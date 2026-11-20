@@ -680,3 +680,9 @@ button, input, textarea, select, .maplibregl-popup-content, .maplibregl-ctrl, .m
 
 /* v119 버전 표시: 맛집 시트 손잡이 줄 왼쪽 */
 #fs-head #ver { position: absolute; left: 14px; top: 7px; bottom: auto; z-index: auto; font-size: 11px; color: var(--muted); opacity: .8; }
+
+/* v120 공지 색: 관리자에서 고른 색이 그대로 보이게 (일반=파랑, 긴급=빨강) + 모달은 밤에도 밝은 칸 */
+#ticker { background: #2B6CD6; color: #fff; }
+#ticker.urgent { background: #D9232D; }
+#notice-modal .nm p { border-left: 5px solid #2B6CD6; background: #EAF2FF; color: #1E1B18; }
+#notice-modal .nm p.u { border-left-color: #D9232D; background: #FDE9E4; color: #1E1B18; }
