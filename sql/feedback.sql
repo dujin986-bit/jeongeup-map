@@ -41,7 +41,7 @@ begin
 end $$;
 
 -- 3) 의견: 욕설 막기 + 한 사람이 하루 10건까지
-create or replace function public.feedback_guard() returns trigger language plpgsql as $$
+create or replace function public.feedback_guard() returns trigger language plpgsql security definer set search_path = public as $$
 begin
   if public.has_badword(new.body) or public.has_badword(new.contact) then raise exception 'badword'; end if;
   if (select count(*) from public.feedback where voter = new.voter and created_at > now() - interval '1 day') >= 10 then raise exception 'ratelimit'; end if;
