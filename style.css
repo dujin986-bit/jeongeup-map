@@ -879,3 +879,5 @@ body.judging #fab { display: none !important; }
 .vf-row button { flex: 1; padding: 13px; font-size: 16px; font-weight: 800; border-radius: 12px; }
 .vf-no { background: #e9ecef; color: #444; }
 .vf-ok:disabled { opacity: .4; }
+/* v145 위쪽 종류 버튼 줄 제거 (아래 아이콘과 중복) */
+#pills { display: none !important; }

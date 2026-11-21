@@ -1867,7 +1867,7 @@ const SFX_GAIN = { open: 0.7, close: 0.7, on: 0.8, off: 0.8, done: 0.9, win: 1, 
 const sfxBuf = {}; let sfxLoading = false;
 function sfxLoad() {
   if (sfxLoading || !AC) return; sfxLoading = true;
-  for (const k in SFX_FILES) fetch("sounds/" + SFX_FILES[k] + ".mp3?v=144").then(r => r.arrayBuffer()).then(b => new Promise((ok, no) => AC.decodeAudioData(b, ok, no))).then(buf => { sfxBuf[k] = buf; }).catch(() => {});
+  for (const k in SFX_FILES) fetch("sounds/" + SFX_FILES[k] + ".mp3?v=145").then(r => r.arrayBuffer()).then(b => new Promise((ok, no) => AC.decodeAudioData(b, ok, no))).then(buf => { sfxBuf[k] = buf; }).catch(() => {});
 }
 function sfx(kind) {
   if (!sndOn || !AC) return;
@@ -2476,6 +2476,14 @@ const foodSheet = (function () {
   const peek = () => { const ic = el.querySelector(".fm-ic"); return head.offsetHeight + (ic ? ic.offsetHeight + 16 + mid.querySelector(".fm-hd").offsetHeight : 0); };   // 접혀도 첫 아이콘 줄까지 걸쳐 보이게
   const closedOff = () => Math.max(0, el.offsetHeight - peek());
   const halfOff = () => Math.max(0, Math.min(closedOff(), el.offsetHeight - peek() - mid.offsetHeight - 14));
+  const fitMax = () => {                              // 시트가 위쪽 영역(검색·도구·공지 띠)을 덮지 않게 최대 높이를 맞춘다
+    const t = document.getElementById("top"), tk = document.getElementById("ticker");
+    let end = t ? t.getBoundingClientRect().bottom : 0;
+    if (tk && !tk.hidden) end = Math.max(end, tk.getBoundingClientRect().bottom);
+    el.style.maxHeight = Math.max(260, Math.floor(innerHeight - end - 8)) + "px";
+  };
+  const fitAll = () => { fitMax(); if (!dragging) apply(offs()[lvl], false); };
+  setTimeout(() => { fitAll(); try { const ro = new ResizeObserver(fitAll); ro.observe(document.getElementById("top")); const tk = document.getElementById("ticker"); if (tk) ro.observe(tk); } catch (e) {} addEventListener("resize", fitAll); addEventListener("orientationchange", () => setTimeout(fitAll, 300)); }, 600);
   const offs = () => [closedOff(), halfOff(), 0];
   function apply(off, anim) {
     el.style.transition = anim ? "transform .3s cubic-bezier(.22,.8,.3,1)" : "none"; el.style.transform = "translateY(" + off + "px)"; curOff = off;
