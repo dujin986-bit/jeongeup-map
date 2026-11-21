@@ -11,14 +11,14 @@
 <meta property="og:url" content="https://dujin986-bit.github.io/jeongeup-map/">
 <meta property="og:title" content="정읍 지금">
 <meta property="og:description" content="정읍 사람들이 실시간으로 알려주는 진짜 이야기 (교통 · 웨이팅 · 맛집 · 행사)">
-<meta property="og:image" content="https://dujin986-bit.github.io/jeongeup-map/og-image.png?v=129">
+<meta property="og:image" content="https://dujin986-bit.github.io/jeongeup-map/og-image.png?v=130">
 <meta property="og:image:width" content="1200">
 <meta property="og:image:height" content="630">
 <meta property="og:image:alt" content="정읍 지금 - 정읍 사람들이 실시간으로 알려주는 진짜 이야기">
 <meta name="twitter:card" content="summary_large_image">
 <meta name="twitter:title" content="정읍 지금">
 <meta name="twitter:description" content="정읍 사람들이 실시간으로 알려주는 진짜 이야기 (교통 · 웨이팅 · 맛집 · 행사)">
-<meta name="twitter:image" content="https://dujin986-bit.github.io/jeongeup-map/og-image.png?v=129">
+<meta name="twitter:image" content="https://dujin986-bit.github.io/jeongeup-map/og-image.png?v=130">
 <link rel="manifest" href="manifest.json">
 <meta name="theme-color" content="#C83E2B">
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -28,7 +28,7 @@
 <link href="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.css" rel="stylesheet">
 <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard-dynamic-subset.css">
-<link rel="stylesheet" href="style.css?v=129">
+<link rel="stylesheet" href="style.css?v=130">
 </head>
 <body>
 <div id="map"></div>
@@ -38,6 +38,7 @@
 
 <div id="notice-modal" hidden></div>
 <header id="top">
+  <div id="tagline">정읍 사람들이 실시간으로 알려주는 진짜 이야기</div>
   <strong><svg class="logo" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 1.5l1.9 4.6 3.4-2.1-.6 4.5 4.6-.9-2.6 3.6 3.1 2.2-4.4.9.9 4-4.3-1.8L12 22.5l-.1-5.8-4.3 1.8.9-4-4.4-.9 3.1-2.2L2.6 7l4.6.9-.6-4.5 3.4 2.1z"/></svg>정읍 지금</strong>
   <div id="searchbox"><input id="q" type="search" placeholder="🔍 검색" autocomplete="off"><div id="results" hidden></div></div>
   <button id="filter-btn" class="chip">👀 골라보기 ▾</button>
@@ -95,12 +96,22 @@
 <a id="live-exit" href="./">방송 모드 끄기 (Esc)</a>
 <div id="help" hidden></div>
 <div id="tut" hidden><div id="tut-hole"></div><div id="tut-tip"><div id="tut-txt"></div><div id="tut-row"><span id="tut-n"></span><button id="tut-skip">건너뛰기</button><button id="tut-next">다음</button></div></div></div>
-<div id="ver">v129</div>
+<div id="ver">v130</div>
 <div id="comm" hidden>
   <div class="comm-grab" aria-hidden="true"></div>
   <div class="comm-top"><button id="comm-back" class="chip">← 지도</button><strong>정읍 이야기</strong><button id="comm-refresh" class="chip">🔄</button></div>
   <div id="comm-tabs"><button data-t="news" class="on">💬 소식</button><button data-t="chat">🗣 얘기방</button><button data-t="ask">❓ 지금 정읍</button><button data-t="job">💼 알바</button><button data-t="used">🛒 중고</button><button data-t="home">🏠 부동산</button><button data-t="fb">🛠 고쳐줘</button></div>
   <div id="comm-body"></div>
+</div>
+<div id="welcome" hidden>
+  <div id="welcome-box" role="dialog" aria-label="정읍 지금 시작하기">
+    <div class="wl-logo">🍁 정읍 지금</div>
+    <div class="wl-sub">정읍 사람들이 실시간으로<br>알려주는 진짜 이야기</div>
+    <button class="wl-btn" id="wl-now"><span>🚗</span><b>지금 정읍 뭐해?</b><small>최근 소식 보러 가기</small></button>
+    <button class="wl-btn" id="wl-food"><span>🍚</span><b>오늘 뭐 먹지?</b><small>오늘의 맛집 순위</small></button>
+    <button class="wl-btn" id="wl-report"><span>📣</span><b>내가 알려주기</b><small>지금 보이는 걸 이웃에게</small></button>
+    <button id="wl-skip">그냥 지도 볼게요</button>
+  </div>
 </div>
 <div id="install-modal" hidden><div id="install-box"></div></div>
 <div id="ed-bar" hidden><button id="ed-add">＋ 새 가게</button><button id="ed-hid">숨긴 가게 보기</button><button id="ed-end">편집 끝</button></div>
@@ -110,7 +121,7 @@
 
 <script src="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="data.js?v=129"></script>
-<script src="app.js?v=129"></script>
+<script src="data.js?v=130"></script>
+<script src="app.js?v=130"></script>
 </body>
 </html>

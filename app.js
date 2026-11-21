@@ -1813,7 +1813,7 @@ const SFX_GAIN = { open: 0.7, close: 0.7, on: 0.8, off: 0.8, done: 0.9, win: 1, 
 const sfxBuf = {}; let sfxLoading = false;
 function sfxLoad() {
   if (sfxLoading || !AC) return; sfxLoading = true;
-  for (const k in SFX_FILES) fetch("sounds/" + SFX_FILES[k] + ".mp3?v=129").then(r => r.arrayBuffer()).then(b => new Promise((ok, no) => AC.decodeAudioData(b, ok, no))).then(buf => { sfxBuf[k] = buf; }).catch(() => {});
+  for (const k in SFX_FILES) fetch("sounds/" + SFX_FILES[k] + ".mp3?v=130").then(r => r.arrayBuffer()).then(b => new Promise((ok, no) => AC.decodeAudioData(b, ok, no))).then(buf => { sfxBuf[k] = buf; }).catch(() => {});
 }
 function sfx(kind) {
   if (!sndOn || !AC) return;
@@ -1987,6 +1987,8 @@ document.getElementById("ticker").onclick = () => {
 fetchNotices(); setInterval(fetchNotices, 60000);
 
 
+// 한 줄 소개: 처음 10번 방문까지만 보임 (익숙해지면 접힘)
+(function () { const t = document.getElementById("tagline"); if (!t) return; let n = 0; try { n = (+localStorage.getItem("visit_n") || 0) + 1; localStorage.setItem("visit_n", String(n)); } catch (e) {} if (n > 10) t.hidden = true; })();
 // ===== 처음 방문 안내 (3단계로 가볍게) + 🙋 도움말 (기능별 카드) =====
 const HELP = [
   { id: "report", ic: "📍", t: "제보하기", s: "길 막힘·웨이팅·행사를 이웃에게 알려요",
@@ -2019,11 +2021,11 @@ function openHelp(id) {
   const h = document.getElementById("help"); if (!h) return;
   try { localStorage.setItem("help_seen", "1"); } catch (e) {}
   helpPulse(false);
-  h.innerHTML = `<div class="hp-top"><b>🙋 도움말</b><button id="hp-x" aria-label="닫기">✕</button></div><div class="hp-scroll"><button id="hp-tour" class="hp-tour">🎓 처음이세요? 1분 투어 다시 보기</button><p class="hp-lead">궁금한 칸을 눌러 보세요. <b>[지금 해보기]</b> 버튼으로 바로 따라 할 수 있어요.</p>` +
+  h.innerHTML = `<div class="hp-top"><b>🙋 도움말</b><button id="hp-x" aria-label="닫기">✕</button></div><div class="hp-scroll"><button id="hp-tour" class="hp-tour">👋 처음이세요? 시작 화면 다시 보기</button><p class="hp-lead">궁금한 칸을 눌러 보세요. <b>[지금 해보기]</b> 버튼으로 바로 따라 할 수 있어요.</p>` +
     HELP.map(c => `<details class="hp-c" id="hp-${c.id}"><summary><span class="hp-ic">${c.ic}</span><span class="hp-st"><b>${c.t}</b><small>${c.s}</small></span></summary><div class="hp-b">${c.b}${c.a ? `<button class="hp-go" data-id="${c.id}">▶ ${c.a[0]}</button>` : ""}</div></details>`).join("") + `<p class="hp-end">그래도 모르겠으면 💬 커뮤니티 → 🛠 고쳐줘에 물어보세요.</p></div>`;
   h.hidden = false; document.body.classList.add("help-open");
   document.getElementById("hp-x").onclick = closeHelp;
-  document.getElementById("hp-tour").onclick = () => { closeHelp(); setTimeout(() => window.startTour && window.startTour(), 250); };
+  document.getElementById("hp-tour").onclick = () => { closeHelp(); setTimeout(() => window.showWelcome && window.showWelcome(), 250); };
   h.querySelectorAll("details.hp-c").forEach(d => d.addEventListener("toggle", () => { if (d.open) h.querySelectorAll("details.hp-c").forEach(o => { if (o !== d) o.open = false; }); }));
   h.querySelectorAll(".hp-go").forEach(b => b.onclick = () => { const c = HELP.find(x => x.id === b.dataset.id); closeHelp(); if (c && c.a) c.a[1](); });
   const d = id && document.getElementById("hp-" + id); if (d) { d.open = true; setTimeout(() => d.scrollIntoView({ block: "start" }), 60); }
@@ -2052,6 +2054,25 @@ function openHelp(id) {
     tip.style.top = below ? Math.min(r.y + r.h + p + 14, innerHeight - 190) + "px" : "auto";
     tip.style.bottom = below ? "auto" : innerHeight - r.y + p + 14 + "px";
   }
+  // 👋 환영 카드: 첫 방문에 큰 버튼 3개로 "여기서 뭘 하는지"를 알려줌 (기존 말풍선 3단계 안내를 대체)
+  const wl = document.getElementById("welcome");
+  function closeWelcome() {
+    if (wl) wl.hidden = true;
+    try { localStorage.setItem("tut_done", "1"); localStorage.setItem("welcome_done", "1"); } catch (e) {}
+    try { if (localStorage.getItem("help_seen") !== "1") helpPulse(true); } catch (e) {}
+  }
+  function showWelcome() { if (!wl) { start(); return; } wl.hidden = false; }
+  window.showWelcome = showWelcome;
+  if (wl) {
+    document.getElementById("wl-skip").onclick = closeWelcome;
+    document.getElementById("wl-now").onclick = () => {
+      closeWelcome();
+      const live = (typeof reports !== "undefined" ? reports : []).filter(r => expAt(r) > Date.now()).sort((a, b) => new Date(b.ts) - new Date(a.ts));
+      setTimeout(() => { if (live.length) focusReport(live[0]); else openComm(); }, 250);
+    };
+    document.getElementById("wl-food").onclick = () => { closeWelcome(); setTimeout(() => foodSheet.set(true), 260); };
+    document.getElementById("wl-report").onclick = () => { closeWelcome(); setTimeout(() => document.getElementById("fab").click(), 250); };
+  }
   function end() { tut.hidden = true; hand.hidden = true; try { localStorage.setItem("tut_done", "1"); } catch (e) {} try { if (localStorage.getItem("help_seen") !== "1") helpPulse(true); } catch (e) {} }
   function start() { i = 0; tut.hidden = false; show(); }
   window.startTour = start;
@@ -2060,7 +2081,7 @@ function openHelp(id) {
   document.getElementById("help-btn").onclick = () => openHelp();
   addEventListener("resize", () => { if (!tut.hidden) show(); });
   let done = false; try { done = localStorage.getItem("tut_done") === "1"; } catch (e) {}
-  if (!done && !LIVE && !/[?&]edit=1/.test(location.search)) setTimeout(start, 1800);
+  if (!done && !LIVE && !/[?&]edit=1/.test(location.search)) { if (!SHARED_R && !/[?&]shop=/.test(location.search)) setTimeout(showWelcome, 1500); }
   else { try { if (localStorage.getItem("help_seen") !== "1" && (+localStorage.getItem("slide_n") || 0) <= 6) setTimeout(() => helpPulse(true), 800); } catch (e) {} }
 })();
 
