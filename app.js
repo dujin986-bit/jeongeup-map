@@ -2039,7 +2039,7 @@ const SFX_GAIN = { open: 0.7, close: 0.7, on: 0.8, off: 0.8, done: 0.9, win: 1, 
 const sfxBuf = {}; let sfxLoading = false;
 function sfxLoad() {
   if (sfxLoading || !AC) return; sfxLoading = true;
-  for (const k in SFX_FILES) fetch("sounds/" + SFX_FILES[k] + ".mp3?v=187").then(r => r.arrayBuffer()).then(b => new Promise((ok, no) => AC.decodeAudioData(b, ok, no))).then(buf => { sfxBuf[k] = buf; }).catch(() => {});
+  for (const k in SFX_FILES) fetch("sounds/" + SFX_FILES[k] + ".mp3?v=188").then(r => r.arrayBuffer()).then(b => new Promise((ok, no) => AC.decodeAudioData(b, ok, no))).then(buf => { sfxBuf[k] = buf; }).catch(() => {});
 }
 function sfx(kind) {
   if (!sndOn || !AC) return;
@@ -2292,7 +2292,8 @@ function openHelp(id) {
     try { localStorage.setItem("tut_done", "1"); localStorage.setItem("welcome_done", "1"); } catch (e) {}
     try { if (localStorage.getItem("help_seen") !== "1") helpPulse(true); } catch (e) {}
   }
-  function showWelcome() { if (!wl) { start(); return; } wl.hidden = false; }
+  let afterTour = false;
+  function showWelcome() { if (!wl) { start(); return; } afterTour = true; start(); }
   window.showWelcome = showWelcome;
   if (wl) {
     document.getElementById("wl-skip").onclick = closeWelcome;
@@ -2305,7 +2306,7 @@ function openHelp(id) {
     document.getElementById("wl-chat").onclick = () => { closeWelcome(); setTimeout(() => openComm(), 250); };
     document.getElementById("wl-report").onclick = () => { closeWelcome(); setTimeout(() => document.getElementById("fab").click(), 250); };
   }
-  function end() { tut.hidden = true; hand.hidden = true; try { localStorage.setItem("tut_done", "1"); } catch (e) {} try { if (localStorage.getItem("help_seen") !== "1") helpPulse(true); } catch (e) {} }
+  function end() { tut.hidden = true; hand.hidden = true; if (afterTour && wl) { afterTour = false; wl.hidden = false; return; } try { localStorage.setItem("tut_done", "1"); } catch (e) {} try { if (localStorage.getItem("help_seen") !== "1") helpPulse(true); } catch (e) {} }
   function start() { i = 0; tut.hidden = false; show(); }
   window.startTour = start;
   document.getElementById("tut-next").onclick = () => { if (++i >= STEPS.length) end(); else show(); };
