@@ -233,8 +233,7 @@ async function drawTalk() {                       // 얘기방·지금 정읍 �
 }
 async function drawOffice() {
   const box = $("extra");
-  if (!box.dataset.o) {
-    box.dataset.o = "1";
+  if (!$("oList")) {
     const inp = "width:100%;padding:10px;font-size:16px;border:1px solid #ccc;border-radius:8px;margin-bottom:8px;box-sizing:border-box";
     box.innerHTML = `<div class="card"><b>새 행사·공지</b>
       <select id="oOff" style="${inp};margin-top:8px">${OFFICES.map(o => `<option>${esc(o.name)}</option>`).join("")}</select>
