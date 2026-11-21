@@ -521,6 +521,7 @@ async function loadShops() {
       const head = list.length > 1 ? `<div class="shop-head">이 위치에 가게 ${list.length}곳</div>` : "";
       const pop = new maplibregl.Popup({ offset: 10, maxWidth: "300px" }).setLngLat(e.lngLat)
         .setHTML(`${head}<div class="shop-list">${rows}</div>`).addTo(map);
+      if (judging) { const bar = document.getElementById("vd-bar"); if (bar) bar.hidden = true; judgePop = pop; pop.on("close", () => { if (judgePop === pop) { judgePop = null; if (judging) exitJudge(); } }); }
       hydrateRx(pop.getElement()); vdHydrate(pop.getElement());
       pop.getElement().querySelectorAll(".shop-row").forEach(row => {
         const p = list[Number(row.dataset.i)];
@@ -1866,7 +1867,7 @@ const SFX_GAIN = { open: 0.7, close: 0.7, on: 0.8, off: 0.8, done: 0.9, win: 1, 
 const sfxBuf = {}; let sfxLoading = false;
 function sfxLoad() {
   if (sfxLoading || !AC) return; sfxLoading = true;
-  for (const k in SFX_FILES) fetch("sounds/" + SFX_FILES[k] + ".mp3?v=141").then(r => r.arrayBuffer()).then(b => new Promise((ok, no) => AC.decodeAudioData(b, ok, no))).then(buf => { sfxBuf[k] = buf; }).catch(() => {});
+  for (const k in SFX_FILES) fetch("sounds/" + SFX_FILES[k] + ".mp3?v=142").then(r => r.arrayBuffer()).then(b => new Promise((ok, no) => AC.decodeAudioData(b, ok, no))).then(buf => { sfxBuf[k] = buf; }).catch(() => {});
 }
 function sfx(kind) {
   if (!sndOn || !AC) return;
@@ -2179,7 +2180,7 @@ const VD = [["again", "🔥", "또 갈 거임"], ["local", "👴", "토박이 �
 const VD_MIN = 3;                       // 이 인원 이상 모여야 비율을 공개 (한두 명 장난으로 가게가 낙인찍히지 않게)
 const VD_CAT = /음식점|카페|주점/;
 const vdHdr = { apikey: SUPABASE_KEY, Authorization: "Bearer " + SUPABASE_KEY, "Content-Type": "application/json" };
-let vdData = { day: "", t: 0, rows: {} }, judging = false;
+let vdData = { day: "", t: 0, rows: {} }, judging = false, judgePop = null;
 function vdMine() { try { const v = JSON.parse(localStorage.getItem("vd_mine") || "null"); return v && v.day === kstDay() ? v : { day: kstDay(), m: {} }; } catch (e) { return { day: kstDay(), m: {} }; } }
 function vdMineSave(v) { try { localStorage.setItem("vd_mine", JSON.stringify(v)); } catch (e) {} }
 const vdMineCount = () => Object.keys(vdMine().m).length;
@@ -2279,6 +2280,7 @@ document.addEventListener("click", async e => {
     if (prev) row[prev] = Math.max(0, row[prev] - 1); row[k]++; vdData.t = 0;
     vdRefreshAll(); shareToast(prev ? "바꿨어요!" : "알려줘서 고마워요! 커뮤니티에서 확인해 보세요");
     if (judging) exitJudge();
+    if (judgePop) { const p = judgePop; judgePop = null; setTimeout(() => p.remove(), 900); }
     loadFood(); vdLoad(true).then(vdRefreshAll);
   } catch (err) { shareToast("전송에 실패했어요. 인터넷을 확인해 주세요."); }
   finally { box.querySelectorAll(".vd-b").forEach(x => x.disabled = false); vdHydrate(box.parentNode || document); }
