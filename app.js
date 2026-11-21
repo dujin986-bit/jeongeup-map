@@ -765,6 +765,7 @@ document.getElementById("save").onclick = async () => {
     closePanel(); sfx("done");
     try { localStorage.setItem("rp_n", String((+localStorage.getItem("rp_n") || 0) + 1)); document.body.classList.add("rp-seen"); } catch (e) {}
     alert("✅ 제보가 접수됐어요!\n확인 후 지도에 표시돼요. 고마워요 🙏");
+    setTimeout(() => { if (typeof installNudge === "function") installNudge("제보가 <b>승인되면</b> 알림으로 알려 드릴 수 있어요."); }, 400);
   } catch (err) { alert(err.message); }
   btn.disabled = false; btn.textContent = "등록";
 };
@@ -1413,7 +1414,7 @@ qEl.addEventListener("blur", () => setTimeout(() => { if (document.activeElement
   const url = location.origin + location.pathname + (SHARED_R ? "?r=" + encodeURIComponent(SHARED_R) : "");   // 공유 링크로 들어왔으면 크롬으로 넘어가도 같은 제보로
   const KAKAO_OPEN = "kakaotalk://web/openExternal?url=" + encodeURIComponent(url);
   if (inapp) {            // 카톡·인스타·스레드 등 안에서 열면 안내 띠 → 외부 브라우저(크롬/사파리)로 열기
-    let hid = false; try { hid = !SHARED_R && sessionStorage.getItem("kk_bar") === "1"; } catch (e) {}
+    let hid = true;   // v156: 카톡으로 처음 들어온 사람에게는 설치 띠를 보이지 않는다 (설치는 알림이 필요한 순간에만 안내)
     if (!hid) {
       const bar = document.createElement("div"); bar.id = "kk-bar";
       bar.innerHTML = '<span>' + (SHARED_R ? '🌐 크롬·사파리로 열면 <b>더 빠르고 편해요</b>' : '🌐 크롬·사파리로 열면 앱처럼 <b>설치</b>할 수 있어요') + '</span><button id="kk-go">' + (/KAKAOTALK/i.test(ua) || android ? "브라우저로 열기" : "여는 방법 보기") + '</button><button id="kk-x" aria-label="닫기">✕</button>';
@@ -1443,6 +1444,15 @@ qEl.addEventListener("blur", () => setTimeout(() => { if (document.activeElement
     modal.hidden = false;
   }
   modal.onclick = e => { if (e.target === modal) close(); };
+  window.installNudge = msg => {                     // 알림이 필요한 순간에만, 하루 한 번, 거절하면 일주일 쉼
+    try {
+      const now = Date.now(), snooze = +localStorage.getItem("inst_snooze") || 0, last = +localStorage.getItem("inst_nudge") || 0;
+      if (now < snooze || now - last < 20 * 3600e3) return;
+      localStorage.setItem("inst_nudge", String(now));
+    } catch (e) {}
+    show(`<b>🔔 알림 받고 싶으세요?</b><p>${msg}</p><p>홈 화면에 추가하면 <b>알림으로 바로 알려 드려요.</b></p><p style="color:#666;font-size:12px">설치하지 않아도 지도는 똑같이 쓸 수 있어요.</p>`,
+      [["알림 받는 방법 보기", () => btn.click()], ["괜찮아요", () => { try { localStorage.setItem("inst_snooze", String(Date.now() + 7 * 86400e3)); } catch (e) {} close(); }]]);
+  };
   btn.onclick = async () => {
     if (ev) { ev.prompt(); try { await ev.userChoice; } catch (e) {} ev = null; return; }            // 안드로이드 크롬: 바로 설치창
     if (inapp) {
@@ -1452,7 +1462,7 @@ qEl.addEventListener("blur", () => setTimeout(() => { if (document.activeElement
       acts.push(["주소 복사", copy]);
       show(`<b>📲 앱으로 설치하기</b><p>지금 열린 화면(인스타·스레드·카카오톡 등)에서는 설치가 안 돼요.</p>` +
         (ios ? `<p>① 화면의 <b>⋯</b> 또는 <b>공유</b> 메뉴 → <b>Safari로 열기</b><br>② Safari에서 공유 버튼(□↑) → <b>홈 화면에 추가</b></p>` :
-               `<p>아래 <b>크롬으로 열기</b>를 누른 뒤, 크롬에서 다시 <b>📲 앱 설치</b>를 눌러 주세요.</p>`), acts);
+               `<p>아래 <b>크롬으로 열기</b>를 누른 뒤, 크롬에서 다시 <b>🔔 알림 받기</b>를 눌러 주세요.</p>`), acts);
     } else if (ios) {
       show(`<b>📲 홈 화면에 추가</b><p>① 아래쪽 <b>공유 버튼(□↑)</b>을 누르세요<br>② <b>홈 화면에 추가</b>를 고르세요<br>③ 오른쪽 위 <b>추가</b>를 누르면 끝!</p><p style="color:#666;font-size:12px">설치하지 않아도 지도는 똑같이 쓸 수 있어요.</p>`, []);
     } else {
@@ -1891,7 +1901,7 @@ const SFX_GAIN = { open: 0.7, close: 0.7, on: 0.8, off: 0.8, done: 0.9, win: 1, 
 const sfxBuf = {}; let sfxLoading = false;
 function sfxLoad() {
   if (sfxLoading || !AC) return; sfxLoading = true;
-  for (const k in SFX_FILES) fetch("sounds/" + SFX_FILES[k] + ".mp3?v=155").then(r => r.arrayBuffer()).then(b => new Promise((ok, no) => AC.decodeAudioData(b, ok, no))).then(buf => { sfxBuf[k] = buf; }).catch(() => {});
+  for (const k in SFX_FILES) fetch("sounds/" + SFX_FILES[k] + ".mp3?v=156").then(r => r.arrayBuffer()).then(b => new Promise((ok, no) => AC.decodeAudioData(b, ok, no))).then(buf => { sfxBuf[k] = buf; }).catch(() => {});
 }
 function sfx(kind) {
   if (!sndOn || !AC) return;
@@ -2294,6 +2304,7 @@ async function vdSubmit(id, k) {
     if (judging) exitJudge();
     if (judgePop) { const p = judgePop; judgePop = null; p.remove(); }
     loadFood(); vdLoad(true).then(vdRefreshAll);
+    setTimeout(() => { if (typeof installNudge === "function") installNudge("한 표 고마워요! 오늘의 맛집 소식과 긴급 소식을 <b>놓치지 않으려면</b>"); }, 1800);
     return true;
   } catch (err) { shareToast("전송에 실패했어요. 인터넷을 확인해 주세요."); return false; }
 }
