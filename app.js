@@ -553,7 +553,7 @@ async function loadShops() {
       if (!list.length) return;
       const rows = list.map((p, i) =>
         `<div class="shop-row" data-i="${i}"><strong>${p.brand == 1 ? "⭐ " + esc(p.bname) : esc(p.name)}</strong>${p.brand == 1 && p.bname !== p.name ? `<br><small>(${esc(p.name)})</small>` : ""}<br>${esc(catLabel(p.category))}${catLabel(p.category) ? "<br>" : ""}` +
-        `<small>${esc(p.address)}</small>` + infoHtml(p) + navLinks(p.name, p.lon, p.lat) + (p.blink ? `<a class="brand-link" href="${esc(p.blink)}" target="_blank" rel="noopener noreferrer">🔗 가게 소식 보기</a>` : "") + (VD_CAT.test(p.category || "") ? vdBlock(p.id) : "") + `<div class="shop-act">${rxHtml("shop", p.id)}</div>` + `<button class="info-btn" data-id="${esc(p.id)}" data-name="${esc(p.name)}">✏ 가게 정보 고치기 <small>인스타·영업시간 알려주기</small></button>` + (IS_LOCAL ? `<div class="edit-row">` +
+        `<small>${esc(p.address)}</small>` + infoHtml(p) + navLinks(p.name, p.lon, p.lat) + (p.blink ? `<a class="brand-link" href="${esc(p.blink)}" target="_blank" rel="noopener noreferrer">🔗 가게 소식 보기</a>` : "") + (VD_CAT.test(p.category || "") ? vdBlock(p.id) : "") + `<div class="shop-act">${rxHtml("shop", p.id)}</div>` + `<button class="info-btn" data-id="${esc(p.id)}" data-name="${esc(p.name)}">✏ 가게정보수정 <small>인스타·영업시간 알려주기</small></button>` + (IS_LOCAL ? `<div class="edit-row">` +
         `<button data-a="rename">이름 수정</button><button data-a="hide">없는 가게</button></div>` : "") + `</div>`).join("");
       const head = list.length > 1 ? `<div class="shop-head">이 위치에 가게 ${list.length}곳</div>` : "";
       const pop = new maplibregl.Popup({ offset: 10, maxWidth: "300px" }).setLngLat(e.lngLat)
@@ -2022,7 +2022,7 @@ const SFX_GAIN = { open: 0.7, close: 0.7, on: 0.8, off: 0.8, done: 0.9, win: 1, 
 const sfxBuf = {}; let sfxLoading = false;
 function sfxLoad() {
   if (sfxLoading || !AC) return; sfxLoading = true;
-  for (const k in SFX_FILES) fetch("sounds/" + SFX_FILES[k] + ".mp3?v=175").then(r => r.arrayBuffer()).then(b => new Promise((ok, no) => AC.decodeAudioData(b, ok, no))).then(buf => { sfxBuf[k] = buf; }).catch(() => {});
+  for (const k in SFX_FILES) fetch("sounds/" + SFX_FILES[k] + ".mp3?v=176").then(r => r.arrayBuffer()).then(b => new Promise((ok, no) => AC.decodeAudioData(b, ok, no))).then(buf => { sfxBuf[k] = buf; }).catch(() => {});
 }
 function sfx(kind) {
   if (!sndOn || !AC) return;
@@ -2523,18 +2523,28 @@ function openInfo(id, name) {
     <div style="margin-top:10px;text-align:center"><a href="#" id="if-other" style="font-size:13px;color:#666">이름·위치가 틀렸어요 / 없어진 가게예요</a></div></div>`;
   m.hidden = false; document.getElementById("nm-x").onclick = () => m.hidden = true;
   document.getElementById("if-other").onclick = e => { e.preventDefault(); openFix(id, name); };
-  const err = t => document.getElementById("if-err").textContent = t;
+  const err = (t, el) => { const e = document.getElementById("if-err"); e.textContent = "⚠ " + t; e.style.cssText = "color:#fff;background:#c0392b;font-size:15px;font-weight:700;padding:8px 10px;border-radius:8px;margin-bottom:8px"; e.scrollIntoView({ block: "center" }); if (el) el.focus(); };
+  const done = (ok, msg) => { m.querySelector(".nm").innerHTML = `<div style="text-align:center;padding:14px 4px"><div style="font-size:40px">${ok ? "✅" : "❌"}</div><div style="font-size:18px;font-weight:800;margin:8px 0">${ok ? "보냈어요!" : "보내지 못했어요"}</div><div style="color:#555;font-size:14px;line-height:1.5;margin-bottom:14px">${esc(msg)}</div><button id="nm-x2" style="width:100%;padding:12px;font-size:16px;background:#C83E2B;color:#fff;border:0;border-radius:10px">확인</button></div>`; document.getElementById("nm-x2").onclick = () => m.hidden = true; };
+  const v = id2 => document.getElementById(id2);
   document.getElementById("if-send").onclick = async () => {
-    const insta = normInsta(document.getElementById("if-insta").value), blog = document.getElementById("if-blog").value.trim(), phone = document.getElementById("if-phone").value.trim(), hours = document.getElementById("if-hours").value.trim();
-    if (!insta && !blog && !phone && !hours) return err("한 칸 이상 적어 주세요.");
-    if (insta && !INFO_OK.test(insta)) return err("인스타는 @아이디나 instagram.com 주소만 돼요.");
-    if (blog && !INFO_OK.test(blog)) return err("블로그는 네이버·티스토리·브런치 주소(https://)만 돼요.");
-    if (phone && !/^[0-9-]{7,20}$/.test(phone)) return err("전화번호는 숫자와 - 만 적어 주세요.");
-    let n = 0; try { const d = new Date().toDateString(), o = JSON.parse(localStorage.getItem("info_n") || "{}"); n = o.d === d ? o.n : 0; if (n >= 5) return err("오늘은 5번까지 보낼 수 있어요. 내일 또 부탁드려요 🙏"); localStorage.setItem("info_n", JSON.stringify({ d, n: n + 1 })); } catch (e) {}
-    const b = document.getElementById("if-send"); b.disabled = true;
-    let ok = false;
-    try { const r = await fetch(SUPABASE_URL + "/rest/v1/shop_info_req", { method: "POST", headers: { ...rxHdr, Prefer: "return=minimal" }, body: JSON.stringify({ shop_id: id, shop_name: name, insta: insta || null, blog: blog || null, phone: phone || null, hours: hours || null, voter: voterId() }) }); ok = r.ok; } catch (e) {}
-    m.hidden = true; alert(ok ? "알려주셔서 고마워요! 확인 후 가게에 올릴게요 🙏" : "보내지 못했어요. 잠시 뒤 다시 해 주세요.");
+    const insta = normInsta(v("if-insta").value), phone = v("if-phone").value.replace(/[\s.()]/g, ""), hours = v("if-hours").value.trim();
+    let blog = v("if-blog").value.trim(); if (blog && !/^https?:\/\//i.test(blog)) blog = "https://" + blog;
+    if (!insta && !blog && !phone && !hours) return err("한 칸 이상 적어 주세요.", v("if-insta"));
+    if (insta && !INFO_OK.test(insta)) return err("인스타는 @아이디나 instagram.com 주소만 돼요.", v("if-insta"));
+    if (blog && !/^https:\/\//i.test(blog)) return err("블로그 주소는 https:// 로 시작해야 해요.", v("if-blog"));
+    if (phone && !/^[0-9-]{7,20}$/.test(phone)) return err("전화번호는 숫자와 - 만 적어 주세요.", v("if-phone"));
+    const sig = [insta, blog, phone, hours].join("|");
+    try {
+      const d = new Date().toDateString(), o = JSON.parse(localStorage.getItem("info_n") || "{}"), n = o.d === d ? o.n : 0;
+      if (n >= 5) return err("오늘은 5번까지 보낼 수 있어요. 내일 또 부탁드려요 🙏");
+      const last = JSON.parse(localStorage.getItem("info_last") || "{}");
+      if (last[id] === sig) return done(true, "같은 내용을 이미 보내셨어요. 확인 후 가게에 올릴게요.");
+      localStorage.setItem("info_n", JSON.stringify({ d, n: n + 1 })); last[id] = sig; localStorage.setItem("info_last", JSON.stringify(last));
+    } catch (e) {}
+    const b = v("if-send"); b.disabled = true; b.textContent = "보내는 중…";
+    let ok = false, why = "";
+    try { const r = await fetch(SUPABASE_URL + "/rest/v1/shop_info_req", { method: "POST", headers: { ...rxHdr, Prefer: "return=minimal" }, body: JSON.stringify({ shop_id: id, shop_name: name, insta: insta || null, blog: blog || null, phone: phone || null, hours: hours || null, voter: voterId() }) }); ok = r.ok; if (!ok) why = "서버 응답 " + r.status + " " + (await r.text().catch(() => "")).slice(0, 80); } catch (e) { why = "인터넷 연결을 확인해 주세요."; }
+    done(ok, ok ? "관리자가 확인한 뒤 가게에 올라가요. 고맙습니다 🙏" : why || "잠시 뒤 다시 해 주세요.");
   };
 }
 function openFix(id, name) {

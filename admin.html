@@ -81,10 +81,10 @@
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.js"></script>
-<script src="data.js?v=175"></script>
+<script src="data.js?v=176"></script>
 <script>
 const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
-const TABS = [["pending", "대기"], ["approved", "승인됨"], ["hidden", "숨김"], ["notice", "공지"], ["wx", "날씨"], ["fix", "수정요청"], ["info", "가게정보"], ["fb", "고쳐줘"], ["talk", "얘기방"], ["log", "편집기록"], ["map", "지도 수정 ↗"]];
+const TABS = [["info", "가게정보"], ["pending", "대기"], ["approved", "승인됨"], ["hidden", "숨김"], ["notice", "공지"], ["wx", "날씨"], ["fix", "수정요청"], ["fb", "고쳐줘"], ["talk", "얘기방"], ["log", "편집기록"], ["map", "지도 수정 ↗"]];
 let tab = "pending", rows = [];
 const $ = id => document.getElementById(id);
 const esc = s => String(s == null ? "" : s).replace(/[&<>"']/g, c => ({ "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;" }[c]));
@@ -187,6 +187,8 @@ async function drawWx() {
 }
 
 let fbNew = 0;
+let infoNew = 0;
+async function loadInfoCount() { try { const { count } = await sb.from("shop_info_req").select("id", { count: "exact", head: true }).eq("status", "pending"); infoNew = count || 0; const t = document.querySelector('.tab[data-k="info"]'); if (t) t.textContent = "가게정보" + (infoNew ? " 🔴" + infoNew : ""); } catch (e) {} }
 async function loadFbCount() { try { const { count } = await sb.from("feedback").select("id", { count: "exact", head: true }).eq("status", "new"); fbNew = count || 0; const t = document.querySelector('.tab[data-k="fb"]'); if (t) t.textContent = "고쳐줘" + (fbNew ? " 🔴" + fbNew : ""); } catch (e) {} }
 async function drawFb() {
   const box = $("extra"); delete box.dataset.n;
@@ -249,7 +251,7 @@ async function drawInfo() {
         const { error: e1 } = await sb.from("shop_edits").upsert(patch);
         if (e1) { alert("올리기 실패: " + e1.message); return; }
       }
-      await sb.from("shop_info_req").update({ status: b.dataset.a === "ok" ? "done" : "rejected" }).eq("id", r.id); drawInfo();
+      await sb.from("shop_info_req").update({ status: b.dataset.a === "ok" ? "done" : "rejected" }).eq("id", r.id); drawInfo(); loadInfoCount();
     });
     box.appendChild(el);
   }
@@ -270,7 +272,7 @@ async function drawFix() {
 }
 
 function start() {
-  setTimeout(loadFbCount, 800);
+  setTimeout(loadFbCount, 800); setTimeout(loadInfoCount, 900); setInterval(loadInfoCount, 30000);
   cleanupPhotos(false);
   $("login").hidden = true; $("app").hidden = false;
   $("tabs").innerHTML = "";
@@ -306,7 +308,7 @@ async function load() {
 
 function draw() {
   const counts = {}; rows.forEach(r => counts[r.status] = (counts[r.status] || 0) + 1);
-  document.querySelectorAll(".tab[data-k]").forEach(t => { const k = t.dataset.k; t.textContent = TABS.find(x => x[0] === k)[1] + (["pending","approved","hidden"].includes(k) ? " " + (counts[k] || 0) : k === "fb" && fbNew ? " 🔴" + fbNew : ""); });
+  document.querySelectorAll(".tab[data-k]").forEach(t => { const k = t.dataset.k; t.textContent = TABS.find(x => x[0] === k)[1] + (["pending","approved","hidden"].includes(k) ? " " + (counts[k] || 0) : k === "fb" && fbNew ? " 🔴" + fbNew : k === "info" && infoNew ? " 🔴" + infoNew : ""); });
   const ext = ["notice", "log", "wx", "fix", "info", "fb", "talk"].includes(tab);
   $("list").hidden = ext; $("mapedit").hidden = true; $("extra").hidden = !ext;
   if (tab === "notice") { drawNotice(); return; }
