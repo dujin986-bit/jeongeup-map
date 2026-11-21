@@ -1548,8 +1548,11 @@ let commTab = "chat";
   }
   function fit() {   // 아래 시트가 올라와 칸과 닿으면 숨김
     const vis = parseFloat(getComputedStyle(document.documentElement).getPropertyValue("--sheet-vis")) || 0;
-    const r = root.getBoundingClientRect();
-    root.classList.toggle("clash", r.bottom > innerHeight - vis - 6);
+    const ob = document.getElementById("op-btn");
+    if (ob && ob.offsetParent !== null) { const t = Math.round(ob.getBoundingClientRect().bottom + 8); if (root.dataset.t !== String(t)) { root.dataset.t = String(t); root.style.top = t + "px"; } }
+    const h = root.offsetHeight;   // 숨겨도 높이는 그대로라 깜박이지 않음
+    const clash = root.offsetTop + h > innerHeight - vis - 6;
+    if (clash !== root.classList.contains("clash")) root.classList.toggle("clash", clash);
   }
   layout(); draw([]); load();
   setInterval(() => { if (!document.hidden) { load(); } }, 30000);
@@ -1991,7 +1994,7 @@ const SFX_GAIN = { open: 0.7, close: 0.7, on: 0.8, off: 0.8, done: 0.9, win: 1, 
 const sfxBuf = {}; let sfxLoading = false;
 function sfxLoad() {
   if (sfxLoading || !AC) return; sfxLoading = true;
-  for (const k in SFX_FILES) fetch("sounds/" + SFX_FILES[k] + ".mp3?v=165").then(r => r.arrayBuffer()).then(b => new Promise((ok, no) => AC.decodeAudioData(b, ok, no))).then(buf => { sfxBuf[k] = buf; }).catch(() => {});
+  for (const k in SFX_FILES) fetch("sounds/" + SFX_FILES[k] + ".mp3?v=166").then(r => r.arrayBuffer()).then(b => new Promise((ok, no) => AC.decodeAudioData(b, ok, no))).then(buf => { sfxBuf[k] = buf; }).catch(() => {});
 }
 function sfx(kind) {
   if (!sndOn || !AC) return;

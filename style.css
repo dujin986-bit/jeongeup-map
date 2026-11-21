@@ -961,5 +961,6 @@ body.live #op-btn, body.tools-open #op-btn, body.rp-pick #op-btn, body.rp-form #
 #cf .cf-m b { color: #ffd98a; }
 #cf .cf-m.new { animation: cfIn .6s ease-out; }
 @keyframes cfIn { from { transform: translateY(-14px); opacity: 0; } to { transform: none; opacity: 1; } }
-body.live #cf, body.tools-open #cf, body.rp-pick #cf, body.rp-form #cf, body.editing #cf, body.sheet-full #cf, body.judging #cf, #cf.clash { display: none !important; }
+body.live #cf, body.tools-open #cf, body.rp-pick #cf, body.rp-form #cf, body.editing #cf, body.sheet-full #cf, body.judging #cf { display: none !important; }
+#cf.clash { visibility: hidden; }
 @media (prefers-reduced-motion: reduce) { #cf .cf-m.new { animation: none; } }
