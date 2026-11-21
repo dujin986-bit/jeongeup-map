@@ -1887,7 +1887,7 @@ const SFX_GAIN = { open: 0.7, close: 0.7, on: 0.8, off: 0.8, done: 0.9, win: 1, 
 const sfxBuf = {}; let sfxLoading = false;
 function sfxLoad() {
   if (sfxLoading || !AC) return; sfxLoading = true;
-  for (const k in SFX_FILES) fetch("sounds/" + SFX_FILES[k] + ".mp3?v=152").then(r => r.arrayBuffer()).then(b => new Promise((ok, no) => AC.decodeAudioData(b, ok, no))).then(buf => { sfxBuf[k] = buf; }).catch(() => {});
+  for (const k in SFX_FILES) fetch("sounds/" + SFX_FILES[k] + ".mp3?v=153").then(r => r.arrayBuffer()).then(b => new Promise((ok, no) => AC.decodeAudioData(b, ok, no))).then(buf => { sfxBuf[k] = buf; }).catch(() => {});
 }
 function sfx(kind) {
   if (!sndOn || !AC) return;
@@ -2435,7 +2435,7 @@ if (new URLSearchParams(location.search).get("debug") === "1") {
 const SLIDE_N = (() => { try { const n = (+localStorage.getItem("slide_n") || 0) + 1; localStorage.setItem("slide_n", n); return n; } catch (e) { return 1; } })();
 const SLIDE_LEARNED = SLIDE_N > 6;     // 여섯 번 넘게 쓰셨으면 안내 글씨를 짧게
 const toolsTxt = on => on ? "▴ 접기" : "▾ 더 보기 · 설정";
-let toolsClose = () => {}, toolsToggle = () => {};
+let toolsClose = () => {}, toolsToggle = () => {}, prevSheet = null;
 (function toolsDrawer() {
   const g = document.getElementById("tools-grab"), tx = document.getElementById("tools-grab-t"); if (!g || LIVE) return;
   const top = document.getElementById("top"), body = document.body;
@@ -2452,6 +2452,7 @@ let toolsClose = () => {}, toolsToggle = () => {};
     on = !!on; if (on === state) return;
     settle(); state = on; sfx(on ? "open" : "close");
     g.setAttribute("aria-expanded", on ? "true" : "false"); tx.textContent = toolsTxt(on);
+    try { if (on) { prevSheet = foodSheet.level(); if (prevSheet !== 0) foodSheet.setLevel(0, false); } else if (prevSheet != null) { const p = prevSheet; prevSheet = null; if (foodSheet.level() === 0 && p !== 0) foodSheet.setLevel(p, false); } } catch (e) {}   // 설정을 열면 시트는 내려가고, 닫으면 원래 높이로
     if (calm) { body.classList.toggle("tools-open", on); return; }
     const h0 = top.getBoundingClientRect().height;
     let h1;

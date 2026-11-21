@@ -895,3 +895,6 @@ body.tools-open #shop-sub.open { display: flex; }
 #filters-hint { font-size: 12.5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 #shop-chip::after { content: " ▾"; font-size: 11px; }
 #shop-chip.open::after { content: " ▴"; }
+/* v153 설정 안 버튼은 늘어나지 않게 (커뮤니티도 작은 버튼) */
+body.tools-open #top #comm-btn { flex: none; min-height: 36px; font-size: 14px; font-weight: 700; border-radius: 16px; padding: 0 12px; }
+body.tools-open #tools > .chip { flex: none; width: auto; }
