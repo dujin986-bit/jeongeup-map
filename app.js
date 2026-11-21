@@ -1833,7 +1833,7 @@ const SFX_GAIN = { open: 0.7, close: 0.7, on: 0.8, off: 0.8, done: 0.9, win: 1, 
 const sfxBuf = {}; let sfxLoading = false;
 function sfxLoad() {
   if (sfxLoading || !AC) return; sfxLoading = true;
-  for (const k in SFX_FILES) fetch("sounds/" + SFX_FILES[k] + ".mp3?v=133").then(r => r.arrayBuffer()).then(b => new Promise((ok, no) => AC.decodeAudioData(b, ok, no))).then(buf => { sfxBuf[k] = buf; }).catch(() => {});
+  for (const k in SFX_FILES) fetch("sounds/" + SFX_FILES[k] + ".mp3?v=134").then(r => r.arrayBuffer()).then(b => new Promise((ok, no) => AC.decodeAudioData(b, ok, no))).then(buf => { sfxBuf[k] = buf; }).catch(() => {});
 }
 function sfx(kind) {
   if (!sndOn || !AC) return;
@@ -2380,7 +2380,7 @@ const foodSheet = (function () {
   const head = el.querySelector("#fs-head"), mid = el.querySelector("#fs-mid"), bodyEl = el.querySelector("#fs-body");
   const verEl = document.getElementById("ver"); if (verEl) head.appendChild(verEl);   // 버전 글씨가 시트에 가려지지 않게 손잡이 줄 왼쪽으로
   let lvl = 0, dragging = false, y0 = 0, off0 = 0, curOff = 0, moved = 0, t0 = 0, ignoreClick = false;   // lvl: 0 접힘 · 1 반쯤 · 2 끝까지
-  const peek = () => head.offsetHeight;
+  const peek = () => { const ic = el.querySelector(".fm-ic"); return head.offsetHeight + (ic ? ic.offsetHeight + 16 + mid.querySelector(".fm-hd").offsetHeight : 0); };   // 접혀도 첫 아이콘 줄까지 걸쳐 보이게
   const closedOff = () => Math.max(0, el.offsetHeight - peek());
   const halfOff = () => Math.max(0, Math.min(closedOff(), el.offsetHeight - peek() - mid.offsetHeight - 14));
   const offs = () => [closedOff(), halfOff(), 0];
@@ -2439,7 +2439,7 @@ const foodSheet = (function () {
   }, 300);
   addEventListener("resize", () => { if (!dragging) apply(offs()[lvl], false); });
   let init = LIVE ? 0 : 1;                      // 처음 5번 방문까지는 반쯤 열어 두고, 그 뒤에는 마지막에 둔 상태로 시작
-  try { const n = +localStorage.getItem("visit_n") || 1; if (!LIVE && n > 5 && localStorage.getItem("sheet_lvl") === "0") init = 0; } catch (e) {}
+  try { const n = +localStorage.getItem("visit_n") || 1;  } catch (e) {}
   const settle = () => { if (dragging) return; lvl = init; el.classList.toggle("half", lvl === 1); const hn = document.getElementById("fs-hint"); if (hn) hn.textContent = hintTxt(lvl); apply(offs()[lvl], false); };
   requestAnimationFrame(settle); setTimeout(() => { if (lvl === init) settle(); }, 800);
   return { set(v) { v ? setLevel(2, false, true) : setLevel(0); }, setLevel, isOpen: () => lvl === 2, level: () => lvl,
