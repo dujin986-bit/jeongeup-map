@@ -2039,7 +2039,7 @@ const SFX_GAIN = { open: 0.7, close: 0.7, on: 0.8, off: 0.8, done: 0.9, win: 1, 
 const sfxBuf = {}; let sfxLoading = false;
 function sfxLoad() {
   if (sfxLoading || !AC) return; sfxLoading = true;
-  for (const k in SFX_FILES) fetch("sounds/" + SFX_FILES[k] + ".mp3?v=186").then(r => r.arrayBuffer()).then(b => new Promise((ok, no) => AC.decodeAudioData(b, ok, no))).then(buf => { sfxBuf[k] = buf; }).catch(() => {});
+  for (const k in SFX_FILES) fetch("sounds/" + SFX_FILES[k] + ".mp3?v=187").then(r => r.arrayBuffer()).then(b => new Promise((ok, no) => AC.decodeAudioData(b, ok, no))).then(buf => { sfxBuf[k] = buf; }).catch(() => {});
 }
 function sfx(kind) {
   if (!sndOn || !AC) return;
@@ -2270,7 +2270,8 @@ function openHelp(id) {
   const helpVisible = () => { const e = document.getElementById("help-ctl"); if (!e) return false; const b = e.getBoundingClientRect(); return b.width > 0 && b.left >= 0 && b.right <= innerWidth && b.top >= 0 && b.bottom <= innerHeight; };
   const STEPS = [
     { t: "어서 와요! 👋<br>정읍에서 <b>지금 무슨 일이 있는지</b> 한눈에 볼 수 있어요.", r: () => rectOf("top") },
-    { t: "지도 위 <b>점을 직접 눌러보세요.</b><br>가게 정보나 이웃 소식이 떠요.", r: center, hand: true },
+    { t: "지도 위 <b>점을 직접 눌러보세요.</b><br>가게 정보와 이웃 추천이 떠요.", r: center, hand: true },
+    { t: "💬 <b>실시간 채팅</b>에서 이웃과 얘기하고,<br>📣 <b>제보하기</b>로 지금 보이는 걸 알려주세요.", r: () => rectOf("top") },
     { t: () => helpVisible() ? "어려운 건 오른쪽 위 <b>🙋 도움말</b>에서 알려드려요.<br>제보하는 법, 소리, 알림까지 한곳에 있어요." : "어려운 건 <b>🙋 도움말</b>에서 알려드려요.<br>제보하는 법, 소리, 알림까지 한곳에 있어요.", r: () => helpVisible() ? rectOf("help-ctl") : rectOf("top") },
   ];
   let i = 0;
@@ -2301,6 +2302,7 @@ function openHelp(id) {
       setTimeout(() => { if (live.length) focusReport(live[0]); else openComm(); }, 250);
     };
     document.getElementById("wl-food").onclick = () => { closeWelcome(); setTimeout(() => foodSheet.set(true), 260); };
+    document.getElementById("wl-chat").onclick = () => { closeWelcome(); setTimeout(() => openComm(), 250); };
     document.getElementById("wl-report").onclick = () => { closeWelcome(); setTimeout(() => document.getElementById("fab").click(), 250); };
   }
   function end() { tut.hidden = true; hand.hidden = true; try { localStorage.setItem("tut_done", "1"); } catch (e) {} try { if (localStorage.getItem("help_seen") !== "1") helpPulse(true); } catch (e) {} }

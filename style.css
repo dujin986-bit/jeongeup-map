@@ -1052,3 +1052,8 @@ body.pop-open #op-btn, body.pop-open #cf { display: none !important; }
 /* v186 위로 올라가며 흐름 (채팅 화면과 같은 방향) */
 @keyframes cfFlow { from { transform: translateY(0); } to { transform: translateY(-50%); } }
 #cf .cf-box { -webkit-mask-image: linear-gradient(transparent, #000 30%); mask-image: linear-gradient(transparent, #000 30%); }
+
+/* v187 환영 카드: 작은 버튼 2개 한 줄 */
+.wl-row{display:flex;gap:10px;margin-bottom:10px}
+.wl-row .wl-btn.wl-sm{margin-bottom:0;flex:1;grid-template-columns:34px 1fr;padding:10px;min-height:56px;column-gap:6px}
+.wl-sm span{font-size:24px}.wl-sm b{font-size:16px}.wl-sm small{font-size:12px}
