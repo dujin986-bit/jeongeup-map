@@ -776,3 +776,35 @@ body:not(.tools-open):not(.live) #tools > #share-btn { display: none; }
 #wl-report { background: var(--brand); border-color: var(--brand); color: #fff; }
 #wl-report small { color: rgba(255,255,255,.85); }
 #wl-skip { width: 100%; background: none; border: 0; font-size: 15px; font-weight: 700; color: var(--muted); padding: 10px; font-family: inherit; cursor: pointer; min-height: 44px; }
+
+/* v132 바텀시트 3단계(접힘·반쯤·끝까지) + 지금 정읍 소식 전광판 + 종류 게시판 */
+#fab { bottom: calc(var(--sheet-vis, 52px) + 12px); transition: bottom .3s cubic-bezier(.22,.8,.3,1); }
+.maplibregl-ctrl-bottom-left, .maplibregl-ctrl-bottom-right { bottom: calc(var(--sheet-vis, 46px) + 12px); transition: bottom .3s cubic-bezier(.22,.8,.3,1); }
+#fs-mid { padding: 2px 0 10px; border-bottom: 1px solid var(--line); margin-bottom: 12px; }
+.fm-hd { display: flex; justify-content: space-between; align-items: center; padding: 4px 2px 8px; touch-action: none; }
+.fm-hd b { font-size: 18px; font-weight: 800; }
+.fm-hd span { font-size: 13px; color: var(--muted); }
+#fm-icons { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px 4px; margin-bottom: 12px; }
+.fm-ic { background: none; border: 0; padding: 0; font-family: inherit; color: var(--ink); cursor: pointer; text-align: center; -webkit-tap-highlight-color: transparent; }
+.fm-ic span { display: flex; width: 52px; height: 52px; margin: 0 auto 4px; border-radius: 16px; background: var(--bg); border: 1px solid var(--line); align-items: center; justify-content: center; font-size: 28px; line-height: 1; }
+.fm-ic:active span { transform: scale(.94); }
+.fm-ic b { font-size: 13px; font-weight: 700; }
+#fm-news-t { font-size: 13px; font-weight: 800; color: var(--muted); margin: 2px 2px 4px; }
+#fm-news { height: 108px; overflow: hidden; border-radius: 12px; background: var(--bg); border: 1px solid var(--line); position: relative; }
+.fm-row { height: 36px; box-sizing: border-box; display: flex; align-items: center; gap: 8px; padding: 0 12px; cursor: pointer; }
+.fm-row span { font-size: 18px; flex: none; }
+.fm-row b { flex: 1; min-width: 0; font-size: 15px; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.fm-row small { flex: none; font-size: 12px; color: var(--muted); }
+.fm-empty { height: 100%; display: flex; align-items: center; justify-content: center; font-size: 14px; color: var(--muted); }
+#fm-news.roll .fm-track { animation: fmRoll calc(var(--n) * 3s) linear infinite; }
+#fm-news:active .fm-track { animation-play-state: paused; }
+@keyframes fmRoll { to { transform: translateY(calc(var(--n) * -36px)); } }
+.bd-hd { display: flex; align-items: center; gap: 8px; margin: 2px 0 10px; font-size: 18px; }
+.bd-hd .cat-badge { font-size: 15px; font-weight: 800; padding: 4px 12px; border-radius: 999px; }
+.bd-past-t { font-size: 14px; font-weight: 800; color: var(--muted); margin: 16px 2px 8px; padding-top: 10px; border-top: 1px dashed var(--line); }
+.bd-past-t small { font-weight: 500; }
+.comm-card.past { opacity: .6; }
+.exp-badge.done { color: var(--muted); background: var(--track); }
+.bd-act { position: sticky; bottom: -12px; display: flex; gap: 8px; padding: 10px 0 12px; background: var(--bg); margin-top: 8px; }
+.bd-act .chip { flex: 1; min-height: 46px; font-size: 15px; font-weight: 800; justify-content: center; }
+#bd-add { background: var(--brand) !important; border-color: var(--brand) !important; color: #fff !important; }

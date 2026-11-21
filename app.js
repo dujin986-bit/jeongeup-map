@@ -77,6 +77,7 @@ const store = (list) => { try { localStorage.setItem(STORE_KEY, JSON.stringify(l
 const LIVE = new URLSearchParams(location.search).get("live") === "1";   // 방송 모드
 if (LIVE) document.body.classList.add("live");
 const IS_LOCAL = ["localhost", "127.0.0.1", "[::1]"].includes(location.hostname) && new URLSearchParams(location.search).get("public") !== "1";   // 내 PC에서만 가게 수정 가능 (?public=1 이면 일반 손님 화면)
+let pastReports = [];            // 최근 7일 안에 마감된 제보 (종류 게시판의 "지난 소식")
 let reports = [];                // 시민 제보: 서버(Supabase)에서 승인된 것만 받아옴
 let activeCats = new Set(Object.keys(CATEGORIES));
 let markers = [];
@@ -720,6 +721,8 @@ async function fetchReports() {
       { headers: { apikey: SUPABASE_KEY, Authorization: "Bearer " + SUPABASE_KEY } });
     if (!res.ok) return false;
     const rows = await res.json();
+    pastReports = rows.filter(r => CATEGORIES[r.category] && reportExpMs(r.created_at, r.category, r.expires_at) <= Date.now() && Date.now() - new Date(r.created_at).getTime() < 7 * 864e5).map(r => ({
+      id: r.id, title: r.title, desc: r.description || "", cat: r.category, coord: [r.lon, r.lat], ts: r.created_at, exp: r.expires_at || null }));
     const next = rows.filter(r => CATEGORIES[r.category] && reportExpMs(r.created_at, r.category, r.expires_at) > Date.now()).map(r => ({
       id: r.id, title: r.title, desc: r.description || "", cat: r.category,
       coord: [r.lon, r.lat], ts: r.created_at, exp: r.expires_at || null, photo: r.photo_url || "" }));
@@ -729,7 +732,7 @@ async function fetchReports() {
     next.forEach(r => knownIds.add(r.id));
     if (JSON.stringify(next) === JSON.stringify(reports)) { openShared(); return true; }   // 변화 없으면 다시 그리지 않음(열린 팝업 유지)
     reports = next;
-    render(); openShared();
+    render(); openShared(); if (typeof renderSheetNews === "function") renderSheetNews();
     if (LIVE && !firstLoad && fresh.length) showReport(fresh[0]);
     return true;
   } catch (e) { return false; }
@@ -1552,6 +1555,7 @@ function renderComm() {
   if (!commBody) return;
   if (commTab !== "chat" && commTab !== "ask") talkStop();
   if (commTab === "chat" || commTab === "ask") { renderTalk(); return; }
+  if (commTab === "board") { renderBoard(); return; }
   if (commTab === "fb") { renderFeedbackForm(); return; }
   if (commTab !== "news") {
     const s = SOON[commTab];
@@ -1621,7 +1625,7 @@ function stopExp() { if (expTimer) { clearInterval(expTimer); expTimer = 0; } }
 document.addEventListener("visibilitychange", () => { if (document.hidden) stopExp(); else if (commEl && !commEl.hidden) startExp(); });
 let commPushed = false, ignorePop = false, jgReady = false;   // 커뮤니티 전용 뒤로가기 기록
 function openComm() { if (jgReady && !commPushed) { try { history.pushState({ jg: 2 }, ""); commPushed = true; } catch (e) {} } renderComm(); commEl.hidden = false; startExp(); requestAnimationFrame(() => commEl.classList.add("open")); document.body.style.overflow = "hidden"; fetchReports(); }
-function closeComm(fromPop) { if (commPushed && fromPop !== true) { commPushed = false; ignorePop = true; try { history.back(); } catch (e) { ignorePop = false; } } talkStop(); stopExp(); commEl.classList.remove("open"); setTimeout(() => { commEl.hidden = true; }, 220); document.body.style.overflow = ""; }
+function closeComm(fromPop) { if (commTab === "board") { commTab = "news"; document.querySelectorAll("#comm-tabs button").forEach(x => x.classList.toggle("on", x.dataset.t === "news")); } if (commPushed && fromPop !== true) { commPushed = false; ignorePop = true; try { history.back(); } catch (e) { ignorePop = false; } } talkStop(); stopExp(); commEl.classList.remove("open"); setTimeout(() => { commEl.hidden = true; }, 220); document.body.style.overflow = ""; }
 if (commEl) {
   document.getElementById("comm-btn").onclick = openComm;
   document.getElementById("comm-back").onclick = closeComm;
@@ -1814,7 +1818,7 @@ const SFX_GAIN = { open: 0.7, close: 0.7, on: 0.8, off: 0.8, done: 0.9, win: 1, 
 const sfxBuf = {}; let sfxLoading = false;
 function sfxLoad() {
   if (sfxLoading || !AC) return; sfxLoading = true;
-  for (const k in SFX_FILES) fetch("sounds/" + SFX_FILES[k] + ".mp3?v=131").then(r => r.arrayBuffer()).then(b => new Promise((ok, no) => AC.decodeAudioData(b, ok, no))).then(buf => { sfxBuf[k] = buf; }).catch(() => {});
+  for (const k in SFX_FILES) fetch("sounds/" + SFX_FILES[k] + ".mp3?v=132").then(r => r.arrayBuffer()).then(b => new Promise((ok, no) => AC.decodeAudioData(b, ok, no))).then(buf => { sfxBuf[k] = buf; }).catch(() => {});
 }
 function sfx(kind) {
   if (!sndOn || !AC) return;
@@ -2259,7 +2263,7 @@ function openFix(id, name) {
       if (vis("notice-modal")) { document.getElementById("notice-modal").hidden = true; return true; }
       if (vis("ed-sheet")) { edClose(); return true; }
       if (!commEl.hidden) { closeComm(); return true; }
-      if (foodSheet.isOpen()) { foodSheet.set(false); return true; }
+      if (foodSheet.isOpen()) { foodSheet.setLevel(1); return true; }
       if (rpStep !== "none" || !panel.hidden) { closePanel(); return true; }
       if (document.body.classList.contains("tools-open")) { toolsClose(); return true; }
       if (vis("feed")) { document.getElementById("feed").hidden = true; return true; }
@@ -2352,50 +2356,151 @@ let toolsClose = () => {}, toolsToggle = () => {};
 
 // ===== 🍚 오늘의 맛집 바텀시트 (아래에서 슬라이드로 올라옴 · 손가락을 따라 움직임) =====
 const foodSheet = (function () {
-  const hintTxt = o => SLIDE_LEARNED ? (o ? "▾ 접기" : "▴ 더보기") : (o ? "▾ 아래로 밀어 접기" : "▴ 위로 밀어 보기");
+  const hintTxt = l => l ? "▾ 접기" : "▴ 더보기";
   const el = document.createElement("div"); el.id = "food-sheet";
-  el.innerHTML = `<div id="fs-head"><i class="fs-grab"></i><div id="fs-sum">🍚 오늘의 맛집 · 불러오는 중…</div><span id="fs-hint">${hintTxt(false)}</span></div>` +
-    `<div id="fs-body"><div class="food-hd"><b>🍚 오늘의 맛집 TOP 3</b><span id="food-total"></span></div><div id="food-clock"></div><div id="food-list">불러오는 중…</div>` +
-    `<button id="food-vote" class="chip">📍 지도에서 내가 아는 가게 판정하기</button><button id="food-roulette" class="chip">🎰 오늘 뭐 먹지? 룰렛 돌리기</button><div id="food-yday"></div></div>`;
+  const icons = Object.entries(CATEGORIES).map(([k, c]) => `<button class="fm-ic" data-k="${k}"><span>${c.icon}</span><b>${c.label}</b></button>`).join("") +
+    `<button class="fm-ic" data-k="food"><span>🍚</span><b>맛집</b></button><button class="fm-ic" data-k="comm"><span>💬</span><b>커뮤니티</b></button><button class="fm-ic" data-k="more"><span>⋯</span><b>더보기</b></button>`;
+  el.innerHTML = `<div id="fs-head"><i class="fs-grab"></i><div id="fs-sum">🍚 오늘의 맛집 · 불러오는 중…</div><span id="fs-hint">${hintTxt(0)}</span></div>` +
+    `<div id="fs-body"><div id="fs-mid"><div class="fm-hd"><b>지금 정읍</b><span id="fm-wx"></span></div><div id="fm-icons">${icons}</div><div id="fm-news-t">지금 정읍 소식</div><div id="fm-news"></div></div>` +
+    `<div id="food-sec"><div class="food-hd"><b>🍚 오늘의 맛집 TOP 3</b><span id="food-total"></span></div><div id="food-clock"></div><div id="food-list">불러오는 중…</div>` +
+    `<button id="food-vote" class="chip">📍 지도에서 내가 아는 가게 판정하기</button><button id="food-roulette" class="chip">🎰 오늘 뭐 먹지? 룰렛 돌리기</button><div id="food-yday"></div></div></div>`;
   document.body.appendChild(el);
-  const head = el.querySelector("#fs-head");
+  const head = el.querySelector("#fs-head"), mid = el.querySelector("#fs-mid"), bodyEl = el.querySelector("#fs-body");
   const verEl = document.getElementById("ver"); if (verEl) head.appendChild(verEl);   // 버전 글씨가 시트에 가려지지 않게 손잡이 줄 왼쪽으로
-  let open = false, dragging = false, y0 = 0, off0 = 0, curOff = 0, moved = 0, t0 = 0;
+  let lvl = 0, dragging = false, y0 = 0, off0 = 0, curOff = 0, moved = 0, t0 = 0, ignoreClick = false;   // lvl: 0 접힘 · 1 반쯤 · 2 끝까지
   const peek = () => head.offsetHeight;
   const closedOff = () => Math.max(0, el.offsetHeight - peek());
-  function apply(off, anim) { el.style.transition = anim ? "transform .3s cubic-bezier(.22,.8,.3,1)" : "none"; el.style.transform = "translateY(" + off + "px)"; curOff = off; }
-  function set(v) { open = !!v; el.classList.toggle("open", open); const hn = document.getElementById("fs-hint"); if (hn) hn.textContent = hintTxt(open); apply(open ? 0 : closedOff(), true); if (open) { sfx("open"); if (typeof loadFood === "function") loadFood(); } else if (v === false) sfx("close"); }
-  head.addEventListener("touchstart", e => { if (e.touches.length !== 1) return; dragging = true; moved = 0; y0 = e.touches[0].clientY; t0 = Date.now(); off0 = open ? 0 : closedOff(); apply(off0, false); }, { passive: true });
-  head.addEventListener("touchmove", e => { if (!dragging) return; const dy = e.touches[0].clientY - y0; moved = Math.max(moved, Math.abs(dy)); apply(Math.min(closedOff(), Math.max(0, off0 + dy)), false); }, { passive: true });
-  const end = () => { if (!dragging) return; dragging = false; if (moved < 6) return;
-    const v = (curOff - off0) / Math.max(1, Date.now() - t0);                      // 아래로 빠르게 쓸면 +, 위로 빠르게 쓸면 -
-    set(Math.abs(v) > 0.4 ? v < 0 : curOff < closedOff() / 2); ignoreClick = true; setTimeout(() => ignoreClick = false, 50); };
-  let ignoreClick = false;
-  head.addEventListener("touchend", end); head.addEventListener("touchcancel", end);
-  head.addEventListener("click", () => { if (ignoreClick) return; set(!open); });
-  if (SLIDE_N <= 3 && !matchMedia("(prefers-reduced-motion: reduce)").matches) setTimeout(() => {   // "끌어올리는 곳"이라고 몸으로 알려주기
-    const bump = k => { if (open || dragging || el.classList.contains("away")) return; apply(Math.max(0, closedOff() - 18), true); setTimeout(() => { if (!open && !dragging) apply(closedOff(), true); }, 260); if (k) setTimeout(() => bump(0), 620); };
+  const halfOff = () => Math.max(0, Math.min(closedOff(), el.offsetHeight - peek() - mid.offsetHeight - 14));
+  const offs = () => [closedOff(), halfOff(), 0];
+  function apply(off, anim) {
+    el.style.transition = anim ? "transform .3s cubic-bezier(.22,.8,.3,1)" : "none"; el.style.transform = "translateY(" + off + "px)"; curOff = off;
+    document.documentElement.style.setProperty("--sheet-vis", Math.max(0, el.offsetHeight - off) + "px");   // 제보 버튼 등이 시트 위로 올라가게
+  }
+  function setLevel(n, user, toFood) {
+    n = Math.max(0, Math.min(2, n)); const prev = lvl; lvl = n;
+    el.classList.toggle("open", n === 2); el.classList.toggle("half", n === 1);
+    const hn = document.getElementById("fs-hint"); if (hn) hn.textContent = hintTxt(n);
+    apply(offs()[n], true);
+    if (n !== prev) sfx(n > prev ? "open" : "close");
+    if (n !== 2) bodyEl.scrollTop = 0;                 // 접거나 반쯤으로 돌아오면 맨 위(지금 정읍 칸)부터 보이게
+    if (n === 2) {
+      if (typeof loadFood === "function") loadFood();
+      setTimeout(() => { const f = document.getElementById("food-sec"); bodyEl.scrollTop += toFood && f ? f.getBoundingClientRect().top - bodyEl.getBoundingClientRect().top - 4 : -bodyEl.scrollTop; }, 60);
+    }
+    if (user) { try { localStorage.setItem("sheet_lvl", n === 0 ? "0" : "1"); } catch (e) {} }   // 마지막에 둔 상태 기억 (끝까지 열림은 반쯤으로 저장)
+  }
+  function bindDrag(h) {
+    h.addEventListener("touchstart", e => { if (e.touches.length !== 1) return; dragging = true; moved = 0; y0 = e.touches[0].clientY; t0 = Date.now(); off0 = offs()[lvl]; apply(off0, false); }, { passive: true });
+    h.addEventListener("touchmove", e => { if (!dragging) return; const dy = e.touches[0].clientY - y0; moved = Math.max(moved, Math.abs(dy)); apply(Math.min(closedOff(), Math.max(0, off0 + dy)), false); }, { passive: true });
+    const end = () => {
+      if (!dragging) return; dragging = false; if (moved < 6) { apply(off0, false); return; }
+      const v = (curOff - off0) / Math.max(1, Date.now() - t0), o = offs();            // 아래로 빠르게 쓸면 +, 위로 빠르게 쓸면 -
+      let target;
+      if (Math.abs(v) > 0.4) target = v < 0 ? lvl + 1 : lvl - 1;
+      else target = [0, 1, 2].reduce((best, i) => Math.abs(o[i] - curOff) < Math.abs(o[best] - curOff) ? i : best, 0);
+      setLevel(target, true); ignoreClick = true; setTimeout(() => ignoreClick = false, 50);
+    };
+    h.addEventListener("touchend", end); h.addEventListener("touchcancel", end);
+  }
+  bindDrag(head); bindDrag(mid.querySelector(".fm-hd"));
+  head.addEventListener("click", () => { if (ignoreClick) return; setLevel(lvl === 0 ? 1 : lvl === 1 ? 0 : 1, true); });
+  mid.querySelectorAll(".fm-ic").forEach(b => b.onclick = () => {
+    const k = b.dataset.k;
+    if (k === "food") setLevel(2, true, true);
+    else if (k === "comm") openComm();
+    else if (k === "more") toolsToggle();
+    else openBoard(k);
+  });
+  if (SLIDE_N <= 3 && !matchMedia("(prefers-reduced-motion: reduce)").matches) setTimeout(() => {   // 접혀 있을 때만 "끌어올리는 곳"이라고 몸으로 알려주기
+    const bump = k => { if (lvl !== 0 || dragging || el.classList.contains("away")) return; apply(Math.max(0, closedOff() - 18), true); setTimeout(() => { if (lvl === 0 && !dragging) apply(closedOff(), true); }, 260); if (k) setTimeout(() => bump(0), 620); };
     bump(1);
   }, 2600);
-  // 지도를 누르면 접힘
-  const hookMap = () => { if (typeof map === "undefined" || !map.on) return setTimeout(hookMap, 300); map.on("mousedown", () => { if (open) set(false); }); map.on("touchstart", () => { if (open) set(false); }); };
+  // 지도를 누르면: 끝까지 열린 시트는 반쯤으로 (반쯤 열린 시트는 지도를 쓰는 동안 그대로 둠)
+  const hookMap = () => { if (typeof map === "undefined" || !map.on) return setTimeout(hookMap, 300); const f = () => { if (lvl === 2) setLevel(1, true); }; map.on("mousedown", f); map.on("touchstart", f); };
   hookMap();
   // 다른 창(제보창·커뮤니티·편집 등)이 열려 있으면 시트를 숨김
   setInterval(() => {
-    const busy = !panel.hidden || rpStep !== "none" || !commEl.hidden || ["ed-sheet", "tut", "notice-modal"].some(id => { const e = document.getElementById(id); return e && !e.hidden; });
+    const busy = !panel.hidden || rpStep !== "none" || !commEl.hidden || ["ed-sheet", "tut", "notice-modal", "welcome"].some(id => { const e = document.getElementById(id); return e && !e.hidden; });
     el.classList.toggle("away", busy); document.body.classList.toggle("sheet-away", busy);
-    if (busy && open) set(false);
+    if (busy && lvl === 2) setLevel(1);
+    const wx = document.getElementById("wx-badge"), fw = document.getElementById("fm-wx"); if (fw && wx && fw.textContent !== wx.textContent) fw.textContent = wx.textContent;
   }, 300);
-  addEventListener("resize", () => { if (!dragging) apply(open ? 0 : closedOff(), false); });
-  requestAnimationFrame(() => apply(closedOff(), false));
-  return { set, isOpen: () => open, summary(t) { const e = document.getElementById("fs-sum"); if (e) e.innerHTML = t; }, refit() { if (!open && !dragging) apply(closedOff(), false); } };
+  addEventListener("resize", () => { if (!dragging) apply(offs()[lvl], false); });
+  let init = LIVE ? 0 : 1;                      // 처음 5번 방문까지는 반쯤 열어 두고, 그 뒤에는 마지막에 둔 상태로 시작
+  try { const n = +localStorage.getItem("visit_n") || 1; if (!LIVE && n > 5 && localStorage.getItem("sheet_lvl") === "0") init = 0; } catch (e) {}
+  const settle = () => { if (dragging) return; lvl = init; el.classList.toggle("half", lvl === 1); const hn = document.getElementById("fs-hint"); if (hn) hn.textContent = hintTxt(lvl); apply(offs()[lvl], false); };
+  requestAnimationFrame(settle); setTimeout(() => { if (lvl === init) settle(); }, 800);
+  return { set(v) { v ? setLevel(2, false, true) : setLevel(0); }, setLevel, isOpen: () => lvl === 2, level: () => lvl,
+    summary(t) { const e = document.getElementById("fs-sum"); if (e) e.innerHTML = t; }, refit() { if (!dragging) apply(offs()[lvl], false); } };
 })();
+// ----- 시트 소식 전광판 (최근 제보 4개 + 맛집 1위, 위로 계속 올라감) -----
+function renderSheetNews() {
+  const box = document.getElementById("fm-news"); if (!box) return;
+  const live = reports.filter(r => expAt(r) > Date.now()).sort((a, b) => new Date(b.ts) - new Date(a.ts)).slice(0, 4);
+  const items = live.map(r => ({ ic: CATEGORIES[r.cat].icon, t: r.title, m: timeAgo(r.ts), go: () => { foodSheet.setLevel(1); focusReport(r); } }));
+  if (typeof foodTop !== "undefined" && foodTop) items.push({ ic: "🍚", t: "오늘 맛집 1위 " + foodTop.shop_name, m: foodTop.cnt + "표", go: () => foodSheet.setLevel(2, true, true) });
+  if (!items.length) { box.classList.remove("roll"); box.innerHTML = `<div class="fm-empty">아직 소식이 없어요. 첫 소식을 알려주세요 📣</div>`; return; }
+  const calm = matchMedia("(prefers-reduced-motion: reduce)").matches, roll = items.length > 3 && !calm;
+  const row = (it, i) => `<div class="fm-row" data-i="${i}"><span>${it.ic}</span><b>${esc(it.t)}</b><small>${esc(it.m)}</small></div>`;
+  const shown = calm ? items.slice(0, 3) : items;
+  box.innerHTML = `<div class="fm-track" style="--n:${items.length}">${shown.map((it, i) => row(it, i)).join("")}${roll ? items.map((it, i) => row(it, i)).join("") : ""}</div>`;
+  box.classList.toggle("roll", roll);
+  box.querySelectorAll(".fm-row").forEach(r => r.onclick = () => items[+r.dataset.i].go());
+}
+// ----- 종류 게시판 (🚗 🎉 ⏳ 🚨 💡 아이콘 → 살아 있는 제보 + 지난 소식) -----
+let boardCat = "traffic";
+function openBoard(key) {
+  boardCat = key; commTab = "board";
+  document.querySelectorAll("#comm-tabs button").forEach(x => x.classList.remove("on"));
+  if (commEl.hidden) openComm(); else { commBody.scrollTop = 0; renderComm(); }
+}
+function setOnlyCat(key) {
+  activeCats = new Set([key]);
+  const keys = Object.keys(CATEGORIES);
+  [...filtersEl.querySelectorAll(".cat-chip")].forEach((b, i) => b.classList.toggle("on", keys[i] === key));
+  render();
+  shareToast(CATEGORIES[key].icon + " " + CATEGORIES[key].label + "만 보여요 · 위쪽 '더 보기'에서 다시 켤 수 있어요");
+}
+function renderBoard() {
+  const c = CATEGORIES[boardCat], byNew = (a, b) => new Date(b.ts) - new Date(a.ts);
+  const live = reports.filter(r => r.cat === boardCat && expAt(r) > Date.now()).sort(byNew);
+  const past = pastReports.filter(r => r.cat === boardCat).sort(byNew).slice(0, 30);
+  commBody.innerHTML = `<div class="bd-hd"><span class="cat-badge" style="background:${c.color};color:${c.fg || "#fff"}">${c.icon} ${c.label}</span><b>게시판</b></div>` +
+    (live.length ? "" : `<div class="feed-empty">지금 ${esc(c.label)} 소식이 없어요.<br>첫 소식을 알려주세요!</div>`);
+  for (const r of live) {
+    const card = document.createElement("div"); card.className = "comm-card";
+    card.innerHTML = `<div class="comm-meta"><span>${timeAgo(r.ts)}</span><span class="exp-badge" data-exp="${expAt(r)}"></span></div>` +
+      `<div class="comm-title">${esc(r.title)}</div>` + (r.desc ? `<div class="comm-desc">${esc(r.desc)}</div>` : "") + (r.photo ? `<a href="${esc(r.photo)}" target="_blank" rel="noopener"><img class="comm-photo" src="${esc(r.photo)}" loading="lazy"></a>` : "") +
+      `<div class="shop-act">${rxHtml("report", r.id)}<button class="chip comm-go">📍 지도에서 보기</button><button class="chip comm-share">🔗 공유</button></div>`;
+    card.querySelector(".comm-share").onclick = () => shareReport(r);
+    card.querySelector(".comm-go").onclick = () => { closeComm(); focusReport(r); };
+    commBody.appendChild(card);
+  }
+  if (past.length) {
+    const t = document.createElement("div"); t.className = "bd-past-t"; t.innerHTML = `지난 소식 <small>최근 7일</small>`; commBody.appendChild(t);
+    for (const r of past) {
+      const card = document.createElement("div"); card.className = "comm-card past";
+      card.innerHTML = `<div class="comm-meta"><span>${new Date(r.ts).toLocaleString("ko-KR", { month: "numeric", day: "numeric", hour: "2-digit", minute: "2-digit" })}</span><span class="exp-badge done">마감됨</span></div>` +
+        `<div class="comm-title">${esc(r.title)}</div>` + (r.desc ? `<div class="comm-desc">${esc(r.desc)}</div>` : "") + `<div class="shop-act"><button class="chip comm-go">📍 위치 보기</button></div>`;
+      card.querySelector(".comm-go").onclick = () => { closeComm(); setTimeout(() => map.flyTo({ center: r.coord, zoom: 17, duration: 1200 }), 250); };
+      commBody.appendChild(card);
+    }
+  }
+  const act = document.createElement("div"); act.className = "bd-act";
+  act.innerHTML = `<button id="bd-map" class="chip">🗺 지도에서만 보기</button><button id="bd-add" class="chip">📣 ${esc(c.label)} 알려주기</button>`;
+  commBody.appendChild(act);
+  document.getElementById("bd-map").onclick = () => { closeComm(); setOnlyCat(boardCat); };
+  document.getElementById("bd-add").onclick = () => { closeComm(); setTimeout(() => { document.getElementById("fab").click(); catSel.value = boardCat; if (typeof syncCat === "function") syncCat(); }, 260); };
+  hydrateRx(commBody); tickExp();
+}
 // 집계 시간: 한국시간 0시~24시. 남은 시간은 폰 시계로만 계산(서버 요청 없음), 순위는 화면이 켜져 있을 때만 1분마다 새로 불러옴
 let foodTop = null, foodDay = "";
+renderSheetNews(); setInterval(renderSheetNews, 120000);
 function foodLeft() { const ms = 864e5 - ((Date.now() + 9 * 3600e3) % 864e5), m = Math.max(1, Math.ceil(ms / 60000)), h = Math.floor(m / 60); return h ? h + "시간 " + (m % 60) + "분" : m + "분"; }
 function foodClock() {
   const left = foodLeft(), c = document.getElementById("food-clock");
   if (c) c.innerHTML = `🕛 오늘 0시~24시 집계 · <b>${left}</b> 후 마감`;
+  if (typeof renderSheetNews === "function") renderSheetNews();
   foodSheet.summary(foodTop ? `🍚 <b>🥇 ${esc(foodTop.shop_name)}</b> ${foodTop.cnt}표 · ⏰${left}` : `🍚 오늘의 맛집 · 첫 표를 남겨 보세요 · ⏰ ${left}`);
 }
 loadFood();
