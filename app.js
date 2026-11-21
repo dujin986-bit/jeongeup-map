@@ -635,7 +635,11 @@ document.getElementById("rp-help").onclick = () => openHelp("report");
 try { document.body.classList.toggle("rp-seen", (+localStorage.getItem("rp_n") || 0) >= 1); } catch (e) {}   // 제보해 본 사람은 안내를 작게
 document.getElementById("rp-back").onclick = () => { showPanel(false); pickMode = true; crosshair.hidden = false; rpSet("pick"); setPos(map.getCenter()); };
 map.on("move", () => { if (pickMode && rpStep === "pick") setPos(map.getCenter()); });
-document.getElementById("fab").onclick = () => openPanel(map.getCenter(), true);
+document.getElementById("fab").onclick = () => {
+  openPanel(map.getCenter(), true);
+  if (!navigator.geolocation) return;                         // 제보를 시작하면 내 위치로 자동 이동 (실패하면 조용히 그대로)
+  navigator.geolocation.getCurrentPosition(p => { if (rpStep === "pick") map.flyTo({ center: [p.coords.longitude, p.coords.latitude], zoom: Math.max(map.getZoom(), 17), duration: 900 }); }, () => {}, { enableHighAccuracy: true, timeout: 6000, maximumAge: 30000 });
+};
 map.on("contextmenu", e => openPanel(e.lngLat));            // PC: 우클릭
 let pressTimer;                                              // 모바일: 길게 누르기
 map.on("touchstart", e => { if (e.points.length === 1) pressTimer = setTimeout(() => openPanel(e.lngLat), 600); });
@@ -1849,7 +1853,7 @@ const SFX_GAIN = { open: 0.7, close: 0.7, on: 0.8, off: 0.8, done: 0.9, win: 1, 
 const sfxBuf = {}; let sfxLoading = false;
 function sfxLoad() {
   if (sfxLoading || !AC) return; sfxLoading = true;
-  for (const k in SFX_FILES) fetch("sounds/" + SFX_FILES[k] + ".mp3?v=136").then(r => r.arrayBuffer()).then(b => new Promise((ok, no) => AC.decodeAudioData(b, ok, no))).then(buf => { sfxBuf[k] = buf; }).catch(() => {});
+  for (const k in SFX_FILES) fetch("sounds/" + SFX_FILES[k] + ".mp3?v=137").then(r => r.arrayBuffer()).then(b => new Promise((ok, no) => AC.decodeAudioData(b, ok, no))).then(buf => { sfxBuf[k] = buf; }).catch(() => {});
 }
 function sfx(kind) {
   if (!sndOn || !AC) return;
