@@ -85,14 +85,15 @@ let markers = [];
 // ---------- 필터 UI ----------
 const filtersEl = document.getElementById("filters");
 const catSel = document.getElementById("cat");
+{ const ab = document.createElement("button"); ab.className = "chip all-chip on"; ab.textContent = "🗺 전체"; ab.style.flex = "none";
+  ab.onclick = () => { sfx("on"); resetCats(); }; filtersEl.appendChild(ab); }
 for (const [key, c] of Object.entries(CATEGORIES)) {
   const b = document.createElement("button");
   b.className = "chip cat-chip on"; b.textContent = c.icon + " " + c.label; b.style.flex = "none";
   b.style.setProperty("--c", c.color); b.style.setProperty("--cf", c.fg || "#fff");
-  b.onclick = () => {
-    activeCats.has(key) ? activeCats.delete(key) : activeCats.add(key);
-    sfx(activeCats.has(key) ? "on" : "off");
-    render();
+  b.onclick = () => {                              // 한 종류만 보기 ↔ 한 번 더 누르면 전체
+    sfx("on");
+    (activeCats.size === 1 && activeCats.has(key)) ? resetCats() : setOnlyCat(key, true);
   };
   filtersEl.appendChild(b);
   const pb = document.createElement("button");
@@ -103,7 +104,8 @@ for (const [key, c] of Object.entries(CATEGORIES)) {
 }
 function syncCatUI() {
   const keys = Object.keys(CATEGORIES), all = activeCats.size === keys.length;
-  [...filtersEl.querySelectorAll(".cat-chip")].forEach((b, i) => b.classList.toggle("on", activeCats.has(keys[i])));
+  [...filtersEl.querySelectorAll(".cat-chip")].forEach((b, i) => b.classList.toggle("on", !all && activeCats.has(keys[i])));
+  const ac = filtersEl.querySelector(".all-chip"); if (ac) ac.classList.toggle("on", all);
   document.querySelectorAll("#pills .pill").forEach(b => b.classList.toggle("on", !all && activeCats.size === 1 && activeCats.has(b.dataset.k)));
   const bn = document.getElementById("cat-banner"); if (!bn) return;
   bn.hidden = all;
@@ -1867,7 +1869,7 @@ const SFX_GAIN = { open: 0.7, close: 0.7, on: 0.8, off: 0.8, done: 0.9, win: 1, 
 const sfxBuf = {}; let sfxLoading = false;
 function sfxLoad() {
   if (sfxLoading || !AC) return; sfxLoading = true;
-  for (const k in SFX_FILES) fetch("sounds/" + SFX_FILES[k] + ".mp3?v=148").then(r => r.arrayBuffer()).then(b => new Promise((ok, no) => AC.decodeAudioData(b, ok, no))).then(buf => { sfxBuf[k] = buf; }).catch(() => {});
+  for (const k in SFX_FILES) fetch("sounds/" + SFX_FILES[k] + ".mp3?v=149").then(r => r.arrayBuffer()).then(b => new Promise((ok, no) => AC.decodeAudioData(b, ok, no))).then(buf => { sfxBuf[k] = buf; }).catch(() => {});
 }
 function sfx(kind) {
   if (!sndOn || !AC) return;
