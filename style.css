@@ -994,3 +994,5 @@ body.live #cf, body.tools-open #cf, body.rp-pick #cf, body.rp-form #cf, body.edi
 @keyframes cfFlow { from { transform: translateY(-50%); } to { transform: translateY(0); } }
 #cf.shut .cf-track, #cf.clash .cf-track, #cf.pause .cf-track { animation-play-state: paused; }
 @media (prefers-reduced-motion: reduce) { #cf .cf-track { animation: none; transform: none; } }
+#cf .cf-track { gap: 0; }
+#cf .cf-track .cf-m { padding-bottom: 7px; }
