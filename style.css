@@ -838,3 +838,19 @@ body.rp-pick #cat-banner, body.rp-form #cat-banner, body.editing #cat-banner { d
 #cat-pick .cp b { font-size: 13px; font-weight: 800; }
 #cat-pick .cp.on { border-color: #1f6feb; background: #eef4ff; color: #1f6feb; }
 #cat.cat-hide { display: none; }
+
+/* v138 맛집 알려주기 창 */
+#vp { position: fixed; inset: 0; z-index: 30; background: rgba(0,0,0,.5); display: flex; align-items: flex-end; justify-content: center; }
+#vp[hidden] { display: none; }
+.vp-box { width: 100%; max-width: 520px; max-height: 88vh; overflow-y: auto; background: #fff; color: #222; border-radius: 18px 18px 0 0; padding: 14px; }
+.vp-hd { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; font-size: 17px; }
+#vp-x { flex: none; width: 36px; background: #eef0f3; color: #333; border-radius: 50%; padding: 6px; }
+#vp-q { width: 100%; padding: 11px 14px; font-size: 16px; border: 2px solid #1f6feb; border-radius: 22px; margin-bottom: 8px; box-sizing: border-box; }
+#vp-list { max-height: 48vh; overflow-y: auto; }
+.vp-t { font-size: 13px; font-weight: 800; color: #777; margin: 8px 2px 4px; }
+.vp-it { display: flex; width: 100%; justify-content: space-between; align-items: center; text-align: left; background: #f6f7f9; color: #222; border: 1px solid #e3e6ea; border-radius: 12px; padding: 12px; margin-bottom: 6px; font-size: 16px; }
+.vp-it small { color: #888; font-size: 12px; }
+#vp-map { width: 100%; margin-top: 10px; background: #fff; color: #1f6feb; border: 2px solid #1f6feb; padding: 12px; font-size: 15px; font-weight: 800; }
+.vp-nm { font-size: 20px; font-weight: 800; text-align: center; margin: 6px 0 10px; }
+#vp-back { width: auto; background: #eef4ff; color: #1f6feb; padding: 7px 12px; border-radius: 14px; }
+#vp-done { width: 100%; margin-top: 12px; padding: 12px; font-size: 15px; font-weight: 800; }

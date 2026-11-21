@@ -1597,7 +1597,7 @@ function renderComm() {
     commBody.innerHTML = `<div class="soon"><div class="soon-ic">${s[0]}</div><div class="soon-t">${s[1]}</div><div class="soon-d">${s[2]}</div><div class="soon-b">🛠 곧 열려요 · 업데이트 예정</div></div>`;
     return;
   }
-  let html = `<div class="vd-card"><div class="vd-card-hd"><b>🔥 오늘의 찐맛집 판정</b><span>자정 초기화</span></div><div id="vd-sum" class="vd-sum"><div class="vd-empty">불러오는 중…</div></div><button class="vd-go" id="vd-go">📍 지도에서 내가 아는 가게 판정하기</button><div class="vd-foot">재미로 보는 정읍 주민의 주관적 판정이에요 (자정 초기화)</div></div>`;
+  let html = `<div class="vd-card"><div class="vd-card-hd"><b>🔥 오늘의 찐맛집 판정</b><span>자정 초기화</span></div><div id="vd-sum" class="vd-sum"><div class="vd-empty">불러오는 중…</div></div><button class="vd-go" id="vd-go">🍚 오늘 맛있게 먹은 곳 알려주기</button><div class="vd-foot">재미로 보는 정읍 주민의 주관적 판정이에요 (자정 초기화)</div></div>`;
   html += `<button class="comm-topic food-go" id="food-go">🍚 오늘의 맛집 순위 보러가기 <span>지도 아래에서 확인 ▴</span></button>`;
   if (pushReady()) html += `<div class="comm-note" id="push-card"></div>`;
   html += `<div class="comm-head">실시간 제보 ${reports.length}건</div>`;
@@ -1853,7 +1853,7 @@ const SFX_GAIN = { open: 0.7, close: 0.7, on: 0.8, off: 0.8, done: 0.9, win: 1, 
 const sfxBuf = {}; let sfxLoading = false;
 function sfxLoad() {
   if (sfxLoading || !AC) return; sfxLoading = true;
-  for (const k in SFX_FILES) fetch("sounds/" + SFX_FILES[k] + ".mp3?v=137").then(r => r.arrayBuffer()).then(b => new Promise((ok, no) => AC.decodeAudioData(b, ok, no))).then(buf => { sfxBuf[k] = buf; }).catch(() => {});
+  for (const k in SFX_FILES) fetch("sounds/" + SFX_FILES[k] + ".mp3?v=138").then(r => r.arrayBuffer()).then(b => new Promise((ok, no) => AC.decodeAudioData(b, ok, no))).then(buf => { sfxBuf[k] = buf; }).catch(() => {});
 }
 function sfx(kind) {
   if (!sndOn || !AC) return;
@@ -2033,7 +2033,7 @@ const HELP = [
     b: `<ol class="hp-steps"><li><b>＋ 제보하기</b> 버튼을 눌러요 <small>(지도 오른쪽 아래)</small></li><li><b>지도를 손으로 움직여서</b> 가운데 📍 핀 <b>끝</b>을 일어난 장소에 맞춰요.<br>지금 있는 곳이면 <b>📍 내 위치로 이동</b>을 눌러요.</li><li><b>여기로 정했어요 ▶</b>를 누르고, 종류를 고른 뒤 한 줄만 쓰면 끝! 사진은 안 넣어도 돼요.</li></ol><p>🔍 지도가 너무 멀리 보이면 손가락 두 개를 벌려서 확대하세요. 더 정확해져요.<br>⏳ 제보는 시간이 지나면 저절로 사라져요.<br>🚫 욕설이 들어 있으면 올라가지 않아요.</p>`,
     a: ["지금 제보해보기", () => setTimeout(() => document.getElementById("fab").click(), 250)] },
   { id: "food", ic: "🍚", t: "오늘의 찐맛집 판정", s: "가게마다 하루 한 번, 🔥👴😅 중 하나",
-    b: `<ol class="hp-steps"><li>아래 <b>맛집 시트</b>를 위로 끌어올리거나, 커뮤니티의 <b>판정 카드</b>를 열어요.</li><li><b>📍 지도에서 내가 아는 가게 판정하기</b>를 누르고 음식점·카페를 눌러요.</li><li>팝업에서 <b>🔥 또 갈 거임 · 👴 토박이 단골 · 😅 한 번으로 족함</b> 중 하나를 눌러요.</li></ol><p>가게마다 하루 한 번이에요. 같은 날엔 마음을 바꿔 다시 눌러도 돼요. 자정이 지나면 처음부터 다시 시작해요. 재미로 보는 주민 판정이에요.</p>`,
+    b: `<ol class="hp-steps"><li>아래 <b>맛집 시트</b>를 위로 끌어올리거나, 커뮤니티의 <b>판정 카드</b>를 열어요.</li><li><b>🍚 오늘 맛있게 먹은 곳 알려주기</b>를 누르고 음식점·카페를 눌러요.</li><li>팝업에서 <b>🔥 또 갈 거임 · 👴 토박이 단골 · 😅 한 번으로 족함</b> 중 하나를 눌러요.</li></ol><p>가게마다 하루 한 번이에요. 같은 날엔 마음을 바꿔 다시 눌러도 돼요. 자정이 지나면 처음부터 다시 시작해요. 재미로 보는 주민 판정이에요.</p>`,
     a: ["지금 판정해보기", () => enterJudge()] },
   { id: "sound", ic: "🔊", t: "소리·배경음악", s: "낮엔 밝은 피아노, 밤엔 차분한 피아노",
     b: `<ol class="hp-steps"><li>위쪽 <b>더 보기</b>를 열면 <b>🔇</b> 버튼이 있어요.</li><li>누르면 <b>🔊</b>로 바뀌면서 소리와 배경음악이 켜져요.</li><li>다시 누르면 꺼져요.</li></ol><p>소리가 안 나면 폰이 <b>무음(진동)</b> 모드인지, <b>미디어 볼륨</b>이 0인지 확인해 보세요.</p>`,
@@ -2158,7 +2158,7 @@ async function loadFood() {
   const y = document.getElementById("food-yday"); if (y) y.innerHTML = yday && yday.length ? `<span class="yday">👑 어제의 1위 <b>${esc(yday[0].shop_name)}</b> · ${yday[0].cnt}표</span>` : "";
   foodTop = today && today.length ? today[0] : null; foodDay = kstDay(); foodClock();
   const btn = document.getElementById("food-vote"), nj = vdMineCount();
-  if (btn) { btn.textContent = nj ? "📍 지도에서 판정하기 · 오늘 " + nj + "곳 판정함" : "📍 지도에서 내가 아는 가게 판정하기"; btn.disabled = false; btn.onclick = () => { foodSheet.set(false); enterJudge(); }; }
+  if (btn) { btn.textContent = nj ? "🍚 오늘 맛있게 먹은 곳 알려주기 · " + nj + "곳 알려줌" : "🍚 오늘 맛있게 먹은 곳 알려주기"; btn.disabled = false; btn.onclick = () => openVotePick(); }
   foodSheet.refit();
 }
 // ===== 🔥 오늘의 찐맛집 판정 (가게별 하루 1표 · 3가지 중 하나 · 한국시간 자정 초기화) =====
@@ -2181,12 +2181,12 @@ async function vdLoad(force) {
 }
 function vdBars(c) {
   const n = c.again + c.local + c.meh;
-  if (!n) return `<div class="vd-empty">아직 판정이 없어요. 첫 판정의 주인공이 되어보세요!</div>`;
-  if (n < VD_MIN) return `<div class="vd-empty">👥 ${n}명 판정 중 · ${VD_MIN}명부터 비율이 공개돼요</div>`;
+  if (!n) return `<div class="vd-empty">아직 아무도 안 알려줬어요. 첫 번째가 되어 보세요!</div>`;
+  if (n < VD_MIN) return `<div class="vd-empty">👥 ${n}명 참여 중 · ${VD_MIN}명부터 비율이 공개돼요</div>`;
   return `<div class="vd-stack">` + VD.filter(([k]) => c[k]).map(([k]) => `<i class="vd-${k}" style="flex:${c[k]}"></i>`).join("") + `</div><div class="vd-legend">` + VD.map(([k, ic]) => `<span class="vd-${k}">${ic} ${Math.round(c[k] / n * 100)}%</span>`).join("") + `<em>👥 ${n}명 참여</em></div>`;
 }
 function vdBlock(id) {
-  return `<div class="vd" data-id="${esc(id)}"><div class="vd-hd">🔥 오늘의 찐맛집 판정 <small>자정 초기화</small></div><div class="vd-btns">` +
+  return `<div class="vd" data-id="${esc(id)}"><div class="vd-hd">🔥 오늘 어땠어요? <small>자정 초기화</small></div><div class="vd-btns">` +
     VD.map(([k, ic, tx]) => `<button class="vd-b vd-${k}" data-k="${k}"><span>${ic}</span>${tx}</button>`).join("") + `</div><div class="vd-res"></div></div>`;
 }
 async function vdHydrate(root) {
@@ -2208,27 +2208,61 @@ async function vdSummary(force) {
 function enterJudge() {
   judging = true;
   let bar = document.getElementById("vd-bar");
-  if (!bar) { bar = document.createElement("div"); bar.id = "vd-bar"; bar.innerHTML = `<span>지도에서 판정할 음식점·카페를 눌러보세요</span><button id="vd-x">취소 ✕</button>`; document.body.appendChild(bar); bar.querySelector("#vd-x").onclick = exitJudge; }
+  if (!bar) { bar = document.createElement("div"); bar.id = "vd-bar"; bar.innerHTML = `<span>🗺 지도에서 가게 점을 눌러 보세요</span><button id="vd-x">취소 ✕</button>`; document.body.appendChild(bar); bar.querySelector("#vd-x").onclick = exitJudge; }
   bar.hidden = false;
+}
+// ----- 🍚 가게 고르기 창: 검색 · 목록 · 지도에서 찾기 -----
+function openVotePick() {
+  foodSheet.set(false);
+  let m = document.getElementById("vp");
+  if (!m) { m = document.createElement("div"); m.id = "vp"; document.body.appendChild(m); }
+  m.hidden = false;
+  const draw = async q => {
+    const rows = await vdLoad();
+    let shops = SHOPS.concat(EDITS.added || []).map(x => shopInfo(x.id)).filter(x => x && !x.hidden && VD_CAT.test(x.category));
+    const n = x => { const c = rows[x.id]; return c ? c.again + c.local + c.meh : 0; };
+    shops.sort((a, b) => n(b) - n(a) || a.name.localeCompare(b.name, "ko"));
+    const qq = (q || "").trim();
+    if (qq) shops = shops.filter(x => x.name.includes(qq));
+    const hot = !qq ? shops.filter(x => n(x) > 0).slice(0, 3) : [];
+    const item = x => `<button class="vp-it" data-id="${esc(x.id)}"><b>${esc(x.name)}</b><small>${esc(x.category)}${n(x) ? " · " + n(x) + "명" : ""}</small></button>`;
+    const list = m.querySelector("#vp-list");
+    list.innerHTML = (hot.length ? `<div class="vp-t">🔥 오늘 인기</div>` + hot.map(item).join("") : "") +
+      `<div class="vp-t">${qq ? "검색 결과" : "전체 가게"}</div>` + (shops.length ? shops.slice(0, 80).map(item).join("") : `<div class="vd-empty">찾는 가게가 없어요. 지도에서 직접 찾아 보세요.</div>`);
+    list.querySelectorAll(".vp-it").forEach(b => b.onclick = () => pick(b.dataset.id));
+  };
+  const pick = id => {
+    const s = shopInfo(id); if (!s) return;
+    m.querySelector("#vp-main").hidden = true; const d = m.querySelector("#vp-one"); d.hidden = false;
+    d.innerHTML = `<button id="vp-back" type="button">↩ 다시 고르기</button><div class="vp-nm">${esc(s.name)}</div>` + vdBlock(id) + `<button id="vp-done" type="button">닫기</button>`;
+    vdHydrate(d);
+    d.querySelector("#vp-back").onclick = () => { d.hidden = true; m.querySelector("#vp-main").hidden = false; };
+    d.querySelector("#vp-done").onclick = () => { m.hidden = true; };
+  };
+  m.innerHTML = `<div class="vp-box"><div class="vp-hd"><b>🍚 오늘 맛있게 먹은 곳</b><button id="vp-x" type="button">✕</button></div><div id="vp-main"><input id="vp-q" type="search" placeholder="🔍 가게 이름 검색 (예: 안나감성)" autocomplete="off"><div id="vp-list">불러오는 중…</div><button id="vp-map" type="button">🗺 지도에서 직접 찾기</button></div><div id="vp-one" hidden></div></div>`;
+  m.querySelector("#vp-x").onclick = () => { m.hidden = true; };
+  m.querySelector("#vp-q").oninput = e => draw(e.target.value);
+  m.querySelector("#vp-map").onclick = () => { m.hidden = true; enterJudge(); };
+  draw("");
 }
 function exitJudge() { judging = false; const bar = document.getElementById("vd-bar"); if (bar) bar.hidden = true; }
 document.addEventListener("click", async e => {
   const b = e.target.closest(".vd-b"); if (!b) return;
   const box = b.closest(".vd"), id = box.dataset.id, k = b.dataset.k, s = shopInfo(id); if (!s) return;
   const mine = vdMine(), prev = mine.m[id];
-  if (prev === k) { shareToast("이미 이렇게 판정했어요 (바꾸려면 다른 버튼을 눌러요)"); return; }
+  if (prev === k) { shareToast("이미 이렇게 알려줬어요 (바꾸려면 다른 버튼을 눌러요)"); return; }
   box.querySelectorAll(".vd-b").forEach(x => x.disabled = true);
   try {
     const r = await fetch(SUPABASE_URL + "/rest/v1/rpc/food_judge", { method: "POST", headers: vdHdr, body: JSON.stringify({ p_shop_id: id, p_shop_name: s.name, p_voter: voterId(), p_choice: k }) });
-    if (!r.ok) { const t = await r.text(); shareToast(/ratelimit/.test(t) ? "오늘은 판정을 많이 하셨어요. 내일 또 해 주세요!" : "판정에 실패했어요. 잠시 뒤 다시 해 주세요."); return; }
+    if (!r.ok) { const t = await r.text(); shareToast(/ratelimit/.test(t) ? "오늘은 많이 알려주셨어요. 내일 또 해 주세요!" : "전송에 실패했어요. 잠시 뒤 다시 해 주세요."); return; }
     mine.m[id] = k; vdMineSave(mine);
     if (vdData.day !== kstDay()) vdData = { day: kstDay(), t: 0, rows: {} };
     const row = vdData.rows[id] || (vdData.rows[id] = { again: 0, local: 0, meh: 0 });
     if (prev) row[prev] = Math.max(0, row[prev] - 1); row[k]++; vdData.t = 0;
-    vdRefreshAll(); shareToast(prev ? "판정을 바꿨어요!" : "판정 완료! 커뮤니티에서 확인해 보세요");
+    vdRefreshAll(); shareToast(prev ? "바꿨어요!" : "알려줘서 고마워요! 커뮤니티에서 확인해 보세요");
     if (judging) exitJudge();
     loadFood(); vdLoad(true).then(vdRefreshAll);
-  } catch (err) { shareToast("판정에 실패했어요. 인터넷을 확인해 주세요."); }
+  } catch (err) { shareToast("전송에 실패했어요. 인터넷을 확인해 주세요."); }
   finally { box.querySelectorAll(".vd-b").forEach(x => x.disabled = false); vdHydrate(box.parentNode || document); }
 });
 
@@ -2395,7 +2429,7 @@ const foodSheet = (function () {
   el.innerHTML = `<div id="fs-head"><i class="fs-grab"></i><div id="fs-sum">🍚 오늘의 맛집 · 불러오는 중…</div><span id="fs-hint">${hintTxt(0)}</span></div>` +
     `<div id="fs-body"><div id="fs-mid"><div class="fm-hd"><b>지금 정읍</b><span id="fm-wx"></span></div><div id="fm-icons">${icons}</div><div id="fm-news-t">지금 정읍 소식</div><div id="fm-news"></div></div>` +
     `<div id="food-sec"><div class="food-hd"><b>🍚 오늘의 맛집 TOP 3</b><span id="food-total"></span></div><div id="food-clock"></div><div id="food-list">불러오는 중…</div>` +
-    `<button id="food-vote" class="chip">📍 지도에서 내가 아는 가게 판정하기</button><button id="food-roulette" class="chip">🎰 오늘 뭐 먹지? 룰렛 돌리기</button><div id="food-yday"></div></div></div>`;
+    `<button id="food-vote" class="chip">🍚 오늘 맛있게 먹은 곳 알려주기</button><button id="food-roulette" class="chip">🎰 오늘 뭐 먹지? 룰렛 돌리기</button><div id="food-yday"></div></div></div>`;
   document.body.appendChild(el);
   const head = el.querySelector("#fs-head"), mid = el.querySelector("#fs-mid"), bodyEl = el.querySelector("#fs-body");
   const verEl = document.getElementById("ver"); if (verEl) head.appendChild(verEl);   // 버전 글씨가 시트에 가려지지 않게 손잡이 줄 왼쪽으로
@@ -2471,7 +2505,7 @@ function sheetSum() {
   const parts = live.map(r => CATEGORIES[r.cat].icon + " " + esc(r.title));
   if (foodTop) parts.push("🍚 오늘 맛집 1위 " + esc(foodTop.shop_name) + " " + foodTop.cnt + "표");
   if (!parts.length) parts.push("🍚 오늘의 맛집 · 첫 표를 남겨 보세요");
-  const txt = parts.join("　　•　　");
+  const txt = parts.join("　　　　");
   foodSheet.summary(`<span class="fs-mq" style="animation-duration:${Math.max(12, txt.length * 0.32)}s">${txt}</span>`);
 }
 function renderSheetNews() {
@@ -2566,7 +2600,7 @@ async function openRoulette() {
   m.innerHTML = '<div class="nm rl"><b>🎰 오늘 뭐 먹지?</b><div id="rl-wrap"><i id="rl-pin">▼</i><canvas id="rl-cv" width="560" height="560"></canvas></div><div id="rl-res">후보를 불러오는 중…</div><div class="rl-btns"><button id="rl-spin" class="chip" disabled>돌리기!</button><button id="nm-x">닫기</button></div></div>';
   m.hidden = false; document.getElementById("nm-x").onclick = () => m.hidden = true;
   const list = await rlCandidates(), cv = document.getElementById("rl-cv"), res = document.getElementById("rl-res"), spin = document.getElementById("rl-spin");
-  if (!cv || !list.length) { if (res) res.textContent = "후보가 아직 없어요. 지도에서 가게를 판정해 주세요!"; return; }
+  if (!cv || !list.length) { if (res) res.textContent = "후보가 아직 없어요. 맛있게 먹은 곳을 알려 주세요!"; return; }
   const tot = list.reduce((a, c) => a + c.wt, 0), g = cv.getContext("2d"), R = 280; let a0 = 0;
   list.forEach((c, i) => { c.a0 = a0; c.a1 = a0 + c.wt / tot * Math.PI * 2; a0 = c.a1; g.beginPath(); g.moveTo(R, R); g.arc(R, R, R - 4, c.a0, c.a1); g.closePath(); g.fillStyle = RL_COLORS[i % RL_COLORS.length]; g.fill(); g.strokeStyle = "#fff"; g.lineWidth = 4; g.stroke();
     g.save(); g.translate(R, R); g.rotate((c.a0 + c.a1) / 2); g.fillStyle = "#fff"; g.font = "bold 30px Pretendard, sans-serif"; g.textAlign = "right"; g.textBaseline = "middle";
