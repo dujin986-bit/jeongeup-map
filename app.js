@@ -1510,6 +1510,53 @@ addEventListener("pageshow", autoRefresh);
 // ===== 커뮤니티 화면 (제보 피드 + 오늘의 주제) =====
 const commEl = document.getElementById("comm"), commBody = document.getElementById("comm-body");
 let commTab = "news";
+// ---------- 💡 지도 왼쪽 "의견(제안)" 버튼: 👍 좋아요 / 💬 하고 싶은 말 (같은 의견함으로 들어감) ----------
+(function opinionBtn() {
+  if (LIVE) return;
+  const b = document.createElement("button"); b.id = "op-btn"; b.type = "button"; b.setAttribute("aria-label", "의견 보내기");
+  b.innerHTML = '<span class="op-ic">💡</span><small>의견(제안)</small><i class="op-arrow">◀</i>';
+  document.body.appendChild(b);
+  let first = 0, seen = false;
+  try { first = +localStorage.getItem("op_first") || 0; if (!first) { first = Date.now(); localStorage.setItem("op_first", String(first)); } seen = localStorage.getItem("op_seen") === "1"; } catch (e) {}
+  if (seen || Date.now() - first > 3 * 86400e3) b.classList.add("calm");      // 화살표 움직임은 처음 3일, 눌러 본 사람에게는 끔
+  let m = document.getElementById("op"); if (!m) { m = document.createElement("div"); m.id = "op"; m.hidden = true; document.body.appendChild(m); }
+  const close = () => { m.hidden = true; };
+  const send = async (kind, body, contact) => {
+    try {
+      const res = await fetch(SUPABASE_URL + "/rest/v1/feedback", { method: "POST", headers: { apikey: SUPABASE_KEY, Authorization: "Bearer " + SUPABASE_KEY, "Content-Type": "application/json", Prefer: "return=minimal" },
+        body: JSON.stringify({ kind, body: body.slice(0, 300), contact: contact || null, voter: voterId() }) });
+      if (res.ok) return "";
+      const tx = await res.text().catch(() => "");
+      return /badword/.test(tx) ? "욕설이나 비속어가 들어 있어요. 순화해서 다시 적어 주세요 🙏" : /ratelimit/.test(tx) ? "오늘 보낼 수 있는 횟수를 넘었어요. 내일 다시 남겨 주세요 🙏" : "지금은 보낼 수 없어요. 잠시 뒤 다시 해 주세요.";
+    } catch (e) { return "전송에 실패했어요. 인터넷을 확인해 주세요."; }
+  };
+  const thanks = msg => { m.innerHTML = `<div class="op-box"><div class="op-q">${msg}</div><button class="op-ok" type="button">닫기</button></div>`; m.querySelector(".op-ok").onclick = close; };
+  const home = () => {
+    m.innerHTML = `<div class="op-box"><div class="op-x"><b>정읍 지금에 의견을 들려주세요</b><button type="button" class="op-close" aria-label="닫기">✕</button></div>` +
+      `<button class="op-c" data-k="like" type="button"><span>👍</span><b>좋아요</b><small>마음에 들어요</small></button>` +
+      `<button class="op-c" data-k="say" type="button"><span>💬</span><b>하고 싶은 말</b><small>바라는 점, 불편한 점을 적어요</small></button></div>`;
+    m.querySelector(".op-close").onclick = close;
+    m.querySelector('[data-k="like"]').onclick = async e => { e.currentTarget.disabled = true; const err = await send("etc", "👍 좋아요"); sfx(err ? "off" : "done"); thanks(err || "👍 고마워요!<br>앞으로 더 좋아지게 할게요"); };
+    m.querySelector('[data-k="say"]').onclick = say;
+  };
+  const say = () => {
+    m.innerHTML = `<div class="op-box"><div class="op-x"><b>💬 하고 싶은 말</b><button type="button" class="op-close" aria-label="닫기">✕</button></div>` +
+      `<textarea id="op-body" maxlength="300" placeholder="예: 제보하기가 어려워요 / 이런 기능이 있으면 좋겠어요"></textarea><div class="op-sub">운영자만 읽어요 · 답장을 원하면 연락처도 적어 주세요(선택)</div>` +
+      `<input id="op-contact" maxlength="60" placeholder="연락처 (선택)"><div class="op-row"><button type="button" class="op-back">뒤로</button><button type="button" class="op-send">보내기</button></div></div>`;
+    m.querySelector(".op-close").onclick = close; m.querySelector(".op-back").onclick = home;
+    m.querySelector(".op-send").onclick = async e => {
+      const body = m.querySelector("#op-body").value.trim(); if (body.length < 2) { shareToast("내용을 두 글자 이상 적어 주세요"); return; }
+      e.currentTarget.disabled = true; e.currentTarget.textContent = "보내는 중…";
+      const err = await send("idea", "💬 " + body, m.querySelector("#op-contact").value.trim().slice(0, 60));
+      if (err) { shareToast(err); e.target.disabled = false; e.target.textContent = "보내기"; return; }
+      sfx("done"); thanks("접수됐어요! 고마워요 🙏<br>꼼꼼히 읽을게요");
+    };
+    setTimeout(() => { try { m.querySelector("#op-body").focus(); } catch (e) {} }, 200);
+  };
+  m.onclick = e => { if (e.target === m) close(); };
+  b.onclick = () => { try { localStorage.setItem("op_seen", "1"); } catch (e) {} b.classList.add("calm"); sfx("on"); home(); m.hidden = false; };
+})();
+
 // ---------- 🛠 고쳐줘 (베타 의견함: 관리자만 읽음. 욕설은 서버에서 차단) ----------
 let fbKind = "bug";
 function renderFeedbackForm() {
@@ -1904,7 +1951,7 @@ const SFX_GAIN = { open: 0.7, close: 0.7, on: 0.8, off: 0.8, done: 0.9, win: 1, 
 const sfxBuf = {}; let sfxLoading = false;
 function sfxLoad() {
   if (sfxLoading || !AC) return; sfxLoading = true;
-  for (const k in SFX_FILES) fetch("sounds/" + SFX_FILES[k] + ".mp3?v=157").then(r => r.arrayBuffer()).then(b => new Promise((ok, no) => AC.decodeAudioData(b, ok, no))).then(buf => { sfxBuf[k] = buf; }).catch(() => {});
+  for (const k in SFX_FILES) fetch("sounds/" + SFX_FILES[k] + ".mp3?v=158").then(r => r.arrayBuffer()).then(b => new Promise((ok, no) => AC.decodeAudioData(b, ok, no))).then(buf => { sfxBuf[k] = buf; }).catch(() => {});
 }
 function sfx(kind) {
   if (!sndOn || !AC) return;

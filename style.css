@@ -907,3 +907,24 @@ body.tools-open #top #share-btn { background: #FEE500; border-color: #FEE500; co
 #snd-ctl span { font-size: 22px; } #snd-ctl small { font-size: 10px; font-weight: 800; color: #1E1B18; }
 #snd-ctl.on { background: #fff4d6; }
 body.live #snd-ctl { display: none !important; }
+/* v158 지도 왼쪽 의견(제안) 버튼 */
+#op-btn { position: fixed; left: 8px; top: 46%; z-index: 6; width: 58px; padding: 6px 0 5px; display: flex; flex-direction: column; align-items: center; line-height: 1.1; background: #fff; color: #1E1B18; border: 1px solid var(--line, #ddd); border-radius: 10px; box-shadow: 0 1px 6px rgba(0,0,0,.25); }
+#op-btn .op-ic { font-size: 22px; } #op-btn small { font-size: 10px; font-weight: 800; }
+#op-btn .op-arrow { position: absolute; left: 64px; top: 50%; margin-top: -9px; font-style: normal; font-size: 18px; color: #c0392b; animation: opNudge 1s ease-in-out infinite; }
+#op-btn.calm .op-arrow { display: none; }
+@keyframes opNudge { 0%, 100% { transform: translateX(0); } 50% { transform: translateX(-8px); } }
+body.live #op-btn, body.tools-open #op-btn, body.rp-pick #op-btn, body.rp-form #op-btn, body.editing #op-btn, body.sheet-full #op-btn, body.judging #op-btn { display: none !important; }
+@media (prefers-reduced-motion: reduce) { #op-btn .op-arrow { animation: none; } }
+#op { position: fixed; inset: 0; z-index: 45; background: rgba(0,0,0,.5); display: flex; align-items: center; justify-content: center; padding: 16px; }
+#op[hidden] { display: none; }
+.op-box { width: 100%; max-width: 400px; background: #fff; color: #222; border-radius: 18px; padding: 16px; }
+.op-x { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; font-size: 17px; }
+.op-close { flex: none; width: 34px; background: #eef0f3; color: #333; border-radius: 50%; padding: 6px; }
+.op-c { display: grid; grid-template-columns: 40px 1fr; column-gap: 8px; text-align: left; width: 100%; margin-bottom: 8px; padding: 12px; background: #fff; color: #222; border: 2px solid #d6dbe3; border-radius: 14px; }
+.op-c span { grid-row: 1 / 3; font-size: 30px; align-self: center; } .op-c b { font-size: 17px; } .op-c small { color: #777; font-size: 12px; }
+#op-body { width: 100%; min-height: 110px; padding: 10px; font-size: 16px; border: 2px solid #1f6feb; border-radius: 12px; box-sizing: border-box; }
+.op-sub { font-size: 12px; color: #777; margin: 6px 0; }
+#op-contact { width: 100%; padding: 10px; font-size: 15px; border: 1px solid #ccc; border-radius: 10px; box-sizing: border-box; }
+.op-row { display: flex; gap: 8px; margin-top: 10px; } .op-row button { flex: 1; padding: 12px; font-size: 16px; font-weight: 800; border-radius: 12px; }
+.op-back { background: #e9ecef; color: #444; }
+.op-q { font-size: 18px; font-weight: 800; text-align: center; line-height: 1.6; padding: 14px 0; } .op-ok { width: 100%; padding: 12px; font-size: 16px; font-weight: 800; border-radius: 12px; }
