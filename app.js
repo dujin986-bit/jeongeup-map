@@ -1323,6 +1323,13 @@ function jibunSearch(raw) {
   for (const b of NAMED) { const d = Math.hypot((b.coord[0] - coord[0]) * 91000, (b.coord[1] - coord[1]) * 111000); if (d < bd) { bd = d; near = b.name; } }
   return { name: `${dong} ${main}${sub ? "-" + sub : ""}`, sub: (approx ? "같은 번지의 다른 필지 위치" : "지번 주소") + (near ? " · 근처: " + near : ""), addr: "", coord, kind: "주소" };
 }
+function startAddShop(name) {
+  resEl.hidden = true; qEl.blur();
+  if (typeof rpStep === "undefined" || rpStep === "none") document.getElementById("fab").click();
+  catSel.value = "__newshop"; syncCat();
+  const t = document.getElementById("title"); if (t) t.value = name || "";
+  shareToast("➕ 가게 위치를 지도에서 맞추고 '여기로 정했어요'를 눌러요");
+}
 function doSearch() {
   const q = norm(qEl.value);
   if (q.length < 1) { resEl.hidden = true; return; }
@@ -1337,11 +1344,17 @@ function doSearch() {
   const top = scored.slice(0, 8).map(x => x[1]);
   const rs = roadSearch(qEl.value) || jibunSearch(qEl.value); if (rs) top.unshift(rs);
   resEl.innerHTML = top.length ? "" : '<div class="res-empty">검색 결과가 없어요</div>';
+  const addQ = qEl.value.trim();
   for (const it of top) {
     const row = document.createElement("div"); row.className = "res-row";
     row.innerHTML = `<b>${esc(it.name)}</b><small>${esc(it.sub)}</small>`;
     row.onclick = () => goTo(it);
     resEl.appendChild(row);
+  }
+  if (!IS_LOCAL && addQ) {
+    const ad = document.createElement("div"); ad.className = "res-row res-add";
+    ad.innerHTML = `<b>➕ 찾는 곳이 없나요? '${esc(addQ)}' 가게 추가하기</b><small>지도에서 위치를 맞춰 알려주세요</small>`;
+    ad.onclick = () => startAddShop(addQ); resEl.appendChild(ad);
   }
   resEl.hidden = false;
 }
@@ -1853,7 +1866,7 @@ const SFX_GAIN = { open: 0.7, close: 0.7, on: 0.8, off: 0.8, done: 0.9, win: 1, 
 const sfxBuf = {}; let sfxLoading = false;
 function sfxLoad() {
   if (sfxLoading || !AC) return; sfxLoading = true;
-  for (const k in SFX_FILES) fetch("sounds/" + SFX_FILES[k] + ".mp3?v=138").then(r => r.arrayBuffer()).then(b => new Promise((ok, no) => AC.decodeAudioData(b, ok, no))).then(buf => { sfxBuf[k] = buf; }).catch(() => {});
+  for (const k in SFX_FILES) fetch("sounds/" + SFX_FILES[k] + ".mp3?v=139").then(r => r.arrayBuffer()).then(b => new Promise((ok, no) => AC.decodeAudioData(b, ok, no))).then(buf => { sfxBuf[k] = buf; }).catch(() => {});
 }
 function sfx(kind) {
   if (!sndOn || !AC) return;
@@ -2228,7 +2241,12 @@ function openVotePick() {
     const item = x => `<button class="vp-it" data-id="${esc(x.id)}"><b>${esc(x.name)}</b><small>${esc(x.category)}${n(x) ? " · " + n(x) + "명" : ""}</small></button>`;
     const list = m.querySelector("#vp-list");
     list.innerHTML = (hot.length ? `<div class="vp-t">🔥 오늘 인기</div>` + hot.map(item).join("") : "") +
-      `<div class="vp-t">${qq ? "검색 결과" : "전체 가게"}</div>` + (shops.length ? shops.slice(0, 80).map(item).join("") : `<div class="vd-empty">찾는 가게가 없어요. 지도에서 직접 찾아 보세요.</div>`);
+      `<div class="vp-t">${qq ? "검색 결과" : "전체 가게"}</div>` + (shops.length ? shops.slice(0, 80).map(item).join("") : `<div class="vd-empty">찾는 가게가 없어요.</div>`);
+    const rs = qq ? (roadSearch(qq) || jibunSearch(qq)) : null;
+    if (rs) list.insertAdjacentHTML("afterbegin", `<div class="vp-t">📍 주소</div><button class="vp-it vp-addr"><b>${esc(rs.name)}</b><small>지도에서 보기</small></button>`);
+    if (qq) list.insertAdjacentHTML("beforeend", `<button class="vp-it vp-new"><b>➕ 찾는 곳이 없나요? '${esc(qq)}' 가게 추가하기</b></button>`);
+    const ad = list.querySelector(".vp-addr"); if (ad) ad.onclick = () => { m.hidden = true; goTo(rs); };
+    const nw = list.querySelector(".vp-new"); if (nw) nw.onclick = () => { m.hidden = true; startAddShop(qq); };
     list.querySelectorAll(".vp-it").forEach(b => b.onclick = () => pick(b.dataset.id));
   };
   const pick = id => {

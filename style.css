@@ -854,3 +854,4 @@ body.rp-pick #cat-banner, body.rp-form #cat-banner, body.editing #cat-banner { d
 .vp-nm { font-size: 20px; font-weight: 800; text-align: center; margin: 6px 0 10px; }
 #vp-back { width: auto; background: #eef4ff; color: #1f6feb; padding: 7px 12px; border-radius: 14px; }
 #vp-done { width: 100%; margin-top: 12px; padding: 12px; font-size: 15px; font-weight: 800; }
+.res-add b { color: #1f6feb; } .vp-new b { color: #1f6feb; } .vp-addr { background: #eef4ff; }
