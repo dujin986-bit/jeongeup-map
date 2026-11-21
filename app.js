@@ -8,7 +8,7 @@ const map = new maplibregl.Map({
   style: "https://tiles.openfreemap.org/styles/liberty", // 무료, API 키 불필요
   center: JEONGEUP_CENTER,
   zoom: 15.2,
-  pitch: 60,
+  pitch: PT(60),
   bearing: -20,
   maxPitch: 80,
   attributionControl: { compact: true },   // 출처 표시는 유지하되 ⓘ 아이콘으로 줄임
@@ -33,6 +33,13 @@ function vecSrc() {                // 스타일의 벡터 타일 소스 이름 (
   return VEC_SRC_CACHE;
 }
 map.addControl(new maplibregl.NavigationControl({ visualizePitch: true }), "top-right");
+// 2D/3D 전환: 평소엔 평평하게(2D), 누르면 기울여 입체(3D)
+let is2D = false; try { is2D = localStorage.getItem("view2d") === "1"; } catch (e) {}
+const PT = v => (is2D ? 0 : v);
+map.addControl({ onAdd() { const c = document.createElement("div"); c.className = "maplibregl-ctrl maplibregl-ctrl-group"; const b = document.createElement("button"); b.type = "button"; b.id = "v3d-btn"; c.appendChild(b);
+  const lab = () => { b.innerHTML = `<span>${is2D ? "🗺" : "🏙"}</span><small>${is2D ? "2D" : "3D"}</small>`; b.title = is2D ? "3D로 보기" : "2D로 보기"; };
+  b.onclick = () => { is2D = !is2D; try { localStorage.setItem("view2d", is2D ? "1" : "0"); } catch (e) {} lab(); map.easeTo({ pitch: is2D ? 0 : 60, bearing: is2D ? 0 : map.getBearing(), duration: 700, essential: true }); };
+  lab(); if (is2D) map.once("load", () => map.jumpTo({ pitch: 0, bearing: 0 })); return c; }, onRemove() {} }, "top-right");
 map.addControl(new maplibregl.GeolocateControl({ trackUserLocation: true }), "top-right");
 
 // ---------- 지도 알림 버튼 (GPS 아래): 켜짐 🔔(단풍 레드) / 꺼짐 🔕 ----------
@@ -214,7 +221,7 @@ function timeAgo(ts) {
 }
 // 목록에서 제보를 눌렀을 때: 그 위치로 날아가서 팝업을 열고 연출(경광등·폭죽 등)까지 자동 재생
 function focusReport(r, dur = 1500) {
-  map.flyTo({ center: r.coord, zoom: 17, pitch: 60, duration: dur, essential: true });
+  map.flyTo({ center: r.coord, zoom: 17, pitch: PT(60), duration: dur, essential: true });
   let done = false;
   const fire = () => {
     if (done) return; done = true;
@@ -1417,7 +1424,7 @@ function doSearch() {
 }
 function goTo(it) {
   resEl.hidden = true; qEl.blur();
-  map.flyTo({ center: it.coord, zoom: 18, pitch: 60, duration: 1500, essential: true });
+  map.flyTo({ center: it.coord, zoom: 18, pitch: PT(60), duration: 1500, essential: true });
   if (searchPin) searchPin.remove();
   const pop = new maplibregl.Popup({ offset: 24, closeOnClick: true })
     .setHTML(`<strong>${esc(it.name)}</strong><br><small>${esc(it.sub)}</small>` + navLinks(it.name, it.coord[0], it.coord[1]));
@@ -2039,7 +2046,7 @@ const SFX_GAIN = { open: 0.7, close: 0.7, on: 0.8, off: 0.8, done: 0.9, win: 1, 
 const sfxBuf = {}; let sfxLoading = false;
 function sfxLoad() {
   if (sfxLoading || !AC) return; sfxLoading = true;
-  for (const k in SFX_FILES) fetch("sounds/" + SFX_FILES[k] + ".mp3?v=188").then(r => r.arrayBuffer()).then(b => new Promise((ok, no) => AC.decodeAudioData(b, ok, no))).then(buf => { sfxBuf[k] = buf; }).catch(() => {});
+  for (const k in SFX_FILES) fetch("sounds/" + SFX_FILES[k] + ".mp3?v=189").then(r => r.arrayBuffer()).then(b => new Promise((ok, no) => AC.decodeAudioData(b, ok, no))).then(buf => { sfxBuf[k] = buf; }).catch(() => {});
 }
 function sfx(kind) {
   if (!sndOn || !AC) return;
@@ -2270,7 +2277,7 @@ function openHelp(id) {
   const helpVisible = () => { const e = document.getElementById("help-ctl"); if (!e) return false; const b = e.getBoundingClientRect(); return b.width > 0 && b.left >= 0 && b.right <= innerWidth && b.top >= 0 && b.bottom <= innerHeight; };
   const STEPS = [
     { t: "어서 와요! 👋<br>정읍에서 <b>지금 무슨 일이 있는지</b> 한눈에 볼 수 있어요.", r: () => rectOf("top") },
-    { t: "지도 위 <b>점을 직접 눌러보세요.</b><br>가게 정보와 이웃 추천이 떠요.", r: center, hand: true },
+    { t: "지도 위 <b>점을 직접 눌러보세요.</b><br>가게 정보와 이웃 추천이 떠요.<br><small>두 손가락으로 돌리면 입체로 보이고, 오른쪽 <b>🏙 3D/2D</b> 버튼으로 평평하게도 볼 수 있어요.</small>", r: center, hand: true },
     { t: "💬 <b>실시간 채팅</b>에서 이웃과 얘기하고,<br>📣 <b>제보하기</b>로 지금 보이는 걸 알려주세요.", r: () => rectOf("top") },
     { t: () => helpVisible() ? "어려운 건 오른쪽 위 <b>🙋 도움말</b>에서 알려드려요.<br>제보하는 법, 소리, 알림까지 한곳에 있어요." : "어려운 건 <b>🙋 도움말</b>에서 알려드려요.<br>제보하는 법, 소리, 알림까지 한곳에 있어요.", r: () => helpVisible() ? rectOf("help-ctl") : rectOf("top") },
   ];
@@ -2349,7 +2356,7 @@ async function loadFood() {
   const ft = document.getElementById("food-total"); if (ft) ft.textContent = tot ? "총 " + tot + "표" : "";
   list.innerHTML = !today ? "<small>추천 준비 중이에요</small>" : today.length ? today.slice(0, 3).map((r, i) => { const p = tot ? Math.round(r.cnt / tot * 100) : 0; return `<div class="food-row r${i + 1}" data-id="${esc(r.shop_id)}"><div class="food-line"><span class="food-rank">${i + 1}</span><b>${esc(r.shop_name)}</b>${yday && yday.length && String(yday[0].shop_id) === String(r.shop_id) ? '<span class="yd-badge">어제 1등</span>' : ""}<span class="food-cnt">${r.cnt}표 · ${p}%</span></div><div class="food-bar"><i data-s="${(r.cnt / top).toFixed(3)}"></i></div></div>`; }).join("") : "<small>아직 투표가 없어요. 첫 표를 남겨 보세요!</small>";
   requestAnimationFrame(() => requestAnimationFrame(() => list.querySelectorAll(".food-bar i").forEach(el => { el.style.transform = "scaleX(" + el.dataset.s + ")"; })));
-  list.querySelectorAll(".food-row").forEach(el => el.onclick = () => { const s = shopInfo(el.dataset.id); if (!s) return; closeComm(); foodSheet.set(false); map.flyTo({ center: s.coord, zoom: 18, pitch: 55, duration: 1500 }); });
+  list.querySelectorAll(".food-row").forEach(el => el.onclick = () => { const s = shopInfo(el.dataset.id); if (!s) return; closeComm(); foodSheet.set(false); map.flyTo({ center: s.coord, zoom: 18, pitch: PT(55), duration: 1500 }); });
   const y = document.getElementById("food-yday"); if (y) y.innerHTML = yday && yday.length ? `<span class="yday">👑 어제의 1위 <b>${esc(yday[0].shop_name)}</b> · ${yday[0].cnt}표</span>` : "";
   foodTop = today && today.length ? today[0] : null; foodDay = kstDay(); foodClock();
   const btn = document.getElementById("food-vote"), nj = vdMineCount();
@@ -2396,7 +2403,7 @@ async function vdSummary(force) {
   const list = Object.entries(rows).map(([id, c]) => ({ id, c, n: c.again + c.local + c.meh, s: shopInfo(id) })).filter(x => x.s && !x.s.hidden && x.n > 0)
     .sort((a, b) => b.n - a.n || (b.c.again + b.c.local) - (a.c.again + a.c.local)).slice(0, 3);
   el.innerHTML = list.length ? list.map((x, i) => `<div class="vd-row" data-id="${esc(x.id)}"><div class="vd-name"><span>${["🥇", "🥈", "🥉"][i]}</span><b>${esc(x.s.name)}</b></div>${vdBars(x.c)}</div>`).join("") : `<div class="vd-empty">오늘 첫 번째 판정의 주인공이 되어보세요!</div>`;
-  el.querySelectorAll(".vd-row").forEach(r => r.onclick = () => { const s = shopInfo(r.dataset.id); if (!s) return; closeComm(); map.flyTo({ center: s.coord, zoom: 18, pitch: 55, duration: 1500 }); });
+  el.querySelectorAll(".vd-row").forEach(r => r.onclick = () => { const s = shopInfo(r.dataset.id); if (!s) return; closeComm(); map.flyTo({ center: s.coord, zoom: 18, pitch: PT(55), duration: 1500 }); });
 }
 function enterJudge() {
   judging = true; document.body.classList.add("judging");
@@ -2931,7 +2938,7 @@ async function openRoulette() {
     setTimeout(() => {
       tks.forEach(clearTimeout); sfx("win"); busy = false; spin.disabled = false; spin.textContent = "🔄 다시 돌리기";
       res.innerHTML = `<div class="rl-win">🎉 오늘은 <b>${esc(win.s.name)}</b>!</div><div class="rl-act"><button id="rl-go" class="chip">📍 지도에서 보기</button><button id="rl-share" class="chip">💌 친구에게 보내기</button></div>`;
-      document.getElementById("rl-go").onclick = () => { m.hidden = true; foodSheet.set(false); map.flyTo({ center: win.s.coord, zoom: 18, pitch: 55, duration: 1500 }); };
+      document.getElementById("rl-go").onclick = () => { m.hidden = true; foodSheet.set(false); map.flyTo({ center: win.s.coord, zoom: 18, pitch: PT(55), duration: 1500 }); };
       document.getElementById("rl-share").onclick = async () => { const text = `오늘은 "${win.s.name}" 어때? 🍚 정읍 지금 룰렛이 골라줬어!`, url = location.origin + location.pathname; try { if (navigator.share) await navigator.share({ title: "정읍 지금", text, url }); else { await navigator.clipboard.writeText(text + " " + url); alert("복사했어요! 카톡에 붙여넣기 하세요"); } } catch (e) {} };
     }, 4100);
   };

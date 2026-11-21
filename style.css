@@ -1057,3 +1057,7 @@ body.pop-open #op-btn, body.pop-open #cf { display: none !important; }
 .wl-row{display:flex;gap:10px;margin-bottom:10px}
 .wl-row .wl-btn.wl-sm{margin-bottom:0;flex:1;grid-template-columns:34px 1fr;padding:10px;min-height:56px;column-gap:6px}
 .wl-sm span{font-size:24px}.wl-sm b{font-size:16px}.wl-sm small{font-size:12px}
+
+/* v189 2D/3D 버튼 */
+#v3d-btn{width:auto;min-width:29px;height:auto;padding:3px 2px;display:flex;flex-direction:column;align-items:center;line-height:1.05}
+#v3d-btn span{font-size:16px}#v3d-btn small{font-size:10px;font-weight:700;color:#333}
