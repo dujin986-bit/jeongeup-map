@@ -602,6 +602,7 @@ function rpSet(step) {
   rpStep = step;
   document.body.classList.toggle("rp-pick", step === "pick");
   document.body.classList.toggle("rp-form", step === "form");
+  const qi = document.getElementById("q"); if (qi) qi.placeholder = step === "pick" ? "🔍 장소·주소 검색 (예: 꽃길슈퍼)" : "🔍 검색";
   if (step === "pick") rpBar.querySelector(".rp-slot").appendChild(sbox);     // 검색칸만 위에 얇게 남김
   else if (sbox.parentNode !== sbHome.parentNode) sbHome.after(sbox);
 }
@@ -629,6 +630,7 @@ document.getElementById("rp-me").onclick = () => {
   navigator.geolocation.getCurrentPosition(p => map.flyTo({ center: [p.coords.longitude, p.coords.latitude], zoom: Math.max(map.getZoom(), 17), duration: 1200 }),
     () => shareToast("위치를 못 찾았어요. 폰 설정에서 위치를 허용해 주세요"), { enableHighAccuracy: true, timeout: 8000 });
 };
+document.getElementById("rp-find").onclick = () => { const qi = document.getElementById("q"); if (qi) { qi.focus(); qi.select(); } };
 document.getElementById("rp-help").onclick = () => openHelp("report");
 try { document.body.classList.toggle("rp-seen", (+localStorage.getItem("rp_n") || 0) >= 1); } catch (e) {}   // 제보해 본 사람은 안내를 작게
 document.getElementById("rp-back").onclick = () => { showPanel(false); pickMode = true; crosshair.hidden = false; rpSet("pick"); setPos(map.getCenter()); };
@@ -1833,7 +1835,7 @@ const SFX_GAIN = { open: 0.7, close: 0.7, on: 0.8, off: 0.8, done: 0.9, win: 1, 
 const sfxBuf = {}; let sfxLoading = false;
 function sfxLoad() {
   if (sfxLoading || !AC) return; sfxLoading = true;
-  for (const k in SFX_FILES) fetch("sounds/" + SFX_FILES[k] + ".mp3?v=134").then(r => r.arrayBuffer()).then(b => new Promise((ok, no) => AC.decodeAudioData(b, ok, no))).then(buf => { sfxBuf[k] = buf; }).catch(() => {});
+  for (const k in SFX_FILES) fetch("sounds/" + SFX_FILES[k] + ".mp3?v=135").then(r => r.arrayBuffer()).then(b => new Promise((ok, no) => AC.decodeAudioData(b, ok, no))).then(buf => { sfxBuf[k] = buf; }).catch(() => {});
 }
 function sfx(kind) {
   if (!sndOn || !AC) return;
