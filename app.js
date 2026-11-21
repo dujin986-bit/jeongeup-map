@@ -1867,7 +1867,7 @@ const SFX_GAIN = { open: 0.7, close: 0.7, on: 0.8, off: 0.8, done: 0.9, win: 1, 
 const sfxBuf = {}; let sfxLoading = false;
 function sfxLoad() {
   if (sfxLoading || !AC) return; sfxLoading = true;
-  for (const k in SFX_FILES) fetch("sounds/" + SFX_FILES[k] + ".mp3?v=143").then(r => r.arrayBuffer()).then(b => new Promise((ok, no) => AC.decodeAudioData(b, ok, no))).then(buf => { sfxBuf[k] = buf; }).catch(() => {});
+  for (const k in SFX_FILES) fetch("sounds/" + SFX_FILES[k] + ".mp3?v=144").then(r => r.arrayBuffer()).then(b => new Promise((ok, no) => AC.decodeAudioData(b, ok, no))).then(buf => { sfxBuf[k] = buf; }).catch(() => {});
 }
 function sfx(kind) {
   if (!sndOn || !AC) return;
@@ -2172,7 +2172,7 @@ async function loadFood() {
   const y = document.getElementById("food-yday"); if (y) y.innerHTML = yday && yday.length ? `<span class="yday">👑 어제의 1위 <b>${esc(yday[0].shop_name)}</b> · ${yday[0].cnt}표</span>` : "";
   foodTop = today && today.length ? today[0] : null; foodDay = kstDay(); foodClock();
   const btn = document.getElementById("food-vote"), nj = vdMineCount();
-  if (btn) { btn.textContent = nj ? "🍚 오늘 맛있게 먹은 곳 알려주기 · " + nj + "곳 알려줌" : "🍚 오늘 맛있게 먹은 곳 알려주기"; btn.disabled = false; btn.onclick = () => openVotePick(); }
+  if (btn) { btn.textContent = "🍚 오늘 맛있게 먹은 곳 알려주기"; btn.disabled = false; btn.onclick = () => openVotePick(); }
   foodSheet.refit();
 }
 // ===== 🔥 오늘의 찐맛집 판정 (가게별 하루 1표 · 3가지 중 하나 · 한국시간 자정 초기화) =====
@@ -2237,7 +2237,7 @@ function openVotePick() {
     const qq = (q || "").trim();
     if (qq) shops = shops.filter(x => x.name.includes(qq));
     const hot = !qq ? shops.filter(x => n(x) > 0).slice(0, 3) : [];
-    const item = x => `<button class="vp-it" data-id="${esc(x.id)}"><b>${esc(x.name)}</b><small>${esc(x.category)}${n(x) ? " · " + n(x) + "명" : ""}</small></button>`;
+    const item = x => `<button class="vp-it" data-id="${esc(x.id)}"><b>${esc(x.name)}</b><small>${vdMine().m[x.id] ? "✅ 내가 알려줌" : esc(x.category) + (n(x) ? " · " + n(x) + "명" : "")}</small></button>`;
     const list = m.querySelector("#vp-list");
     const rs = qq ? (roadSearch(qq) || jibunSearch(qq)) : null;
     list.innerHTML = (rs ? `<div class="vp-t">📍 주소</div><button class="vp-it vp-addr"><b>${esc(rs.name)}</b><small>지도에서 보기</small></button>` : "") +
