@@ -1066,5 +1066,5 @@ body.pop-open #op-btn, body.pop-open #cf { display: none !important; }
 body.editing #ed-bar{bottom:auto;top:84px;left:8px;right:8px;max-width:none;z-index:9;flex-wrap:nowrap;overflow-x:auto}
 body.editing #ed-bar button{white-space:nowrap}
 body.editing #ed-bar #ed-add{background:#1f6feb !important;color:#fff !important;font-size:16px;padding:10px 16px}
-body.editing #feed, body.editing #cat-banner{display:none !important}
+body.editing #food-sheet, body.editing #cat-banner{display:none !important}
 .ed-pop{display:block;width:100%;margin-top:8px;padding:10px;border:2px solid #1f6feb;background:#fff;color:#1f6feb;font-weight:800;font-size:15px;border-radius:10px}

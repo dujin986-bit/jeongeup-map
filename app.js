@@ -491,11 +491,13 @@ function shopGroup(cat, name) {
   if (/주차/.test(cat)) return "park";
   return "";
 }
+const NOT_SHOP = /^(진출입시설|도로시설)/;
 function shopFeatures() {
   const out = [], seen = new Set();
   for (const s of SHOPS.concat(EDITS.added || [])) {
     const e = (EDITS.edits || {})[s.id] || {};
     if (e.hidden && !(editMode && editShowHidden)) continue;
+    if (NOT_SHOP.test(s.category || "") && !e.category) continue;   // 입구·도로시설 같은 가게 아닌 점은 지도에서 뺌
     const co = e.coord || s.coord, cat = e.category || s.category;
     if (shopSub && shopGroup(cat, e.name || s.name) !== shopSub) continue;
     const b = e.brand, bOn = brandActive(b);
@@ -1320,6 +1322,7 @@ function searchIndex() {
   for (const s of (typeof SHOPS !== "undefined" ? SHOPS : []).concat(EDITS.added || [])) {
     const e = (EDITS.edits || {})[s.id] || {};
     if (e.hidden) continue;
+    if (NOT_SHOP.test(s.category || "") && !e.category) continue;
     out.push({ name: e.name || s.name, sub: (e.category || s.category || "").split(">").pop().trim() + (s.address ? " · " + s.address.replace("전북특별자치도 ", "") : ""),
                addr: s.address || "", coord: e.coord || s.coord, kind: "상가", id: s.id });
   }
@@ -2049,7 +2052,7 @@ const SFX_GAIN = { open: 0.7, close: 0.7, on: 0.8, off: 0.8, done: 0.9, win: 1, 
 const sfxBuf = {}; let sfxLoading = false;
 function sfxLoad() {
   if (sfxLoading || !AC) return; sfxLoading = true;
-  for (const k in SFX_FILES) fetch("sounds/" + SFX_FILES[k] + ".mp3?v=192").then(r => r.arrayBuffer()).then(b => new Promise((ok, no) => AC.decodeAudioData(b, ok, no))).then(buf => { sfxBuf[k] = buf; }).catch(() => {});
+  for (const k in SFX_FILES) fetch("sounds/" + SFX_FILES[k] + ".mp3?v=193").then(r => r.arrayBuffer()).then(b => new Promise((ok, no) => AC.decodeAudioData(b, ok, no))).then(buf => { sfxBuf[k] = buf; }).catch(() => {});
 }
 function sfx(kind) {
   if (!sndOn || !AC) return;
