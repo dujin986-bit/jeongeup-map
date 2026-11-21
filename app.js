@@ -2039,7 +2039,7 @@ const SFX_GAIN = { open: 0.7, close: 0.7, on: 0.8, off: 0.8, done: 0.9, win: 1, 
 const sfxBuf = {}; let sfxLoading = false;
 function sfxLoad() {
   if (sfxLoading || !AC) return; sfxLoading = true;
-  for (const k in SFX_FILES) fetch("sounds/" + SFX_FILES[k] + ".mp3?v=184").then(r => r.arrayBuffer()).then(b => new Promise((ok, no) => AC.decodeAudioData(b, ok, no))).then(buf => { sfxBuf[k] = buf; }).catch(() => {});
+  for (const k in SFX_FILES) fetch("sounds/" + SFX_FILES[k] + ".mp3?v=185").then(r => r.arrayBuffer()).then(b => new Promise((ok, no) => AC.decodeAudioData(b, ok, no))).then(buf => { sfxBuf[k] = buf; }).catch(() => {});
 }
 function sfx(kind) {
   if (!sndOn || !AC) return;
@@ -2221,9 +2221,9 @@ const HELP = [
   { id: "chat", ic: "💬", t: "실시간 채팅", s: "지금 정읍 사람들과 한 줄로 이야기해요",
     b: `<ol class="hp-steps"><li>위쪽 <b>💬 실시간 채팅</b>을 눌러요.</li><li>아래 칸에 <b>한마디</b>를 쓰고 <b>↑</b>를 눌러요.</li><li>남의 글은 <b>👍 좋아요</b>, 이상한 글은 <b>🚩 신고</b>를 눌러요. <small>(여러 명이 신고하면 자동으로 숨겨져요)</small></li></ol><p>지도 왼쪽 <b>💬 채팅</b> 칸에는 최근 글이 흘러가요. 누르면 채팅이 열리고, <b>⤢</b>로 크기를, <b>채팅 ▴</b>로 접고 펼 수 있어요.</p>`,
     a: ["채팅 열어보기", () => setTimeout(openComm, 250)] },
-  { id: "food", ic: "🍚", t: "오늘의 찐맛집 판정", s: "가게마다 하루 한 번, 🔥👴😅 중 하나",
-    b: `<ol class="hp-steps"><li>지도에서 가게 점을 눌러요. (또는 <b>🍚 오늘 맛있게 먹은 곳 알려주기</b>)</li><li>팝업의 <b>이 가게 알려주기</b>를 눌러요.</li><li><b>🔥 또 갈 거임 · 👴 토박이 단골 · 😅 한 번으로 족함</b> 중 하나를 골라요.</li></ol><p>가게마다 하루 한 번이에요. 같은 날엔 마음을 바꿔 다시 눌러도 돼요. 자정이 지나면 처음부터 다시 시작해요. 아래 <b>맛집 줄</b>을 누르면 오늘의 순위를 볼 수 있어요. 재미로 보는 주민 판정이에요.</p>`,
-    a: ["지금 판정해보기", () => enterJudge()] },
+  { id: "food", ic: "🍚", t: "맛집 추천하기", s: "마음에 든 가게를 하루 한 번 추천해요",
+    b: `<ol class="hp-steps"><li>지도에서 가게 점을 눌러요. (또는 <b>🍚 오늘 맛있게 먹은 곳 추천하기</b>)</li><li>팝업의 <b>이 가게 추천하기</b>를 눌러요.</li><li><b>🔥 또 갈 거임 · 👴 토박이 단골 · 😅 한 번으로 족함</b> 중 하나를 골라요.</li></ol><p>가게마다 하루 한 번이에요. 같은 날엔 마음을 바꿔 다시 눌러도 돼요. 자정이 지나면 처음부터 다시 시작해요. 아래 <b>맛집 줄</b>을 누르면 오늘의 순위를 볼 수 있어요. 재미로 보는 주민 추천이에요.</p>`,
+    a: ["지금 추천하기", () => enterJudge()] },
   { id: "shopinfo", ic: "✏", t: "가게정보수정", s: "인스타·블로그·전화·영업시간 알려주기",
     b: `<ol class="hp-steps"><li>지도에서 <b>가게 점</b>을 눌러요.</li><li>팝업의 파란 <b>✏ 가게정보수정</b>을 눌러요.</li><li>아는 것만 적어요. <b>인스타·블로그·전화·영업시간</b> (전화번호는 숫자만 눌러도 돼요, 영업시간은 눌러서 골라요)</li><li><b>보내기</b>를 눌러요.</li></ol><p>관리자가 확인한 뒤 가게에 올라가요. 이름·위치가 틀렸거나 없어진 가게라면 창 맨 아래 작은 글자를 눌러 주세요.</p>` },
   { id: "office", ic: "🏛", t: "관공서·행사 공지", s: "시청 등을 누르면 행사 소식이 보여요",
@@ -2344,13 +2344,13 @@ async function loadFood() {
   const medal = ["🥇", "🥈", "🥉"];
   const tot = today ? today.reduce((a, r) => a + (+r.cnt || 0), 0) : 0, top = today && today.length ? Math.max(...today.map(r => +r.cnt || 0)) || 1 : 1;
   const ft = document.getElementById("food-total"); if (ft) ft.textContent = tot ? "총 " + tot + "표" : "";
-  list.innerHTML = !today ? "<small>투표 준비 중이에요</small>" : today.length ? today.slice(0, 3).map((r, i) => { const p = tot ? Math.round(r.cnt / tot * 100) : 0; return `<div class="food-row r${i + 1}" data-id="${esc(r.shop_id)}"><div class="food-line"><span class="food-rank">${i + 1}</span><b>${esc(r.shop_name)}</b>${yday && yday.length && String(yday[0].shop_id) === String(r.shop_id) ? '<span class="yd-badge">어제 1등</span>' : ""}<span class="food-cnt">${r.cnt}표 · ${p}%</span></div><div class="food-bar"><i data-s="${(r.cnt / top).toFixed(3)}"></i></div></div>`; }).join("") : "<small>아직 투표가 없어요. 첫 표를 남겨 보세요!</small>";
+  list.innerHTML = !today ? "<small>추천 준비 중이에요</small>" : today.length ? today.slice(0, 3).map((r, i) => { const p = tot ? Math.round(r.cnt / tot * 100) : 0; return `<div class="food-row r${i + 1}" data-id="${esc(r.shop_id)}"><div class="food-line"><span class="food-rank">${i + 1}</span><b>${esc(r.shop_name)}</b>${yday && yday.length && String(yday[0].shop_id) === String(r.shop_id) ? '<span class="yd-badge">어제 1등</span>' : ""}<span class="food-cnt">${r.cnt}표 · ${p}%</span></div><div class="food-bar"><i data-s="${(r.cnt / top).toFixed(3)}"></i></div></div>`; }).join("") : "<small>아직 투표가 없어요. 첫 표를 남겨 보세요!</small>";
   requestAnimationFrame(() => requestAnimationFrame(() => list.querySelectorAll(".food-bar i").forEach(el => { el.style.transform = "scaleX(" + el.dataset.s + ")"; })));
   list.querySelectorAll(".food-row").forEach(el => el.onclick = () => { const s = shopInfo(el.dataset.id); if (!s) return; closeComm(); foodSheet.set(false); map.flyTo({ center: s.coord, zoom: 18, pitch: 55, duration: 1500 }); });
   const y = document.getElementById("food-yday"); if (y) y.innerHTML = yday && yday.length ? `<span class="yday">👑 어제의 1위 <b>${esc(yday[0].shop_name)}</b> · ${yday[0].cnt}표</span>` : "";
   foodTop = today && today.length ? today[0] : null; foodDay = kstDay(); foodClock();
   const btn = document.getElementById("food-vote"), nj = vdMineCount();
-  if (btn) { btn.textContent = "🍚 오늘 맛있게 먹은 곳 알려주기"; btn.disabled = false; btn.onclick = () => openVotePick(); }
+  if (btn) { btn.textContent = "🍚 오늘 맛있게 먹은 곳 추천하기"; btn.disabled = false; btn.onclick = () => openVotePick(); }
   foodSheet.refit();
 }
 // ===== 🔥 오늘의 찐맛집 판정 (가게별 하루 1표 · 3가지 중 하나 · 한국시간 자정 초기화) =====
@@ -2373,12 +2373,12 @@ async function vdLoad(force) {
 }
 function vdBars(c) {
   const n = c.again + c.local + c.meh;
-  if (!n) return `<div class="vd-empty">아직 아무도 안 알려줬어요. 첫 번째가 되어 보세요!</div>`;
+  if (!n) return `<div class="vd-empty">아직 추천이 없어요. 첫 번째가 되어 보세요!</div>`;
   if (n < VD_MIN) return `<div class="vd-empty">👥 ${n}명 참여 중 · ${VD_MIN}명부터 비율이 공개돼요</div>`;
   return `<div class="vd-stack">` + VD.filter(([k]) => c[k]).map(([k]) => `<i class="vd-${k}" style="flex:${c[k]}"></i>`).join("") + `</div><div class="vd-legend">` + VD.map(([k, ic]) => `<span class="vd-${k}">${ic} ${Math.round(c[k] / n * 100)}%</span>`).join("") + `<em>👥 ${n}명 참여</em></div>`;
 }
 function vdBlock(id) {
-  return `<div class="vd" data-id="${esc(id)}"><div class="vd-hd">🔥 오늘 어땠어요? <small>자정 초기화</small></div><button class="vd-open" type="button">🍚 이 가게 알려주기</button><div class="vd-res"></div></div>`;
+  return `<div class="vd" data-id="${esc(id)}"><div class="vd-hd">🔥 오늘 어땠어요? <small>자정 초기화</small></div><button class="vd-open" type="button">🍚 이 가게 추천하기</button><div class="vd-res"></div></div>`;
 }
 async function vdHydrate(root) {
   const boxes = [...root.querySelectorAll(".vd")]; if (!boxes.length) return;
@@ -2468,7 +2468,7 @@ function voteFlow(id) {
   const step2 = () => {
     m.innerHTML = `<div class="vf-box"><div class="vf-nm">${esc(s.name)}</div><div class="vf-q">오늘 어땠어요?</div>` +
       VD.map(([k, ic, tx]) => `<button class="vf-c${pick === k ? " on" : ""}" data-k="${k}" type="button"><span>${ic}</span><b>${tx}</b><small>${VD_DESC[k]}</small></button>`).join("") +
-      (mine ? `<div class="vf-sub">오늘 이미 알려줬어요. 바꾸려면 다시 골라요.</div>` : "") +
+      (mine ? `<div class="vf-sub">오늘 이미 추천했어요. 바꾸려면 다시 골라요.</div>` : "") +
       `<div class="vf-row"><button class="vf-no" type="button">취소</button><button class="vf-ok" type="button" ${pick ? "" : "disabled"}>다음</button></div></div>`;
     m.querySelectorAll(".vf-c").forEach(b => b.onclick = () => { pick = b.dataset.k; m.querySelectorAll(".vf-c").forEach(x => x.classList.toggle("on", x === b)); m.querySelector(".vf-ok").disabled = false; });
     m.querySelector(".vf-no").onclick = close; m.querySelector(".vf-ok").onclick = step3;
@@ -2720,7 +2720,7 @@ const foodSheet = (function () {
   el.innerHTML = `<div id="fs-head"><i class="fs-grab"></i><div id="fs-sum">🍚 오늘의 맛집 · 불러오는 중…</div><span id="fs-hint">${hintTxt(0)}</span></div>` +
     `<div id="fs-body"><div id="fs-mid"><div class="fm-hd"><b>지금 정읍</b><span id="fm-wx"></span></div><div id="fm-icons">${icons}</div><div id="fm-news-t">지금 정읍 소식</div><div id="fm-news"></div></div>` +
     `<div id="food-sec"><div class="food-hd"><b>🍚 오늘의 맛집 TOP 3</b><span id="food-total"></span></div><div id="food-clock"></div><div id="food-list">불러오는 중…</div>` +
-    `<button id="food-vote" class="chip">🍚 오늘 맛있게 먹은 곳 알려주기</button><button id="food-roulette" class="chip">🎰 오늘 뭐 먹지? 룰렛 돌리기</button><div id="food-yday"></div></div></div>`;
+    `<button id="food-vote" class="chip">🍚 오늘 맛있게 먹은 곳 추천하기</button><button id="food-roulette" class="chip">🎰 오늘 뭐 먹지? 룰렛 돌리기</button><div id="food-yday"></div></div></div>`;
   document.body.appendChild(el);
   const head = el.querySelector("#fs-head"), mid = el.querySelector("#fs-mid"), bodyEl = el.querySelector("#fs-body");
   const verEl = document.getElementById("ver"); if (verEl) head.appendChild(verEl);   // 버전 글씨가 시트에 가려지지 않게 손잡이 줄 왼쪽으로
@@ -2805,7 +2805,7 @@ function sheetSum() {
   const live = reports.filter(r => expAt(r) > Date.now()).sort((a, b) => new Date(b.ts) - new Date(a.ts)).slice(0, 5);
   const parts = live.map(r => { const c = CATEGORIES[r.cat]; return `<span class="mq-c" data-rid="${esc(String(r.id))}" style="--c:${c.color}"><i style="background:${c.color};color:${c.fg || "#fff"}">${c.icon}</i>${esc(r.title)}</span>`; });
   if (foodTop) parts.push(`<span class="mq-c mq-food" data-food="1"><i>🥇</i>오늘 맛집 1위 <b>${esc(foodTop.shop_name)}</b> · ${foodTop.cnt}표</span>`);
-  if (!parts.length) parts.push(`<span class="mq-c mq-food" data-food="1"><i>🍚</i>오늘의 맛집 · 첫 표를 남겨 보세요</span>`);
+  if (!parts.length) parts.push(`<span class="mq-c mq-food" data-food="1"><i>🍚</i>오늘의 맛집 · 첫 추천을 남겨 보세요</span>`);
   const len = live.reduce((n, r) => n + String(r.title).length + 4, 0) + (foodTop ? 22 : 18);
   foodSheet.summary(`<span class="fs-mq" style="animation-duration:${Math.max(14, len * 0.5)}s">${parts.join("")}</span>`);
 }
@@ -2916,7 +2916,7 @@ async function openRoulette() {
   list.forEach((c, i) => { c.a0 = a0; c.a1 = a0 + c.wt / tot * Math.PI * 2; a0 = c.a1; g.beginPath(); g.moveTo(R, R); g.arc(R, R, R - 4, c.a0, c.a1); g.closePath(); g.fillStyle = RL_COLORS[i % RL_COLORS.length]; g.fill(); g.strokeStyle = "#fff"; g.lineWidth = 4; g.stroke();
     g.save(); g.translate(R, R); g.rotate((c.a0 + c.a1) / 2); g.fillStyle = "#fff"; g.font = "bold 30px Pretendard, sans-serif"; g.textAlign = "right"; g.textBaseline = "middle";
     let n = c.s.name; if (n.length > 8) n = n.slice(0, 7) + "…"; g.fillText(n, R - 26, 0); g.restore(); });
-  res.innerHTML = "오늘 투표가 많은 가게일수록 칸이 넓어요"; spin.disabled = false;
+  res.innerHTML = "오늘 추천이 많은 가게일수록 칸이 넓어요"; spin.disabled = false;
   let rot = 0, busy = false;
   spin.onclick = () => {
     if (busy) return; busy = true; spin.disabled = true; res.textContent = "두근두근…";
