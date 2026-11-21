@@ -385,13 +385,9 @@ async function loadBoundary() {
 }
 
 // ---------- 상가/시설 (data/shops.json: tools/search_shops.py) ----------
-function shopColor(cat) {
-  if (/카페|커피/.test(cat)) return "#8d5524";
-  if (/음식|식당|한식|분식|치킨|중식|일식|양식/.test(cat)) return "#f76b15";
-  if (/숙박|모텔|펜션|호텔/.test(cat)) return "#8e4ec6";
-  if (/편의점|마트|슈퍼|소매/.test(cat)) return "#2f9e44";
-  if (/주차/.test(cat)) return "#1f6feb";
-  return "#6b7280";
+const SHOP_COLORS = { food: "#e8590c", cafe: "#6b3a12", mart: "#2b8a3e", meat: "#c92a2a", stay: "#7048e8", pharm: "#0b7285", park: "#1864ab" };
+function shopColor(cat, name) {
+  const g = shopGroup(cat, name || ""); return SHOP_COLORS[g] || "#495057";
 }
 
 let SHOPS = [];
@@ -461,13 +457,13 @@ function shopFeatures() {
     if (shopSub && shopGroup(cat, e.name || s.name) !== shopSub) continue;
     const b = e.brand, bOn = brandActive(b);
     if (!editMode && !bOn) {
-      if (!isFoodCafe(cat)) continue;
+      if (!isFoodCafe(cat) && !shopSub) continue;     // 평소엔 식당·카페만, 세부 종류를 고르면 그 종류도 그린다
       const k = (e.name || s.name) + "|" + (s.address || "") + "|" + co[0].toFixed(4) + "," + co[1].toFixed(4);
       if (seen.has(k)) continue; seen.add(k);
     }
     out.push({ type: "Feature", geometry: { type: "Point", coordinates: co },
       properties: { id: s.id, name: (e.name || s.name) + (e.hidden ? " (숨김)" : ""), category: cat, address: s.address, lon: co[0], lat: co[1],
-                    color: e.hidden ? "#bbbbbb" : shopColor(cat),
+                    color: e.hidden ? "#bbbbbb" : shopColor(cat, e.name || s.name),
                     brand: bOn ? 1 : 0, bcolor: bOn ? b.color : "", bink: bOn ? brandInk(b.color) : "#fff", bname: bOn ? (b.name || e.name || s.name) : "", blink: bOn ? safeLink(b.link) : "" } });
   }
   return out;
@@ -495,7 +491,7 @@ async function loadShops() {
     const feats = shopFeatures();
     map.addSource("shops", { type: "geojson", data: { type: "FeatureCollection", features: feats } });
     map.addLayer({ id: "shops-dot", type: "circle", source: "shops", minzoom: 14,
-      paint: { "circle-radius": ["interpolate", ["linear"], ["zoom"], 14, 2, 16, 3.5, 18, 7],   // 멀리서는 작고 얇게 → 겹침 완화
+      paint: { "circle-radius": ["interpolate", ["linear"], ["zoom"], 14, 2.6, 16, 4.2, 18, 8],   // 멀리서는 작고 얇게 → 겹침 완화
                "circle-color": ["get", "color"], "circle-stroke-color": "#fff", "circle-stroke-width": ["interpolate", ["linear"], ["zoom"], 14, 0.4, 16, 1, 18, 1.5] } });
     map.addLayer({ id: "shops-hit", type: "circle", source: "shops", minzoom: 14,      // 눈에 안 보이는 넓은 터치 영역
       paint: { "circle-radius": ["interpolate", ["linear"], ["zoom"], 14, 12, 17, 18, 19, 22], "circle-color": "#000", "circle-opacity": 0 } });
@@ -1887,7 +1883,7 @@ const SFX_GAIN = { open: 0.7, close: 0.7, on: 0.8, off: 0.8, done: 0.9, win: 1, 
 const sfxBuf = {}; let sfxLoading = false;
 function sfxLoad() {
   if (sfxLoading || !AC) return; sfxLoading = true;
-  for (const k in SFX_FILES) fetch("sounds/" + SFX_FILES[k] + ".mp3?v=150").then(r => r.arrayBuffer()).then(b => new Promise((ok, no) => AC.decodeAudioData(b, ok, no))).then(buf => { sfxBuf[k] = buf; }).catch(() => {});
+  for (const k in SFX_FILES) fetch("sounds/" + SFX_FILES[k] + ".mp3?v=151").then(r => r.arrayBuffer()).then(b => new Promise((ok, no) => AC.decodeAudioData(b, ok, no))).then(buf => { sfxBuf[k] = buf; }).catch(() => {});
 }
 function sfx(kind) {
   if (!sndOn || !AC) return;
