@@ -8,7 +8,7 @@ const map = new maplibregl.Map({
   style: "https://tiles.openfreemap.org/styles/liberty", // 무료, API 키 불필요
   center: JEONGEUP_CENTER,
   zoom: 15.2,
-  pitch: PT(60),
+  pitch: 60,
   bearing: -20,
   maxPitch: 80,
   attributionControl: { compact: true },   // 출처 표시는 유지하되 ⓘ 아이콘으로 줄임
@@ -2046,7 +2046,7 @@ const SFX_GAIN = { open: 0.7, close: 0.7, on: 0.8, off: 0.8, done: 0.9, win: 1, 
 const sfxBuf = {}; let sfxLoading = false;
 function sfxLoad() {
   if (sfxLoading || !AC) return; sfxLoading = true;
-  for (const k in SFX_FILES) fetch("sounds/" + SFX_FILES[k] + ".mp3?v=189").then(r => r.arrayBuffer()).then(b => new Promise((ok, no) => AC.decodeAudioData(b, ok, no))).then(buf => { sfxBuf[k] = buf; }).catch(() => {});
+  for (const k in SFX_FILES) fetch("sounds/" + SFX_FILES[k] + ".mp3?v=190").then(r => r.arrayBuffer()).then(b => new Promise((ok, no) => AC.decodeAudioData(b, ok, no))).then(buf => { sfxBuf[k] = buf; }).catch(() => {});
 }
 function sfx(kind) {
   if (!sndOn || !AC) return;
