@@ -1867,7 +1867,7 @@ const SFX_GAIN = { open: 0.7, close: 0.7, on: 0.8, off: 0.8, done: 0.9, win: 1, 
 const sfxBuf = {}; let sfxLoading = false;
 function sfxLoad() {
   if (sfxLoading || !AC) return; sfxLoading = true;
-  for (const k in SFX_FILES) fetch("sounds/" + SFX_FILES[k] + ".mp3?v=146").then(r => r.arrayBuffer()).then(b => new Promise((ok, no) => AC.decodeAudioData(b, ok, no))).then(buf => { sfxBuf[k] = buf; }).catch(() => {});
+  for (const k in SFX_FILES) fetch("sounds/" + SFX_FILES[k] + ".mp3?v=147").then(r => r.arrayBuffer()).then(b => new Promise((ok, no) => AC.decodeAudioData(b, ok, no))).then(buf => { sfxBuf[k] = buf; }).catch(() => {});
 }
 function sfx(kind) {
   if (!sndOn || !AC) return;
@@ -2475,7 +2475,7 @@ const foodSheet = (function () {
   let lvl = 0, dragging = false, y0 = 0, off0 = 0, curOff = 0, moved = 0, t0 = 0, ignoreClick = false;   // lvl: 0 접힘 · 1 반쯤 · 2 끝까지
   const peek = () => { const ic = el.querySelector(".fm-ic"); return head.offsetHeight + (ic ? ic.offsetHeight + 16 + mid.querySelector(".fm-hd").offsetHeight : 0); };   // 접혀도 첫 아이콘 줄까지 걸쳐 보이게
   const closedOff = () => Math.max(0, el.offsetHeight - peek());
-  const halfOff = () => { const hd = mid.querySelector(".fm-hd"), ic = mid.querySelector("#fm-icons"); const vis = head.offsetHeight + (hd ? hd.offsetHeight : 0) + (ic ? ic.offsetHeight : 0) + 12; return Math.max(0, Math.min(closedOff(), el.offsetHeight - vis)); };   // 중간 높이 = 아이콘 줄까지만
+  const halfOff = () => { const hd = mid.querySelector(".fm-hd"), ic = mid.querySelector("#fm-icons"); const vis = head.offsetHeight + (hd ? hd.offsetHeight : 0) + (ic ? ic.offsetHeight : 0) + 80; return Math.max(0, Math.min(closedOff(), el.offsetHeight - vis)); };   // 중간 높이 = 아이콘 줄까지만
   const fitMax = () => {                              // 시트가 위쪽 영역(검색·도구·공지 띠)을 덮지 않게 최대 높이를 맞춘다
     const t = document.getElementById("top"), tk = document.getElementById("ticker");
     let end = t ? t.getBoundingClientRect().bottom : 0;
