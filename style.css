@@ -1048,3 +1048,7 @@ body.night .maplibregl-popup-content { background: #fff; }
 .maplibregl-popup-content .si-b a { padding: 4px 10px; font-size: 13px; }
 /* v182 팝업(제보·가게)이 열려 있으면 의견·채팅 칸은 숨김 */
 body.pop-open #op-btn, body.pop-open #cf { display: none !important; }
+
+/* v186 위로 올라가며 흐름 (채팅 화면과 같은 방향) */
+@keyframes cfFlow { from { transform: translateY(0); } to { transform: translateY(-50%); } }
+#cf .cf-box { -webkit-mask-image: linear-gradient(transparent, #000 30%); mask-image: linear-gradient(transparent, #000 30%); }

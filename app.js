@@ -1566,7 +1566,7 @@ let commTab = "chat";
   document.addEventListener("visibilitychange", () => root.classList.toggle("pause", document.hidden));
   let rows = [];
   function draw(r) {
-    const show = r.slice(0, 8);
+    const show = r.slice(0, 8).reverse();   // 위가 옛 글, 아래가 새 글 (채팅 화면과 같은 순서)
     const key = show.map(p => p.id).join(",") + "|" + size;
     if (key === last) return;
     last = key;
@@ -2039,7 +2039,7 @@ const SFX_GAIN = { open: 0.7, close: 0.7, on: 0.8, off: 0.8, done: 0.9, win: 1, 
 const sfxBuf = {}; let sfxLoading = false;
 function sfxLoad() {
   if (sfxLoading || !AC) return; sfxLoading = true;
-  for (const k in SFX_FILES) fetch("sounds/" + SFX_FILES[k] + ".mp3?v=185").then(r => r.arrayBuffer()).then(b => new Promise((ok, no) => AC.decodeAudioData(b, ok, no))).then(buf => { sfxBuf[k] = buf; }).catch(() => {});
+  for (const k in SFX_FILES) fetch("sounds/" + SFX_FILES[k] + ".mp3?v=186").then(r => r.arrayBuffer()).then(b => new Promise((ok, no) => AC.decodeAudioData(b, ok, no))).then(buf => { sfxBuf[k] = buf; }).catch(() => {});
 }
 function sfx(kind) {
   if (!sndOn || !AC) return;
