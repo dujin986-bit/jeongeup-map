@@ -1644,13 +1644,14 @@ function renderFeedbackForm() {
   };
 }
 // ---------- 🗣 얘기방 / ❓ 지금 정읍 (실시간 글. 욕설·도배는 서버에서 막고, 🚩 3번이면 자동 숨김) ----------
-let talkCh = null, talkSb = null, talkTimer = 0, talkFirst = true;
+let talkCh = null, talkSb = null, talkTimer = 0, talkFirst = true, talkPoll = 0;
 const TALK_URL = SUPABASE_URL + "/rest/v1/talk_posts";
 function talkNick() { try { let n = localStorage.getItem("talk_nick"); if (!n) { n = "정읍 주민" + (1000 + Math.floor(Math.random() * 9000)); localStorage.setItem("talk_nick", n); } return n; } catch (e) { return "정읍 주민" + (1000 + Math.floor(Math.random() * 9000)); } }
 function talkLiked() { try { return JSON.parse(localStorage.getItem("talk_liked") || "[]"); } catch (e) { return []; } }
-function talkStop() { clearTimeout(talkTimer); if (talkCh && talkSb) { try { talkSb.removeChannel(talkCh); } catch (e) {} } talkCh = null; }
+function talkStop() { clearTimeout(talkTimer); clearInterval(talkPoll); talkPoll = 0; if (talkCh && talkSb) { try { talkSb.removeChannel(talkCh); } catch (e) {} } talkCh = null; }
 function talkStart() {
   talkStop();
+  talkPoll = setInterval(() => { if (!document.hidden) loadTalk(); }, 4000);   // 실시간 연결이 늦거나 끊겨도 4초마다 확인
   if (!window.supabase) return;
   try {
     talkSb = talkSb || window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
@@ -1702,6 +1703,9 @@ async function loadTalk() {
   try { const r = await fetch(q, { headers: { apikey: SUPABASE_KEY, Authorization: "Bearer " + SUPABASE_KEY } }); if (r.ok) rows = await r.json(); } catch (e) {}
   if (!document.getElementById("talk-list")) return;
   if (!rows) { list.innerHTML = `<div class="vd-empty">아직 준비 중이에요. 곧 열려요 🛠</div>`; return; }
+  const sig = rows.map(p => p.id + ":" + p.likes).join(",");
+  if (list._sig === sig) return;
+  list._sig = sig;
   const atBottom = list.scrollHeight - list.scrollTop - list.clientHeight < 80, prevN = list.querySelectorAll(".talk-msg").length;
   const open = new Set([...list.querySelectorAll(".talk-reply-box:not([hidden])")].map(b => b.closest(".talk-msg").dataset.id));
   const drafts = {}; list.querySelectorAll(".talk-reply-box input").forEach(i => { if (i.value) drafts[i.closest(".talk-msg").dataset.id] = i.value; });
@@ -1999,7 +2003,7 @@ const SFX_GAIN = { open: 0.7, close: 0.7, on: 0.8, off: 0.8, done: 0.9, win: 1, 
 const sfxBuf = {}; let sfxLoading = false;
 function sfxLoad() {
   if (sfxLoading || !AC) return; sfxLoading = true;
-  for (const k in SFX_FILES) fetch("sounds/" + SFX_FILES[k] + ".mp3?v=169").then(r => r.arrayBuffer()).then(b => new Promise((ok, no) => AC.decodeAudioData(b, ok, no))).then(buf => { sfxBuf[k] = buf; }).catch(() => {});
+  for (const k in SFX_FILES) fetch("sounds/" + SFX_FILES[k] + ".mp3?v=170").then(r => r.arrayBuffer()).then(b => new Promise((ok, no) => AC.decodeAudioData(b, ok, no))).then(buf => { sfxBuf[k] = buf; }).catch(() => {});
 }
 function sfx(kind) {
   if (!sndOn || !AC) return;
