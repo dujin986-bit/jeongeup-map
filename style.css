@@ -858,3 +858,8 @@ body.rp-pick #cat-banner, body.rp-form #cat-banner, body.editing #cat-banner { d
 /* v140 가게 고르기 안내를 아래쪽 알약으로 */
 #vd-bar { top: auto; bottom: calc(var(--sheet-vis, 52px) + 14px); left: 50%; right: auto; transform: translateX(-50%); width: max-content; max-width: calc(100vw - 24px); padding: 8px 12px; font-size: 14px; border-radius: 22px; }
 #vd-bar button { width: auto; flex: none; padding: 6px 12px; }
+/* v141 안내 알약 진회색, 제보 버튼 숨김, 접힌 줄 바로 보이게 */
+#vd-bar { background: #222; max-width: calc(100vw - 24px); }
+#vd-bar span { white-space: normal; }
+body.judging #fab { display: none !important; }
+.fs-mq { padding-left: 35%; }

@@ -1866,7 +1866,7 @@ const SFX_GAIN = { open: 0.7, close: 0.7, on: 0.8, off: 0.8, done: 0.9, win: 1, 
 const sfxBuf = {}; let sfxLoading = false;
 function sfxLoad() {
   if (sfxLoading || !AC) return; sfxLoading = true;
-  for (const k in SFX_FILES) fetch("sounds/" + SFX_FILES[k] + ".mp3?v=140").then(r => r.arrayBuffer()).then(b => new Promise((ok, no) => AC.decodeAudioData(b, ok, no))).then(buf => { sfxBuf[k] = buf; }).catch(() => {});
+  for (const k in SFX_FILES) fetch("sounds/" + SFX_FILES[k] + ".mp3?v=141").then(r => r.arrayBuffer()).then(b => new Promise((ok, no) => AC.decodeAudioData(b, ok, no))).then(buf => { sfxBuf[k] = buf; }).catch(() => {});
 }
 function sfx(kind) {
   if (!sndOn || !AC) return;
@@ -2219,7 +2219,7 @@ async function vdSummary(force) {
   el.querySelectorAll(".vd-row").forEach(r => r.onclick = () => { const s = shopInfo(r.dataset.id); if (!s) return; closeComm(); map.flyTo({ center: s.coord, zoom: 18, pitch: 55, duration: 1500 }); });
 }
 function enterJudge() {
-  judging = true;
+  judging = true; document.body.classList.add("judging");
   let bar = document.getElementById("vd-bar");
   if (!bar) { bar = document.createElement("div"); bar.id = "vd-bar"; bar.innerHTML = `<span>🗺 지도를 움직여 가게를 눌러 주세요</span><button id="vd-x">취소 ✕</button>`; document.body.appendChild(bar); bar.querySelector("#vd-x").onclick = exitJudge; }
   bar.hidden = false;
@@ -2263,7 +2263,7 @@ function openVotePick() {
   m.querySelector("#vp-map").onclick = () => { m.hidden = true; enterJudge(); };
   draw("");
 }
-function exitJudge() { judging = false; const bar = document.getElementById("vd-bar"); if (bar) bar.hidden = true; }
+function exitJudge() { judging = false; document.body.classList.remove("judging"); const bar = document.getElementById("vd-bar"); if (bar) bar.hidden = true; }
 document.addEventListener("click", async e => {
   const b = e.target.closest(".vd-b"); if (!b) return;
   const box = b.closest(".vd"), id = box.dataset.id, k = b.dataset.k, s = shopInfo(id); if (!s) return;
