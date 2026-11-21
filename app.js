@@ -2046,7 +2046,7 @@ const SFX_GAIN = { open: 0.7, close: 0.7, on: 0.8, off: 0.8, done: 0.9, win: 1, 
 const sfxBuf = {}; let sfxLoading = false;
 function sfxLoad() {
   if (sfxLoading || !AC) return; sfxLoading = true;
-  for (const k in SFX_FILES) fetch("sounds/" + SFX_FILES[k] + ".mp3?v=190").then(r => r.arrayBuffer()).then(b => new Promise((ok, no) => AC.decodeAudioData(b, ok, no))).then(buf => { sfxBuf[k] = buf; }).catch(() => {});
+  for (const k in SFX_FILES) fetch("sounds/" + SFX_FILES[k] + ".mp3?v=191").then(r => r.arrayBuffer()).then(b => new Promise((ok, no) => AC.decodeAudioData(b, ok, no))).then(buf => { sfxBuf[k] = buf; }).catch(() => {});
 }
 function sfx(kind) {
   if (!sndOn || !AC) return;
@@ -2106,11 +2106,13 @@ function openEditSheet(ids) {
   sh.innerHTML = (ids.length > 1 ? `<div class="ed-h">이 위치에 가게 ${ids.length}곳 · 고칠 가게를 고르세요</div><select id="ed-pick">${ids.map(i => `<option value="${esc(i)}">${esc((shopInfo(i) || {}).name || i)}</option>`).join("")}</select>` : "") +
     `<input id="ed-name" value="${esc(o.name)}" maxlength="40"><select id="ed-cat">${edOpts(o.category)}</select>` +
     `<div class="ed-r"><button id="ed-save" class="ok">저장</button><button id="ed-move">위치 옮기기</button></div>` +
+    `<div class="ed-r"><button id="ed-info" class="brandbtn">📋 가게정보 입력</button></div>` +
     `<div class="ed-r"><button id="ed-brand" class="brandbtn">🎨 간판 꾸미기${brandActive(o.brand) ? " ⭐" : ""}</button></div>` +
     `<div class="ed-r"><button id="ed-gone" class="${o.hidden ? "ok" : "red"}">${o.hidden ? "되살리기" : "없어진 가게(숨기기)"}</button><button id="ed-x" class="g">닫기</button></div>`;
   if (ids.length > 1) edEl("ed-pick").onchange = e => openEditSheet([e.target.value].concat(ids.filter(i => i !== e.target.value)));
   edEl("ed-x").onclick = edClose;
   edEl("ed-brand").onclick = () => openBrandSheet(edSel);
+  edEl("ed-info").onclick = () => { const i = edSel, n = o.name; edClose(); openInfo(i, n, true); };
   edEl("ed-save").onclick = () => edSave(edSel, { name: edEl("ed-name").value.trim() || o.name, category: edEl("ed-cat").value }, "저장됨");
   edEl("ed-gone").onclick = () => edSave(edSel, { hidden: !o.hidden }, o.hidden ? "되살렸어요" : "숨겼어요 (지도에서 사라져요)");
   edEl("ed-move").onclick = () => {
@@ -2157,7 +2159,7 @@ function edAddNew() {
   sh.innerHTML = `<b>새 가게 추가</b><div>지도를 움직여 📍 끝을 가게 위치에 맞추세요</div><input id="ed-nn" placeholder="가게 이름" maxlength="40"><select id="ed-nc">${edOpts("음식점")}</select><div class="ed-r"><button id="ed-do" class="ok">여기에 추가</button><button id="ed-x3" class="g">취소</button></div>`;
   edEl("ed-x3").onclick = edClose;
   edEl("ed-do").onclick = () => { const nm = edEl("ed-nn").value.trim(); if (!nm) { edToast("가게 이름을 써 주세요"); return; } const c = map.getCenter();
-    edSave("n-" + Date.now(), { name: nm, category: edEl("ed-nc").value, coord: [c.lng, c.lat], isNew: true, hidden: false }, "추가했어요"); };
+    const nid = "n-" + Date.now(); edSave(nid, { name: nm, category: edEl("ed-nc").value, coord: [c.lng, c.lat], isNew: true, hidden: false }, "추가했어요").then(() => { if (REMOTE_ROWS.some(r => r.id === nid)) setTimeout(() => openInfo(nid, nm, true), 400); }); };
 }
 function setEditMode(on) {
   editMode = !!on; document.body.classList.toggle("editing", editMode);
@@ -2544,10 +2546,10 @@ function infoHtml(p) {
 const INFO_OK = /^https:\/\/([a-z0-9-]+\.)*(instagram\.com|blog\.naver\.com|naver\.me|tistory\.com|brunch\.co\.kr|cafe\.naver\.com|facebook\.com|pf\.kakao\.com)(\/|$)/i;
 function normInsta(v) { v = (v || "").trim(); if (!v) return ""; if (/^@?[A-Za-z0-9._]{2,30}$/.test(v)) return "https://www.instagram.com/" + v.replace(/^@/, ""); return v; }
 const IF_TIMES = ph => `<option value="">${ph} 시간</option>` + Array.from({ length: 48 }, (_, i) => { const t = String(Math.floor(i / 2)).padStart(2, "0") + ":" + (i % 2 ? "30" : "00"); return `<option>${t}</option>`; }).join("");
-function openInfo(id, name) {
+function openInfo(id, name, admin) {
   const m = document.getElementById("notice-modal");
   const inp = "width:100%;padding:10px;font-size:16px;border:1px solid #ccc;border-radius:8px;margin-bottom:8px;background:#fff;color:#222;box-sizing:border-box";
-  m.innerHTML = `<div class="nm"><b>✏ ${esc(name)}</b><div style="margin:6px 0 10px;color:#555;font-size:14px;line-height:1.5">아는 것만 적어 주세요. 확인 후 가게에 올라가요.</div>
+  m.innerHTML = `<div class="nm"><b>✏ ${esc(name)}</b><div style="margin:6px 0 10px;color:#555;font-size:14px;line-height:1.5">${admin ? "🔧 관리자: 저장하면 바로 가게에 올라가요. 비우면 지워져요." : "아는 것만 적어 주세요. 확인 후 가게에 올라가요."}</div>
     <input id="if-insta" maxlength="120" placeholder="📷 인스타 (@아이디 또는 주소)" style="${inp}">
     <input id="if-blog" maxlength="160" placeholder="📝 블로그 주소 (https://...)" style="${inp}" inputmode="url">
     <input id="if-phone" maxlength="13" placeholder="📞 전화번호 (숫자만 눌러도 돼요)" style="${inp}" inputmode="numeric" autocomplete="tel">
@@ -2565,6 +2567,11 @@ function openInfo(id, name) {
   m.hidden = false; document.getElementById("nm-x").onclick = () => m.hidden = true;
   document.getElementById("if-other").onclick = e => { e.preventDefault(); openFix(id, name); };
   const v = id2 => document.getElementById(id2);
+  if (admin) {
+    document.getElementById("if-other").parentElement.hidden = true; document.getElementById("if-send").textContent = "저장";
+    const pr = REMOTE_ROWS.find(r => r.id === id) || {};
+    v("if-insta").value = pr.insta || ""; v("if-blog").value = pr.blog || ""; v("if-phone").value = pr.phone || ""; v("if-hours").value = pr.hours || "";
+  }
   const sel = { day: "", off: "" };
   const hoursText = () => {
     const o = v("if-open").value, c = v("if-close").value, extra = v("if-hours").value.trim();
@@ -2583,10 +2590,19 @@ function openInfo(id, name) {
     document.getElementById("if-send").onclick = async () => {
     const insta = normInsta(v("if-insta").value), phone = v("if-phone").value.replace(/[\s.()]/g, ""), hours = hoursText().slice(0, 80);
     let blog = v("if-blog").value.trim(); if (blog && !/^https?:\/\//i.test(blog)) blog = "https://" + blog;
-    if (!insta && !blog && !phone && !hours) return err("한 칸 이상 적어 주세요.", v("if-insta"));
+    if (!admin && !insta && !blog && !phone && !hours) return err("한 칸 이상 적어 주세요.", v("if-insta"));
     if (insta && !INFO_OK.test(insta)) return err("인스타는 @아이디나 instagram.com 주소만 돼요.", v("if-insta"));
     if (blog && !/^https:\/\//i.test(blog)) return err("블로그 주소는 https:// 로 시작해야 해요.", v("if-blog"));
     if (phone && !/^[0-9-]{7,20}$/.test(phone)) return err("전화번호는 숫자와 - 만 적어 주세요.", v("if-phone"));
+    if (admin) {
+      if (!sbAdmin) return err("관리자 로그인이 필요해요.");
+      const b = v("if-send"); b.disabled = true; b.textContent = "저장 중…";
+      const row = { id, insta: insta || null, blog: blog || null, phone: phone || null, hours: hours || null, info_at: new Date().toISOString() };
+      const { error } = await sbAdmin.from("shop_edits").upsert(row);
+      if (error) { b.disabled = false; b.textContent = "저장"; return err("저장 실패: " + error.message); }
+      const prev = REMOTE_ROWS.find(r => r.id === id) || {}; REMOTE_ROWS = REMOTE_ROWS.filter(r => r.id !== id).concat([Object.assign({}, prev, row)]); REMOTE_JSON = "";
+      mergeRemote(); edRefresh(); return done(true, "가게에 바로 올렸어요.");
+    }
     const sig = [insta, blog, phone, hours].join("|");
     try {
       const d = new Date().toDateString(), o = JSON.parse(localStorage.getItem("info_n") || "{}"), n = o.d === d ? o.n : 0;
