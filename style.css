@@ -752,3 +752,7 @@ body.rp-seen .rp-tip { font-size: 14px; font-weight: 700; padding: 6px 10px; }
 .talk-row { display: flex; gap: 6px; }
 .talk-row input { flex: 1; min-width: 0; font-size: 16px; padding: 12px; border: 1px solid var(--line); border-radius: 12px; background: var(--card); color: var(--ink); font-family: inherit; }
 .talk-row .fb-send { width: auto; margin-top: 0; min-height: 48px; padding: 0 16px; }
+
+/* v128 숨김(hidden)은 '더 보기'를 열어도 숨김 유지: 편집·날씨·방송 모드·낮밤(손님용 숨김) */
+#night-btn[hidden], #live-link[hidden], #share-btn[hidden] { display: none; }
+body.tools-open #tools > [hidden] { display: none !important; }

@@ -1098,6 +1098,7 @@ let wxManual = false;
 let nightForce = DARKSTYLE ? true : null;      // null=실시간(낮/밤 자동), true/false=사용자가 버튼으로 고정
 (function nightBtn() {
   const b = document.getElementById("night-btn"); if (!b) return;
+  if (IS_LOCAL) b.hidden = false;                 // 낮/밤 버튼은 내 PC·관리자에게만 (손님은 시각에 따라 자동)
   const label = () => { b.textContent = wx.night ? "☀️ 낮" : "🌙 밤"; b.classList.toggle("on", nightForce !== null); };
   b.onclick = () => { nightForce = nightForce === null ? !wx.night : null; if (nightForce === null) fetchWeather(); applyWeather({ ...wx }); label(); };
   setInterval(label, 1000); label();
@@ -1812,7 +1813,7 @@ const SFX_GAIN = { open: 0.7, close: 0.7, on: 0.8, off: 0.8, done: 0.9, win: 1, 
 const sfxBuf = {}; let sfxLoading = false;
 function sfxLoad() {
   if (sfxLoading || !AC) return; sfxLoading = true;
-  for (const k in SFX_FILES) fetch("sounds/" + SFX_FILES[k] + ".mp3?v=127").then(r => r.arrayBuffer()).then(b => new Promise((ok, no) => AC.decodeAudioData(b, ok, no))).then(buf => { sfxBuf[k] = buf; }).catch(() => {});
+  for (const k in SFX_FILES) fetch("sounds/" + SFX_FILES[k] + ".mp3?v=128").then(r => r.arrayBuffer()).then(b => new Promise((ok, no) => AC.decodeAudioData(b, ok, no))).then(buf => { sfxBuf[k] = buf; }).catch(() => {});
 }
 function sfx(kind) {
   if (!sndOn || !AC) return;
@@ -1939,6 +1940,7 @@ function setEditMode(on) {
     const u = data && data.session && data.session.user;
     if (!u || u.email !== ADMIN_EMAIL) return;             // 관리자가 아니면 편집 버튼 자체가 안 보임 (서버에서도 막힘)
     edEl("edit-btn").hidden = false;
+    { const nb = document.getElementById("night-btn"); if (nb) nb.hidden = false; }
     { const bb = document.getElementById("bell-btn"); if (bb && bb.parentElement) bb.parentElement.hidden = true; }   // 관리자 폰은 admin.html에서 알림 관리
     edEl("edit-btn").onclick = () => setEditMode(!editMode);
     edEl("ed-add").onclick = edAddNew;
