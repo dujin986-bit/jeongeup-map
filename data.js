@@ -10,7 +10,7 @@ const CATEGORIES = {
   incident:{ label: "사건사고", icon: "🚨", color: "#C2410C" },
   info:    { label: "생활정보", icon: "💡", color: "#10B981", fg: "#06281D" },
 };
-const SHOP_CHIP_LABEL = "🏪 상가";   // 상가 칩 글자(여러 곳에서 같이 씀)
+const SHOP_CHIP_LABEL = "🍽 가게";   // 상가 칩 글자(여러 곳에서 같이 씀)
 
 // 제보 자동 만료 (시간 단위). 지나면 지도·목록에서 자동으로 사라짐 (DB에는 남음)
 const EXPIRE_HOURS = { traffic: 3, wait: 2, incident: 12, event: 48, info: 24 };

@@ -105,14 +105,19 @@ for (const [key, c] of Object.entries(CATEGORIES)) {
 function syncCatUI() {
   const keys = Object.keys(CATEGORIES), all = activeCats.size === keys.length;
   [...filtersEl.querySelectorAll(".cat-chip")].forEach((b, i) => b.classList.toggle("on", !all && activeCats.has(keys[i])));
-  const ac = filtersEl.querySelector(".all-chip"); if (ac) ac.classList.toggle("on", all);
+  const ac = filtersEl.querySelector(".all-chip"); if (ac) ac.classList.toggle("on", all && !shopSub);
   document.querySelectorAll("#pills .pill").forEach(b => b.classList.toggle("on", !all && activeCats.size === 1 && activeCats.has(b.dataset.k)));
+  const sg = SHOP_GROUPS.find(g => g[0] === shopSub), sc = document.getElementById("shop-chip");
+  document.querySelectorAll("#shop-sub .shop-sub-b").forEach(b => b.classList.toggle("on", b.dataset.k === shopSub));
+  if (sc) sc.classList.toggle("on", !!shopSub || (document.getElementById("shop-sub") || {}).classList?.contains("open"));
   const bn = document.getElementById("cat-banner"); if (!bn) return;
-  bn.hidden = all;
-  if (!all) bn.firstChild.textContent = activeCats.size === 1 ? CATEGORIES[[...activeCats][0]].icon + " " + CATEGORIES[[...activeCats][0]].label + "만 보는 중 · " : "일부만 보는 중 · ";
+  bn.hidden = all && !shopSub;
+  if (sg) bn.firstChild.textContent = sg[1] + " " + sg[2] + "만 보는 중 · ";
+  else if (!all) bn.firstChild.textContent = activeCats.size === 1 ? CATEGORIES[[...activeCats][0]].icon + " " + CATEGORIES[[...activeCats][0]].label + "만 보는 중 · " : "일부만 보는 중 · ";
 }
 document.getElementById("cat-banner").onclick = () => { sfx("off"); resetCats(); };
-function resetCats() { activeCats = new Set(Object.keys(CATEGORIES)); render(); }
+function resetCats() { const had = !!shopSub; shopSub = ""; activeCats = new Set(Object.keys(CATEGORIES)); render(); if (had) try { edRefresh(); } catch (e) {} }
+function setOnlyShop(k) { shopSub = k; activeCats = new Set(); render(); try { edRefresh(); } catch (e) {} }
 let showOffices = true;
 // (관공서 필터 칩은 v84에서 제거. 관공서 배지는 항상 표시)
 if (!IS_LOCAL) { catSel.add(new Option("🛠 가게 정보 수정", "__fix")); catSel.add(new Option("➕ 없는 가게 알려주기", "__newshop")); }
@@ -434,12 +439,26 @@ async function fetchShopEdits() {
 
 // 지도에는 음식점·카페·술집만 표시 (관리자 편집 모드에서는 전부). 진출입 지점·스터디카페 제외, 이름+주소가 같은 중복은 하나만
 function isFoodCafe(cat) { cat = cat || ""; return /음식점|카페|주점|아동복지급식/.test(cat) && !/진출입|독서실|스터디/.test(cat); }
+const SHOP_GROUPS = [["food", "🍴", "식당"], ["cafe", "☕", "카페"], ["mart", "🛒", "마트·편의점"], ["meat", "🥩", "정육"], ["stay", "🏨", "숙박"], ["pharm", "💊", "약국"], ["park", "🅿", "주차장"]];
+let shopSub = "";                         // "" = 가게 전체, 아니면 SHOP_GROUPS 키 하나만
+function shopGroup(cat, name) {
+  cat = cat || ""; name = name || "";
+  if (/정육|축산|푸줏간|육류/.test(name + cat)) return "meat";
+  if (/카페|커피|비알코올/.test(cat)) return "cafe";
+  if (/의약품|약국/.test(cat) || /약국/.test(name)) return "pharm";
+  if (/편의점|마트|슈퍼|소매/.test(cat)) return "mart";
+  if (/음식|식당|한식|분식|치킨|중식|일식|양식|주점|호프/.test(cat)) return "food";
+  if (/숙박|모텔|여관|펜션|호텔/.test(cat)) return "stay";
+  if (/주차/.test(cat)) return "park";
+  return "";
+}
 function shopFeatures() {
   const out = [], seen = new Set();
   for (const s of SHOPS.concat(EDITS.added || [])) {
     const e = (EDITS.edits || {})[s.id] || {};
     if (e.hidden && !(editMode && editShowHidden)) continue;
     const co = e.coord || s.coord, cat = e.category || s.category;
+    if (shopSub && shopGroup(cat, e.name || s.name) !== shopSub) continue;
     const b = e.brand, bOn = brandActive(b);
     if (!editMode && !bOn) {
       if (!isFoodCafe(cat)) continue;
@@ -542,13 +561,12 @@ async function loadShops() {
     map.on("mouseenter", "shops-hit", () => { map.getCanvas().style.cursor = "pointer"; });
     map.on("mouseleave", "shops-hit", () => { map.getCanvas().style.cursor = ""; });
     const chip = document.createElement("button");
-    chip.id = "shop-chip"; chip.className = "chip cat-chip on"; chip.style.flex = "none"; chip.style.setProperty("--c", "#8D5524"); chip.style.setProperty("--cf", "#fff"); chip.textContent = SHOP_CHIP_LABEL;
-    chip.onclick = () => {
-      const on = chip.classList.toggle("on"); sfx(on ? "on" : "off");
-      for (const id of ["shops-dot", "shops-hit", "shops-label"]) map.setLayoutProperty(id, "visibility", on ? "visible" : "none");
-      try { if (map.getLayer("shops-glow")) map.setLayoutProperty("shops-glow", "visibility", on && nightOn ? "visible" : "none"); } catch (e) {}   // 밤 후광도 같이
-    };
-    document.getElementById("filters").appendChild(chip);
+    chip.id = "shop-chip"; chip.className = "chip shop-chip"; chip.style.flex = "none"; chip.textContent = SHOP_CHIP_LABEL;
+    const sub = document.createElement("div"); sub.id = "shop-sub";
+    sub.innerHTML = SHOP_GROUPS.map(([k, ic, tx]) => `<button class="chip shop-sub-b" data-k="${k}" type="button">${ic} ${tx}</button>`).join("");
+    chip.onclick = () => { sfx("on"); sub.classList.toggle("open"); chip.classList.toggle("on", sub.classList.contains("open") || !!shopSub); };
+    sub.querySelectorAll(".shop-sub-b").forEach(b => b.onclick = () => { sfx("on"); b.dataset.k === shopSub ? resetCats() : setOnlyShop(b.dataset.k); });
+    document.getElementById("filters").appendChild(chip); document.getElementById("filters").after(sub);
     if (nightOn) setBuildingNight(true);   // 가게 후광 레이어는 가게가 올라온 뒤에 만든다
   } catch (e) { /* 파일 없음: 무시 */ }
 }
@@ -909,7 +927,7 @@ function setBuildingNight(on) {
   document.body.classList.toggle("night", !!on);
   applyRoadTone(on); applyLabelTone(on);
   if (on) ensureNightLights();
-  const shopsOn = !(document.getElementById("shop-chip") && !document.getElementById("shop-chip").classList.contains("on"));   // 상가 필터가 꺼져 있으면 후광도 숨김
+  const shopsOn = true;   // 상가 필터가 꺼져 있으면 후광도 숨김
   for (const id of ["night-road-glow", "night-road-core", "shops-glow"]) { try { if (map.getLayer(id)) map.setLayoutProperty(id, "visibility", on && (id !== "shops-glow" || shopsOn) ? "visible" : "none"); } catch (e) {} }
   try { map.setLight(on ? { anchor: "viewport", position: [1.4, 210, 62], intensity: 0.5, color: "#cdd8ee" } : { anchor: "viewport", position: [1.4, 210, 45], intensity: 0.55, color: "#fff4e0" }); } catch (e) {}
   for (const l of map.getStyle().layers) {
@@ -1869,7 +1887,7 @@ const SFX_GAIN = { open: 0.7, close: 0.7, on: 0.8, off: 0.8, done: 0.9, win: 1, 
 const sfxBuf = {}; let sfxLoading = false;
 function sfxLoad() {
   if (sfxLoading || !AC) return; sfxLoading = true;
-  for (const k in SFX_FILES) fetch("sounds/" + SFX_FILES[k] + ".mp3?v=149").then(r => r.arrayBuffer()).then(b => new Promise((ok, no) => AC.decodeAudioData(b, ok, no))).then(buf => { sfxBuf[k] = buf; }).catch(() => {});
+  for (const k in SFX_FILES) fetch("sounds/" + SFX_FILES[k] + ".mp3?v=150").then(r => r.arrayBuffer()).then(b => new Promise((ok, no) => AC.decodeAudioData(b, ok, no))).then(buf => { sfxBuf[k] = buf; }).catch(() => {});
 }
 function sfx(kind) {
   if (!sndOn || !AC) return;
@@ -2581,6 +2599,7 @@ function openBoard(key) {
   if (commEl.hidden) openComm(); else { commBody.scrollTop = 0; renderComm(); }
 }
 function setOnlyCat(key, quiet) {
+  const had = !!shopSub; shopSub = ""; if (had) try { edRefresh(); } catch (e) {}
   activeCats = new Set([key]);
   render();
   if (!quiet) shareToast(CATEGORIES[key].icon + " " + CATEGORIES[key].label + "만 보여요 · 위쪽 '전체 보기 ✕'로 돌아와요");

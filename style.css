@@ -883,3 +883,11 @@ body.judging #fab { display: none !important; }
 #pills { display: none !important; }
 /* v146 시트를 끝까지 올리면 제보 버튼은 숨김 */
 body.sheet-full #fab { display: none !important; }
+/* v150 가게 세부 종류 */
+#shop-sub { display: none; order: 11; width: 100%; gap: 6px; overflow-x: auto; scrollbar-width: none; }
+#shop-sub::-webkit-scrollbar { display: none; }
+body.tools-open #shop-sub.open { display: flex; }
+#shop-sub > * { flex: none; }
+#top .chip.shop-chip { background: var(--card); color: var(--muted); border-color: var(--line); font-weight: 700; }
+#top .chip.shop-chip.on, #top .shop-sub-b.on { background: #8D5524; color: #fff; border-color: #8D5524; }
+#top .shop-sub-b { background: var(--card); color: #222; border: 1px solid var(--line); font-weight: 700; }
