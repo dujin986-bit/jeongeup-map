@@ -947,3 +947,5 @@ body.live #op-btn, body.tools-open #op-btn, body.rp-pick #op-btn, body.rp-form #
 .talk-act .chip{flex:none;padding:0 14px}
 .talk-act .tk-flag{margin-left:auto;color:var(--muted)}
 .talk-act .tk-flag{margin-left:0}
+/* v163 실시간 채팅 */
+#comm-tabs{display:none!important}

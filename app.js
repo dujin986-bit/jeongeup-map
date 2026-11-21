@@ -1509,7 +1509,7 @@ addEventListener("pageshow", autoRefresh);
 
 // ===== 커뮤니티 화면 (제보 피드 + 오늘의 주제) =====
 const commEl = document.getElementById("comm"), commBody = document.getElementById("comm-body");
-let commTab = "ask";
+let commTab = "chat";
 // ---------- 💡 지도 왼쪽 "의견(제안)" 버튼: 👍 좋아요 / 💬 하고 싶은 말 (같은 의견함으로 들어감) ----------
 (function opinionBtn() {
   if (LIVE) return;
@@ -1608,11 +1608,11 @@ function talkStart() {
 }
 function talkRpc(fn, args) { return fetch(SUPABASE_URL + "/rest/v1/rpc/" + fn, { method: "POST", headers: { apikey: SUPABASE_KEY, Authorization: "Bearer " + SUPABASE_KEY, "Content-Type": "application/json" }, body: JSON.stringify(args) }).then(r => r.ok ? r.json() : null).catch(() => null); }
 function renderTalk() {
-  const chat = commTab === "chat";
+  const chat = true;
   talkFirst = true;
-  commBody.innerHTML = `<div class="comm-topic"><b style="font-size:18px">${chat ? "🗣 정읍 얘기방" : "❓ 지금 정읍"}</b><div style="margin-top:6px;color:var(--muted);font-size:14px;line-height:1.5">${chat ? "지금 정읍 사람들이 실시간으로 나누는 한 줄 얘기예요." : "지금 정읍 날씨·교통·웨이팅이 궁금하면 물어보고, 아는 건 답해 주세요."}<br>욕설·광고는 막혀요. 이상한 글은 🚩로 알려 주세요. <b>시험 운영 중</b>이에요.</div></div>` +
+  commBody.innerHTML = `<div class="comm-topic"><b style="font-size:18px">💬 정읍 실시간 채팅</b><div style="margin-top:6px;color:var(--muted);font-size:14px;line-height:1.5">지금 정읍 어때요? 날씨·교통·웨이팅·맛집, 궁금한 건 물어보고 아는 건 알려 주세요.<br>욕설·광고는 막혀요. 이상한 글은 🚩로 알려 주세요. <b>시험 운영 중</b>이에요.</div></div>` +
     `<div id="talk-list" class="talk-list"><div class="vd-empty">불러오는 중…</div></div>` +
-    `<div class="talk-form"><div class="talk-nick">내 이름 <button id="talk-nick-b" class="chip">${esc(talkNick())} ✏</button></div><div class="talk-row"><input id="talk-in" maxlength="200" placeholder="${chat ? "지금 정읍 어때요? 한마디 남겨요" : "예: 지금 정읍 눈 와요? / 터미널 주차 자리 있어요?"}"><button id="talk-send" class="chip fb-send">올리기</button></div></div>`;
+    `<div class="talk-form"><div class="talk-nick">내 이름 <button id="talk-nick-b" class="chip">${esc(talkNick())} ✏</button></div><div class="talk-row"><input id="talk-in" maxlength="200" placeholder="지금 정읍 어때요? 한마디 남겨요"><button id="talk-send" class="chip fb-send">올리기</button></div></div>`;
   document.getElementById("talk-nick-b").onclick = () => {
     const v = (prompt("바꿀 이름을 적어 주세요 (2~12글자)", talkNick()) || "").trim().slice(0, 12);
     if (v.length < 2) return;
@@ -1620,7 +1620,7 @@ function renderTalk() {
     document.getElementById("talk-nick-b").textContent = v + " ✏";
   };
   const inp = document.getElementById("talk-in");
-  const send = () => postTalk(chat ? "chat" : "ask", null, inp, document.getElementById("talk-send"));
+  const send = () => postTalk("chat", null, inp, document.getElementById("talk-send"));
   document.getElementById("talk-send").onclick = send;
   inp.onkeydown = e => { if (e.key === "Enter") { e.preventDefault(); send(); } };
   loadTalk(); talkStart();
@@ -1644,8 +1644,8 @@ function talkMsg(p, canReply) {
 }
 async function loadTalk() {
   const list = document.getElementById("talk-list"); if (!list) return;
-  const chat = commTab === "chat";
-  const q = TALK_URL + "?select=id,kind,parent_id,body,nick,likes,created_at&hidden=eq.false&" + (chat ? "kind=eq.chat&order=created_at.desc&limit=50" : "kind=in.(ask,reply)&order=created_at.desc&limit=150");
+  const chat = true;
+  const q = TALK_URL + "?select=id,kind,parent_id,body,nick,likes,created_at&hidden=eq.false&" + (chat ? "kind=in.(chat,ask)&order=created_at.desc&limit=80" : "kind=in.(ask,reply)&order=created_at.desc&limit=150");
   let rows = null;
   try { const r = await fetch(q, { headers: { apikey: SUPABASE_KEY, Authorization: "Bearer " + SUPABASE_KEY } }); if (r.ok) rows = await r.json(); } catch (e) {}
   if (!document.getElementById("talk-list")) return;
@@ -1695,7 +1695,7 @@ document.querySelectorAll("#comm-tabs button").forEach(b => b.onclick = () => {
 function renderComm() {
   if (!commBody) return;
   if (commTab !== "chat" && commTab !== "ask") talkStop();
-  if (commTab === "chat" || commTab === "ask") { renderTalk(); return; }
+  if (commTab !== "board" && commTab !== "fb") { commTab = "chat"; renderTalk(); return; }
   if (commTab === "board") { renderBoard(); return; }
   if (commTab === "fb") { renderFeedbackForm(); return; }
   if (commTab !== "news") {
@@ -1746,7 +1746,7 @@ function stopExp() { if (expTimer) { clearInterval(expTimer); expTimer = 0; } }
 document.addEventListener("visibilitychange", () => { if (document.hidden) stopExp(); else if (commEl && !commEl.hidden) startExp(); });
 let commPushed = false, ignorePop = false, jgReady = false;   // 커뮤니티 전용 뒤로가기 기록
 function openComm() { if (jgReady && !commPushed) { try { history.pushState({ jg: 2 }, ""); commPushed = true; } catch (e) {} } renderComm(); commEl.hidden = false; startExp(); requestAnimationFrame(() => commEl.classList.add("open")); document.body.style.overflow = "hidden"; fetchReports(); }
-function closeComm(fromPop) { if (commTab === "board") { commTab = "ask"; document.querySelectorAll("#comm-tabs button").forEach(x => x.classList.toggle("on", x.dataset.t === "ask")); } if (commPushed && fromPop !== true) { commPushed = false; ignorePop = true; try { history.back(); } catch (e) { ignorePop = false; } } talkStop(); stopExp(); commEl.classList.remove("open"); setTimeout(() => { commEl.hidden = true; }, 220); document.body.style.overflow = ""; }
+function closeComm(fromPop) { if (commTab === "board") { commTab = "chat"; } if (commPushed && fromPop !== true) { commPushed = false; ignorePop = true; try { history.back(); } catch (e) { ignorePop = false; } } talkStop(); stopExp(); commEl.classList.remove("open"); setTimeout(() => { commEl.hidden = true; }, 220); document.body.style.overflow = ""; }
 if (commEl) {
   document.getElementById("comm-btn").onclick = openComm;
   document.getElementById("comm-back").onclick = closeComm;
@@ -1943,7 +1943,7 @@ const SFX_GAIN = { open: 0.7, close: 0.7, on: 0.8, off: 0.8, done: 0.9, win: 1, 
 const sfxBuf = {}; let sfxLoading = false;
 function sfxLoad() {
   if (sfxLoading || !AC) return; sfxLoading = true;
-  for (const k in SFX_FILES) fetch("sounds/" + SFX_FILES[k] + ".mp3?v=162").then(r => r.arrayBuffer()).then(b => new Promise((ok, no) => AC.decodeAudioData(b, ok, no))).then(buf => { sfxBuf[k] = buf; }).catch(() => {});
+  for (const k in SFX_FILES) fetch("sounds/" + SFX_FILES[k] + ".mp3?v=163").then(r => r.arrayBuffer()).then(b => new Promise((ok, no) => AC.decodeAudioData(b, ok, no))).then(buf => { sfxBuf[k] = buf; }).catch(() => {});
 }
 function sfx(kind) {
   if (!sndOn || !AC) return;
@@ -2542,7 +2542,7 @@ const foodSheet = (function () {
   const hintTxt = l => l ? "▾ 접기" : "▴ 더보기";
   const el = document.createElement("div"); el.id = "food-sheet";
   const icons = Object.entries(CATEGORIES).map(([k, c]) => `<button class="fm-ic" data-k="${k}"><span>${c.icon}</span><b>${c.label}</b></button>`).join("") +
-    `<button class="fm-ic" data-k="food"><span>🍚</span><b>맛집</b></button><button class="fm-ic" data-k="comm"><span>💬</span><b>커뮤니티</b></button><button class="fm-ic" data-k="more"><span>⋯</span><b>더보기</b></button>`;
+    `<button class="fm-ic" data-k="food"><span>🍚</span><b>맛집</b></button><button class="fm-ic" data-k="comm"><span>💬</span><b>실시간 채팅</b></button><button class="fm-ic" data-k="more"><span>⋯</span><b>더보기</b></button>`;
   el.innerHTML = `<div id="fs-head"><i class="fs-grab"></i><div id="fs-sum">🍚 오늘의 맛집 · 불러오는 중…</div><span id="fs-hint">${hintTxt(0)}</span></div>` +
     `<div id="fs-body"><div id="fs-mid"><div class="fm-hd"><b>지금 정읍</b><span id="fm-wx"></span></div><div id="fm-icons">${icons}</div><div id="fm-news-t">지금 정읍 소식</div><div id="fm-news"></div></div>` +
     `<div id="food-sec"><div class="food-hd"><b>🍚 오늘의 맛집 TOP 3</b><span id="food-total"></span></div><div id="food-clock"></div><div id="food-list">불러오는 중…</div>` +
