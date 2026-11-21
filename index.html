@@ -11,14 +11,14 @@
 <meta property="og:url" content="https://dujin986-bit.github.io/jeongeup-map/">
 <meta property="og:title" content="정읍 지금">
 <meta property="og:description" content="정읍 사람들이 실시간으로 알려주는 진짜 이야기 (교통 · 웨이팅 · 맛집 · 행사)">
-<meta property="og:image" content="https://dujin986-bit.github.io/jeongeup-map/og-image.png?v=135">
+<meta property="og:image" content="https://dujin986-bit.github.io/jeongeup-map/og-image.png?v=136">
 <meta property="og:image:width" content="1200">
 <meta property="og:image:height" content="630">
 <meta property="og:image:alt" content="정읍 지금 - 정읍 사람들이 실시간으로 알려주는 진짜 이야기">
 <meta name="twitter:card" content="summary_large_image">
 <meta name="twitter:title" content="정읍 지금">
 <meta name="twitter:description" content="정읍 사람들이 실시간으로 알려주는 진짜 이야기 (교통 · 웨이팅 · 맛집 · 행사)">
-<meta name="twitter:image" content="https://dujin986-bit.github.io/jeongeup-map/og-image.png?v=135">
+<meta name="twitter:image" content="https://dujin986-bit.github.io/jeongeup-map/og-image.png?v=136">
 <link rel="manifest" href="manifest.json">
 <meta name="theme-color" content="#C83E2B">
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -28,7 +28,7 @@
 <link href="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.css" rel="stylesheet">
 <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard-dynamic-subset.css">
-<link rel="stylesheet" href="style.css?v=135">
+<link rel="stylesheet" href="style.css?v=136">
 </head>
 <body>
 <div id="map"></div>
@@ -75,12 +75,13 @@
   <button id="rp-back" type="button">↩ 위치 다시 고르기</button><button id="rp-help" type="button">❓ 제보 도움말</button>
   <select id="mode"><option value="report">제보하기</option><option value="shop">가게 추가</option></select>
   <p id="pos"></p>
+  <div id="cat-pick"></div>
   <select id="cat"></select>
   <select id="shopcat" hidden>
     <option>음식점</option><option>카페</option><option>숙박</option><option>편의점/마트</option><option>주차장</option><option>기타</option>
   </select>
   <div id="photo-row"><input type="file" id="photo" accept="image/*" hidden><button type="button" id="photo-btn">📷 사진 첨부 (선택)</button><img id="photo-prev" hidden><small>사람 얼굴·차량 번호판은 나오지 않게 찍어 주세요</small></div>
-  <input id="title" placeholder="제목 (예: 내장산 입구 정체)" maxlength="40">
+  <input id="title" placeholder="한 줄로 알려주세요 (예: 내장산 입구 정체)" maxlength="40">
   <textarea id="desc" placeholder="내용 (선택)" maxlength="200"></textarea>
   <div class="row">
     <button id="save">등록</button>
@@ -97,7 +98,7 @@
 <a id="live-exit" href="./">방송 모드 끄기 (Esc)</a>
 <div id="help" hidden></div>
 <div id="tut" hidden><div id="tut-hole"></div><div id="tut-tip"><div id="tut-txt"></div><div id="tut-row"><span id="tut-n"></span><button id="tut-skip">건너뛰기</button><button id="tut-next">다음</button></div></div></div>
-<div id="ver">v135</div>
+<div id="ver">v136</div>
 <div id="comm" hidden>
   <div class="comm-grab" aria-hidden="true"></div>
   <div class="comm-top"><button id="comm-back" class="chip">← 지도</button><strong>정읍 이야기</strong><button id="comm-refresh" class="chip">🔄</button></div>
@@ -122,7 +123,7 @@
 
 <script src="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="data.js?v=135"></script>
-<script src="app.js?v=135"></script>
+<script src="data.js?v=136"></script>
+<script src="app.js?v=136"></script>
 </body>
 </html>

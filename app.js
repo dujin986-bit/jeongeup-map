@@ -607,7 +607,7 @@ function rpSet(step) {
   else if (sbox.parentNode !== sbHome.parentNode) sbHome.after(sbox);
 }
 function showPanel(on) {
-  if (on) { panel.hidden = false; panel.getBoundingClientRect(); panel.classList.add("up"); }
+  if (on) { try { cpSyncReal(); } catch (e) {} panel.hidden = false; panel.getBoundingClientRect(); panel.classList.add("up"); }
   else { panel.classList.remove("up"); setTimeout(() => { if (!panel.classList.contains("up")) panel.hidden = true; }, 350); }
 }
 function openPanel(lngLat, pick) {
@@ -663,10 +663,24 @@ function syncCat() {
     return;
   }
   document.getElementById("photo-row").hidden = ns;
+  try { cpSyncReal(); } catch (e) {}
   document.getElementById("title").placeholder = ns ? "가게 이름" : "제목 (예: 내장산 입구 정체)";
   document.getElementById("desc").placeholder = ns ? "업종·주소 (예: 카페, 수성동 123)" : "내용 (선택)";
 }
 catSel.onchange = syncCat;
+const catPick = document.getElementById("cat-pick");
+for (const [key, c] of Object.entries(CATEGORIES)) {
+  const b = document.createElement("button"); b.type = "button"; b.className = "cp"; b.dataset.k = key;
+  b.innerHTML = `<span>${c.icon}</span><b>${c.label}</b>`;
+  b.onclick = () => { catSel.value = key; syncCat(); document.getElementById("title").focus(); };
+  catPick.appendChild(b);
+}
+function cpSyncReal() {
+  const v = catSel.value, real = !!CATEGORIES[v];
+  catPick.hidden = !real; catSel.classList.toggle("cat-hide", real);
+  catPick.querySelectorAll(".cp").forEach(b => b.classList.toggle("on", b.dataset.k === v));
+}
+
 if (!IS_LOCAL) {                            // 공개 사이트에서는 제보만
   modeSel.hidden = true;
   document.getElementById("hint").textContent = "지도를 길게 누르면(PC는 우클릭) 우리 동네 소식을 제보할 수 있어요";
@@ -1835,7 +1849,7 @@ const SFX_GAIN = { open: 0.7, close: 0.7, on: 0.8, off: 0.8, done: 0.9, win: 1, 
 const sfxBuf = {}; let sfxLoading = false;
 function sfxLoad() {
   if (sfxLoading || !AC) return; sfxLoading = true;
-  for (const k in SFX_FILES) fetch("sounds/" + SFX_FILES[k] + ".mp3?v=135").then(r => r.arrayBuffer()).then(b => new Promise((ok, no) => AC.decodeAudioData(b, ok, no))).then(buf => { sfxBuf[k] = buf; }).catch(() => {});
+  for (const k in SFX_FILES) fetch("sounds/" + SFX_FILES[k] + ".mp3?v=136").then(r => r.arrayBuffer()).then(b => new Promise((ok, no) => AC.decodeAudioData(b, ok, no))).then(buf => { sfxBuf[k] = buf; }).catch(() => {});
 }
 function sfx(kind) {
   if (!sndOn || !AC) return;

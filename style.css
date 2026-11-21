@@ -829,3 +829,12 @@ body.rp-pick #cat-banner, body.rp-form #cat-banner, body.editing #cat-banner { d
 .rp-two { margin: 0 0 8px; }
 .rp-two button { min-height: 46px; border: 2px solid var(--brand); background: #fff; color: var(--brand); border-radius: 12px; font-size: 16px; font-weight: 800; margin: 0; width: auto; }
 .rp-two #rp-me { margin: 0; }
+
+/* v136 제보 종류 큰 버튼 */
+#cat-pick { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin: 4px 0 8px; }
+#cat-pick[hidden] { display: none; }
+#cat-pick .cp { display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 8px 4px; border: 2px solid #d6dbe3; background: #fff; color: #222; border-radius: 12px; width: auto; }
+#cat-pick .cp span { font-size: 24px; line-height: 1.1; }
+#cat-pick .cp b { font-size: 13px; font-weight: 800; }
+#cat-pick .cp.on { border-color: #1f6feb; background: #eef4ff; color: #1f6feb; }
+#cat.cat-hide { display: none; }
