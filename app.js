@@ -1610,7 +1610,7 @@ function talkRpc(fn, args) { return fetch(SUPABASE_URL + "/rest/v1/rpc/" + fn, {
 function renderTalk() {
   const chat = true;
   talkFirst = true;
-  commBody.innerHTML = `<div class="comm-topic"><b style="font-size:18px">💬 정읍 실시간 채팅</b><div style="margin-top:6px;color:var(--muted);font-size:14px;line-height:1.5">지금 정읍 어때요? 날씨·교통·웨이팅·맛집, 궁금한 건 물어보고 아는 건 알려 주세요.<br>욕설·광고는 막혀요. 이상한 글은 🚩로 알려 주세요. <b>시험 운영 중</b>이에요.</div></div>` +
+  commBody.innerHTML = `<div class="comm-topic"><b style="font-size:18px">💬 정읍 실시간 채팅</b><div style="margin-top:6px;color:var(--muted);font-size:14px;line-height:1.5">지금 정읍 어때요? 날씨·교통·웨이팅·맛집, 궁금한 건 물어보고 아는 건 알려 주세요.<br>욕설·광고는 막혀요. 이상한 글은 🚩 신고를 눌러 주세요. <b>시험 운영 중</b>이에요.</div></div>` +
     `<div id="talk-list" class="talk-list"><div class="vd-empty">불러오는 중…</div></div>` +
     `<div class="talk-form"><div class="talk-nick">내 이름 <button id="talk-nick-b" class="chip">${esc(talkNick())} ✏</button></div><div class="talk-row"><input id="talk-in" maxlength="200" placeholder="지금 정읍 어때요? 한마디 남겨요"><button id="talk-send" class="chip fb-send">올리기</button></div></div>`;
   document.getElementById("talk-nick-b").onclick = () => {
@@ -1943,7 +1943,7 @@ const SFX_GAIN = { open: 0.7, close: 0.7, on: 0.8, off: 0.8, done: 0.9, win: 1, 
 const sfxBuf = {}; let sfxLoading = false;
 function sfxLoad() {
   if (sfxLoading || !AC) return; sfxLoading = true;
-  for (const k in SFX_FILES) fetch("sounds/" + SFX_FILES[k] + ".mp3?v=163").then(r => r.arrayBuffer()).then(b => new Promise((ok, no) => AC.decodeAudioData(b, ok, no))).then(buf => { sfxBuf[k] = buf; }).catch(() => {});
+  for (const k in SFX_FILES) fetch("sounds/" + SFX_FILES[k] + ".mp3?v=164").then(r => r.arrayBuffer()).then(b => new Promise((ok, no) => AC.decodeAudioData(b, ok, no))).then(buf => { sfxBuf[k] = buf; }).catch(() => {});
 }
 function sfx(kind) {
   if (!sndOn || !AC) return;
