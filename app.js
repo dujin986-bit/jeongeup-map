@@ -1513,9 +1513,9 @@ qEl.addEventListener("blur", () => setTimeout(() => { if (document.activeElement
         (ios ? `<p>① 화면의 <b>⋯</b> 또는 <b>공유</b> 메뉴 → <b>Safari로 열기</b><br>② Safari에서 공유 버튼(□↑) → <b>홈 화면에 추가</b></p>` :
                `<p>아래 <b>크롬으로 열기</b>를 누른 뒤, 크롬에서 다시 <b>🔔 알림 받기</b>를 눌러 주세요.</p>`), acts);
     } else if (ios) {
-      show(`<b>📲 홈 화면에 추가</b><p>① 아래쪽 <b>공유 버튼(□↑)</b>을 누르세요<br>② <b>홈 화면에 추가</b>를 고르세요<br>③ 오른쪽 위 <b>추가</b>를 누르면 끝!</p><p style="color:#666;font-size:12px">설치하지 않아도 지도는 똑같이 쓸 수 있어요.</p>`, []);
+      show(`<b>📲 홈 화면에 추가 (아이폰)</b><p style="font-size:16px;line-height:1.8">① 아래쪽 <b>공유 버튼(네모에 ↑)</b><br>② 아래로 내려서 <b>홈 화면에 추가</b><br>③ 오른쪽 위 <b>추가</b> → 끝! 🎉</p><p style="color:#666;font-size:12px">설치하지 않아도 지도는 똑같이 쓸 수 있어요.</p>`, []);
     } else {
-      show(`<b>📲 홈 화면에 추가</b><p>브라우저 메뉴(⋮)에서 <b>홈 화면에 추가</b> 또는 <b>앱 설치</b>를 눌러 주세요.</p><p style="color:#666;font-size:12px">설치하지 않아도 지도는 똑같이 쓸 수 있어요.</p>`, [["주소 복사", copy]]);
+      show(`<b>📲 홈 화면에 추가 (갤럭시·안드로이드)</b><p style="font-size:16px;line-height:1.8">① 오른쪽 위 <b>⋮</b> (또는 아래 ☰)<br>② <b>홈 화면에 추가</b> 또는 <b>앱 설치</b><br>③ <b>추가</b> → 끝! 🎉</p><p style="color:#666;font-size:12px">설치하지 않아도 지도는 똑같이 쓸 수 있어요.</p>`, [["주소 복사", copy]]);
     }
   };
 })();
@@ -2053,7 +2053,7 @@ const SFX_GAIN = { open: 0.7, close: 0.7, on: 0.8, off: 0.8, done: 0.9, win: 1, 
 const sfxBuf = {}; let sfxLoading = false;
 function sfxLoad() {
   if (sfxLoading || !AC) return; sfxLoading = true;
-  for (const k in SFX_FILES) fetch("sounds/" + SFX_FILES[k] + ".mp3?v=195").then(r => r.arrayBuffer()).then(b => new Promise((ok, no) => AC.decodeAudioData(b, ok, no))).then(buf => { sfxBuf[k] = buf; }).catch(() => {});
+  for (const k in SFX_FILES) fetch("sounds/" + SFX_FILES[k] + ".mp3?v=196").then(r => r.arrayBuffer()).then(b => new Promise((ok, no) => AC.decodeAudioData(b, ok, no))).then(buf => { sfxBuf[k] = buf; }).catch(() => {});
 }
 function sfx(kind) {
   if (!sndOn || !AC) return;
@@ -2320,6 +2320,7 @@ function openHelp(id) {
   window.showWelcome = showWelcome;
   if (wl) {
     document.getElementById("wl-skip").onclick = closeWelcome;
+    document.getElementById("wl-app").onclick = () => { closeWelcome(); setTimeout(() => { const b = document.getElementById("install-btn"); if (b) b.click(); }, 250); };
     document.getElementById("wl-now").onclick = () => {
       closeWelcome();
       const live = (typeof reports !== "undefined" ? reports : []).filter(r => expAt(r) > Date.now()).sort((a, b) => new Date(b.ts) - new Date(a.ts));

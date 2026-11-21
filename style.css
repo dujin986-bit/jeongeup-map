@@ -1068,3 +1068,6 @@ body.editing #ed-bar button{white-space:nowrap}
 body.editing #ed-bar #ed-add{background:#1f6feb !important;color:#fff !important;font-size:16px;padding:10px 16px}
 body.editing #food-sheet, body.editing #cat-banner{display:none !important}
 .ed-pop{display:block;width:100%;margin-top:8px;padding:10px;border:2px solid #1f6feb;background:#fff;color:#1f6feb;font-weight:800;font-size:15px;border-radius:10px}
+
+/* v196 환영 카드: 앱처럼 쓰기 */
+#wl-app{display:block;width:100%;margin-top:8px;padding:10px;border:0;background:transparent;color:var(--muted);font-size:14px;font-weight:700;text-decoration:underline;font-family:inherit;cursor:pointer}
