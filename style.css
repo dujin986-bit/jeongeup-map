@@ -1046,3 +1046,5 @@ body.night .maplibregl-popup-content { background: #fff; }
 .maplibregl-popup-content .si { margin: 6px 0 2px; }
 .maplibregl-popup-content .si-h { font-size: 14px; margin-bottom: 4px; }
 .maplibregl-popup-content .si-b a { padding: 4px 10px; font-size: 13px; }
+/* v182 팝업(제보·가게)이 열려 있으면 의견·채팅 칸은 숨김 */
+body.pop-open #op-btn, body.pop-open #cf { display: none !important; }
