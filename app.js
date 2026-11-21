@@ -1394,7 +1394,8 @@ qEl.addEventListener("blur", () => setTimeout(() => { if (document.activeElement
 (function shareBtn() {
   const b = document.getElementById("share-btn"); if (!b || LIVE) return;
   b.hidden = false;
-  const url = location.origin + location.pathname;
+  const ver = ((document.getElementById("ver") || {}).textContent || "").replace(/\D/g, "");
+  const url = location.origin + location.pathname + (ver ? "?v=" + ver : "");   // 버전을 붙여서, 업데이트할 때마다 카톡이 미리보기를 새로 읽게 함
   b.onclick = async () => {
     const old = b.textContent;
     try {
@@ -1813,7 +1814,7 @@ const SFX_GAIN = { open: 0.7, close: 0.7, on: 0.8, off: 0.8, done: 0.9, win: 1, 
 const sfxBuf = {}; let sfxLoading = false;
 function sfxLoad() {
   if (sfxLoading || !AC) return; sfxLoading = true;
-  for (const k in SFX_FILES) fetch("sounds/" + SFX_FILES[k] + ".mp3?v=130").then(r => r.arrayBuffer()).then(b => new Promise((ok, no) => AC.decodeAudioData(b, ok, no))).then(buf => { sfxBuf[k] = buf; }).catch(() => {});
+  for (const k in SFX_FILES) fetch("sounds/" + SFX_FILES[k] + ".mp3?v=131").then(r => r.arrayBuffer()).then(b => new Promise((ok, no) => AC.decodeAudioData(b, ok, no))).then(buf => { sfxBuf[k] = buf; }).catch(() => {});
 }
 function sfx(kind) {
   if (!sndOn || !AC) return;
