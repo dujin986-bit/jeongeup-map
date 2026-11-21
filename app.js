@@ -1721,7 +1721,7 @@ async function loadTalk() {
       i.textContent = n; const on = n > prev; b.classList.toggle("on", on);
       try { const a = talkLiked().filter(x => x !== id); if (on) a.push(id); localStorage.setItem("talk_liked", JSON.stringify(a.slice(-300))); } catch (er) {}
     };
-    m.querySelector(".tk-flag").onclick = async () => { if (!confirm("이 글을 신고할까요?\n여러 명이 신고하면 자동으로 숨겨져요.")) return; await talkRpc("talk_flag", { p_id: id, p_voter: voterId() }); alert("신고했어요. 고맙습니다 🙏"); loadTalk(); };
+    const fl = m.querySelector(".tk-flag"); if (fl) fl.onclick = async () => { if (!confirm("이 글을 신고할까요?\n여러 명이 신고하면 자동으로 숨겨져요.")) return; await talkRpc("talk_flag", { p_id: id, p_voter: voterId() }); alert("신고했어요. 고맙습니다 🙏"); loadTalk(); };
     const rep = m.querySelector(".tk-rep");
     if (rep) {
       const box = m.querySelector(".talk-reply-box"), inp = box.querySelector("input");
@@ -1999,7 +1999,7 @@ const SFX_GAIN = { open: 0.7, close: 0.7, on: 0.8, off: 0.8, done: 0.9, win: 1, 
 const sfxBuf = {}; let sfxLoading = false;
 function sfxLoad() {
   if (sfxLoading || !AC) return; sfxLoading = true;
-  for (const k in SFX_FILES) fetch("sounds/" + SFX_FILES[k] + ".mp3?v=168").then(r => r.arrayBuffer()).then(b => new Promise((ok, no) => AC.decodeAudioData(b, ok, no))).then(buf => { sfxBuf[k] = buf; }).catch(() => {});
+  for (const k in SFX_FILES) fetch("sounds/" + SFX_FILES[k] + ".mp3?v=169").then(r => r.arrayBuffer()).then(b => new Promise((ok, no) => AC.decodeAudioData(b, ok, no))).then(buf => { sfxBuf[k] = buf; }).catch(() => {});
 }
 function sfx(kind) {
   if (!sndOn || !AC) return;
