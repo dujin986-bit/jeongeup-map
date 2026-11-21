@@ -1514,7 +1514,7 @@ let commTab = "chat";
 // ===== 지도 왼쪽 채팅 미리보기 (반투명, 펼침/접힘, 크기 3단계) =====
 (function chatFloat() {
   if (LIVE) return;
-  const SZ = [{ w: 130, h: 80, n: 2 }, { w: 160, h: 120, n: 4 }, { w: 220, h: 200, n: 7 }];
+  const SZ = [{ w: 130, h: 80 }, { w: 160, h: 120 }, { w: 220, h: 200 }];
   let size = 1, open = true, last = "";
   try { const z = localStorage.getItem("cf_size"); if (z !== null && SZ[+z]) size = +z; open = localStorage.getItem("cf_open") !== "0"; } catch (e) {}
   const root = document.createElement("div"); root.id = "cf";
@@ -1531,18 +1531,21 @@ let commTab = "chat";
   tg.onclick = () => { open = !open; try { localStorage.setItem("cf_open", open ? "1" : "0"); } catch (e) {} layout(); };
   szb.onclick = () => { size = (size + 1) % 3; try { localStorage.setItem("cf_size", String(size)); } catch (e) {} layout(); draw(rows); };
   box.onclick = () => openComm();
+  document.addEventListener("visibilitychange", () => root.classList.toggle("pause", document.hidden));
   let rows = [];
   function draw(r) {
-    const n = SZ[size].n, show = r.slice(0, n);
+    const show = r.slice(0, 8);
     const key = show.map(p => p.id).join(",") + "|" + size;
     if (key === last) return;
-    const prev = new Set((last.split("|")[0] || "").split(","));
     last = key;
-    list.innerHTML = show.length ? show.map(p => `<div class="cf-m${prev.size > 1 && !prev.has(String(p.id)) ? " new" : ""}"><b>${esc(p.nick.replace("정읍 ", ""))}</b> ${esc(p.body)}</div>`).join("") : `<div class="cf-m cf-empty">한마디 남겨 보세요 ▸</div>`;
+    const item = p => `<div class="cf-m"><b>${esc(p.nick.replace("정읍 ", ""))}</b> ${esc(p.body)}</div>`;
+    if (show.length < 4) { list.innerHTML = show.map(item).join("") + `<div class="cf-m cf-empty">한마디 남겨 보세요 ▸</div>`; return; }
+    const one = show.map(item).join("");
+    list.innerHTML = `<div class="cf-track" style="animation-duration:${show.length * 4}s">${one}${one}</div>`;
   }
   async function load() {
     try {
-      const r = await fetch(TALK_URL + "?select=id,nick,body&hidden=eq.false&kind=in.(chat,ask)&order=created_at.desc&limit=7", { headers: { apikey: SUPABASE_KEY, Authorization: "Bearer " + SUPABASE_KEY } });
+      const r = await fetch(TALK_URL + "?select=id,nick,body&hidden=eq.false&kind=in.(chat,ask)&order=created_at.desc&limit=8", { headers: { apikey: SUPABASE_KEY, Authorization: "Bearer " + SUPABASE_KEY } });
       if (r.ok) { rows = await r.json(); draw(rows); }
     } catch (e) {}
   }
@@ -2003,7 +2006,7 @@ const SFX_GAIN = { open: 0.7, close: 0.7, on: 0.8, off: 0.8, done: 0.9, win: 1, 
 const sfxBuf = {}; let sfxLoading = false;
 function sfxLoad() {
   if (sfxLoading || !AC) return; sfxLoading = true;
-  for (const k in SFX_FILES) fetch("sounds/" + SFX_FILES[k] + ".mp3?v=170").then(r => r.arrayBuffer()).then(b => new Promise((ok, no) => AC.decodeAudioData(b, ok, no))).then(buf => { sfxBuf[k] = buf; }).catch(() => {});
+  for (const k in SFX_FILES) fetch("sounds/" + SFX_FILES[k] + ".mp3?v=171").then(r => r.arrayBuffer()).then(b => new Promise((ok, no) => AC.decodeAudioData(b, ok, no))).then(buf => { sfxBuf[k] = buf; }).catch(() => {});
 }
 function sfx(kind) {
   if (!sndOn || !AC) return;

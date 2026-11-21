@@ -986,3 +986,11 @@ body.live #cf, body.tools-open #cf, body.rp-pick #cf, body.rp-form #cf, body.edi
 .talk-row input:focus { outline: none; border-color: #C83E2B; }
 .talk-row .fb-send { flex: none; width: 46px; min-height: 46px; padding: 0; border-radius: 50%; background: #C83E2B; color: #fff; border: 0; font-size: 22px; font-weight: 800; }
 #talk-new { position: absolute; left: 50%; transform: translateX(-50%); bottom: 112px; background: #C83E2B; color: #fff; border: 0; border-radius: 18px; padding: 8px 16px; font-size: 14px; font-weight: 800; box-shadow: 0 2px 8px rgba(0,0,0,.3); z-index: 2; }
+/* v171 계속 흐르는 채팅 미리보기 */
+#cf .cf-list { padding: 0 8px; overflow: hidden; height: 100%; display: block; }
+#cf .cf-track { display: flex; flex-direction: column; gap: 7px; animation: cfFlow linear infinite; will-change: transform; }
+#cf .cf-track .cf-m { flex: none; }
+#cf .cf-list > .cf-m { margin-top: 6px; }
+@keyframes cfFlow { from { transform: translateY(-50%); } to { transform: translateY(0); } }
+#cf.shut .cf-track, #cf.clash .cf-track, #cf.pause .cf-track { animation-play-state: paused; }
+@media (prefers-reduced-motion: reduce) { #cf .cf-track { animation: none; transform: none; } }
