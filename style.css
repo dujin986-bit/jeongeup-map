@@ -412,8 +412,8 @@ body.searching .res-empty { font-size: 17px; padding: 16px; }
   --r: 14px; --tap: 44px;
 }
 body.night {
-  --bg: #14171D; --card: #1E232D; --line: rgba(255,255,255,.12); --ink: #F1F5F9; --muted: #A7AFBD; --track: #2A303C;
-  --note-bg: #272B35; --note-ink: #C9CFD9; --chip-soft: #262B36; --brand-soft: #3A2622;
+  --bg: #272E3B; --card: #343D4E; --line: rgba(255,255,255,.2); --ink: #FFFFFF; --muted: #C6CDD9; --track: #3E485B;
+  --note-bg: #3B4455; --note-ink: #E3E8F0; --chip-soft: #3E485B; --brand-soft: #4F312E;
 }
 
 /* 공통: 기본 버튼·칩 */
@@ -426,7 +426,7 @@ button.ghost { background: #EFEAE2; color: #3A342E; }
 
 /* 상단 (낮=아이보리, 밤=딥 차콜) */
 #top { background: rgba(247,244,239,.96); }
-body.night #top { background: rgba(20,23,29,.96); }
+body.night #top { background: rgba(39,46,59,.96); }
 #top { background: color-mix(in srgb, var(--bg) 96%, transparent); color: var(--ink); border-bottom: 1px solid var(--line); box-shadow: 0 1px 4px rgba(30,27,24,.08); }
 #top strong { display: inline-flex; align-items: center; gap: 5px; color: var(--ink); font-weight: 800; }
 #top strong .logo { width: 20px; height: 20px; flex: none; fill: var(--brand); }
@@ -1016,3 +1016,7 @@ body.live #cf, body.tools-open #cf, body.rp-pick #cf, body.rp-form #cf, body.edi
 .if-chips button { border: 1px solid #bbb; background: #fff; color: #222; border-radius: 16px; padding: 7px 12px; font-size: 14px; font-weight: 700; }
 .if-chips button.on { background: #C83E2B; color: #fff; border-color: #C83E2B; }
 #notice-modal .nm { max-height: 92vh; overflow-y: auto; }
+
+/* v178 밤에도 밝고 또렷하게: 팝업은 밤 안개·눈 효과보다 위에 */
+.maplibregl-popup { z-index: 4; }
+body.night .maplibregl-popup-content { background: #fff; }
