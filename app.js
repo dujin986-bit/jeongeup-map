@@ -110,6 +110,10 @@ function syncCatUI() {
   const sg = SHOP_GROUPS.find(g => g[0] === shopSub), sc = document.getElementById("shop-chip");
   document.querySelectorAll("#shop-sub .shop-sub-b").forEach(b => b.classList.toggle("on", b.dataset.k === shopSub));
   if (sc) sc.classList.toggle("on", !!shopSub || (document.getElementById("shop-sub") || {}).classList?.contains("open"));
+  const hint = document.getElementById("filters-hint");
+  if (hint) hint.textContent = sg ? sg[1] + " " + sg[2] + "만 보여요 · 한 번 더 누르면 전체"
+    : (document.getElementById("shop-sub") || {}).classList?.contains("open") ? "👆 보고 싶은 가게 종류를 눌러 보세요 · 평소엔 식당·카페만 보여요"
+    : "👀 보고 싶은 것만 골라요 · 🍽 가게는 눌러서 세부 선택";
   const bn = document.getElementById("cat-banner"); if (!bn) return;
   bn.hidden = all && !shopSub;
   if (sg) bn.firstChild.textContent = sg[1] + " " + sg[2] + "만 보는 중 · ";
@@ -560,7 +564,7 @@ async function loadShops() {
     chip.id = "shop-chip"; chip.className = "chip shop-chip"; chip.style.flex = "none"; chip.textContent = SHOP_CHIP_LABEL;
     const sub = document.createElement("div"); sub.id = "shop-sub";
     sub.innerHTML = SHOP_GROUPS.map(([k, ic, tx]) => `<button class="chip shop-sub-b" data-k="${k}" type="button">${ic} ${tx}</button>`).join("");
-    chip.onclick = () => { sfx("on"); sub.classList.toggle("open"); chip.classList.toggle("on", sub.classList.contains("open") || !!shopSub); };
+    chip.onclick = () => { sfx("on"); sub.classList.toggle("open"); chip.classList.toggle("open", sub.classList.contains("open")); chip.classList.toggle("on", sub.classList.contains("open") || !!shopSub); syncCatUI(); };
     sub.querySelectorAll(".shop-sub-b").forEach(b => b.onclick = () => { sfx("on"); b.dataset.k === shopSub ? resetCats() : setOnlyShop(b.dataset.k); });
     document.getElementById("filters").appendChild(chip); document.getElementById("filters").after(sub);
     if (nightOn) setBuildingNight(true);   // 가게 후광 레이어는 가게가 올라온 뒤에 만든다
@@ -1883,7 +1887,7 @@ const SFX_GAIN = { open: 0.7, close: 0.7, on: 0.8, off: 0.8, done: 0.9, win: 1, 
 const sfxBuf = {}; let sfxLoading = false;
 function sfxLoad() {
   if (sfxLoading || !AC) return; sfxLoading = true;
-  for (const k in SFX_FILES) fetch("sounds/" + SFX_FILES[k] + ".mp3?v=151").then(r => r.arrayBuffer()).then(b => new Promise((ok, no) => AC.decodeAudioData(b, ok, no))).then(buf => { sfxBuf[k] = buf; }).catch(() => {});
+  for (const k in SFX_FILES) fetch("sounds/" + SFX_FILES[k] + ".mp3?v=152").then(r => r.arrayBuffer()).then(b => new Promise((ok, no) => AC.decodeAudioData(b, ok, no))).then(buf => { sfxBuf[k] = buf; }).catch(() => {});
 }
 function sfx(kind) {
   if (!sndOn || !AC) return;

@@ -891,3 +891,7 @@ body.tools-open #shop-sub.open { display: flex; }
 #top .chip.shop-chip { background: var(--card); color: var(--muted); border-color: var(--line); font-weight: 700; }
 #top .chip.shop-chip.on, #top .shop-sub-b.on { background: #8D5524; color: #fff; border-color: #8D5524; }
 #top .shop-sub-b { background: var(--card); color: #222; border: 1px solid var(--line); font-weight: 700; }
+/* v152 안내 한 줄, 가게 칩 화살표 */
+#filters-hint { font-size: 12.5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+#shop-chip::after { content: " ▾"; font-size: 11px; }
+#shop-chip.open::after { content: " ▴"; }
