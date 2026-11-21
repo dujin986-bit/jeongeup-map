@@ -964,3 +964,25 @@ body.live #op-btn, body.tools-open #op-btn, body.rp-pick #op-btn, body.rp-form #
 body.live #cf, body.tools-open #cf, body.rp-pick #cf, body.rp-form #cf, body.editing #cf, body.sheet-full #cf, body.judging #cf { display: none !important; }
 #cf.clash { visibility: hidden; }
 @media (prefers-reduced-motion: reduce) { #cf .cf-m.new { animation: none; } }
+/* v168 채팅 말풍선 */
+#comm-body.chat-mode { display: flex; flex-direction: column; overflow: hidden; padding: 0; background: #FBF3E6; position: relative; }
+.cm-info { flex: none; margin: 8px 10px 0; padding: 8px 12px; background: #FFF4D6; color: #6B4E0E; border: 1px solid #F2DFA6; border-radius: 12px; font-size: 13px; line-height: 1.45; }
+.cm-info span { font-weight: 800; color: #C83E2B; }
+#comm-body.chat-mode .talk-list { flex: 1; min-height: 0; overflow-y: auto; -webkit-overflow-scrolling: touch; margin: 0; padding: 10px; gap: 10px; }
+.tb { display: flex; flex-direction: column; align-items: flex-start; max-width: 82%; background: none; border: 0; padding: 0; }
+.tb.me { align-self: flex-end; align-items: flex-end; }
+.tb-n { font-size: 12px; color: var(--muted); margin: 0 4px 3px; display: flex; align-items: center; gap: 5px; }
+.tb-n i { width: 10px; height: 10px; border-radius: 50%; display: inline-block; }
+.tb-b { background: #fff; color: var(--ink); border: 1px solid #EADFCB; border-radius: 4px 16px 16px 16px; padding: 9px 13px; font-size: 16px; line-height: 1.45; word-break: break-word; white-space: pre-wrap; }
+.tb.me .tb-b { background: #C83E2B; color: #fff; border-color: #C83E2B; border-radius: 16px 4px 16px 16px; }
+.tb .talk-act { margin: 3px 4px 0; gap: 10px; }
+.tb .talk-act button { background: none; border: 0; padding: 2px 0; min-height: 0; font-size: 12px; color: var(--muted); font-weight: 600; box-shadow: none; }
+.tb .talk-act .tk-like.on { color: #C83E2B; font-weight: 800; }
+.tb .talk-act .tk-flag { margin-left: 0; }
+#comm-body.chat-mode .talk-form { flex: none; position: static; margin: 0; background: #FFF9EE; border-top: 1px solid #EADFCB; padding: 8px 10px calc(8px + env(safe-area-inset-bottom)); }
+.talk-nick { font-size: 12px; margin-bottom: 5px; }
+.talk-nick .chip { min-height: 26px; padding: 0 10px; font-size: 12px; background: #fff; }
+.talk-row input { border: 2px solid #F0C9C0; background: #fff; border-radius: 22px; padding: 10px 14px; }
+.talk-row input:focus { outline: none; border-color: #C83E2B; }
+.talk-row .fb-send { flex: none; width: 46px; min-height: 46px; padding: 0; border-radius: 50%; background: #C83E2B; color: #fff; border: 0; font-size: 22px; font-weight: 800; }
+#talk-new { position: absolute; left: 50%; transform: translateX(-50%); bottom: 112px; background: #C83E2B; color: #fff; border: 0; border-radius: 18px; padding: 8px 16px; font-size: 14px; font-weight: 800; box-shadow: 0 2px 8px rgba(0,0,0,.3); z-index: 2; }
