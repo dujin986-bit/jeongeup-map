@@ -1867,7 +1867,7 @@ const SFX_GAIN = { open: 0.7, close: 0.7, on: 0.8, off: 0.8, done: 0.9, win: 1, 
 const sfxBuf = {}; let sfxLoading = false;
 function sfxLoad() {
   if (sfxLoading || !AC) return; sfxLoading = true;
-  for (const k in SFX_FILES) fetch("sounds/" + SFX_FILES[k] + ".mp3?v=147").then(r => r.arrayBuffer()).then(b => new Promise((ok, no) => AC.decodeAudioData(b, ok, no))).then(buf => { sfxBuf[k] = buf; }).catch(() => {});
+  for (const k in SFX_FILES) fetch("sounds/" + SFX_FILES[k] + ".mp3?v=148").then(r => r.arrayBuffer()).then(b => new Promise((ok, no) => AC.decodeAudioData(b, ok, no))).then(buf => { sfxBuf[k] = buf; }).catch(() => {});
 }
 function sfx(kind) {
   if (!sndOn || !AC) return;
@@ -2487,6 +2487,7 @@ const foodSheet = (function () {
   const offs = () => [closedOff(), halfOff(), 0];
   function apply(off, anim) {
     document.body.classList.toggle("sheet-full", off <= 1);
+    bodyEl.style.paddingBottom = off > 1 ? Math.round(off) + "px" : "";   // 화면 밖으로 내려간 만큼 아래 여백을 줘서 끝(맛집 TOP 3)까지 스크롤되게
     el.style.transition = anim ? "transform .3s cubic-bezier(.22,.8,.3,1)" : "none"; el.style.transform = "translateY(" + off + "px)"; curOff = off;
     document.documentElement.style.setProperty("--sheet-vis", Math.max(0, el.offsetHeight - off) + "px");   // 제보 버튼 등이 시트 위로 올라가게
   }
