@@ -1020,3 +1020,10 @@ body.live #cf, body.tools-open #cf, body.rp-pick #cf, body.rp-form #cf, body.edi
 /* v178 밤에도 밝고 또렷하게: 팝업은 밤 안개·눈 효과보다 위에 */
 .maplibregl-popup { z-index: 4; }
 body.night .maplibregl-popup-content { background: #fff; }
+/* v179 관공서 행사·공지 */
+.on-box { margin: 8px 0; padding: 8px 10px; background: #FFF4DC; border: 1px solid #F0D9A0; border-radius: 10px; color: #3B2E00; }
+.on-hd { font-weight: 800; font-size: 14px; margin-bottom: 4px; }
+.on-it { margin: 5px 0; font-size: 14px; line-height: 1.4; }
+.on-it b a { color: #1648a8; text-decoration: none; }
+.on-it small { display: block; color: #7A5A00; }
+.on-ft { margin-top: 6px; font-size: 11px; color: #7A5A00; opacity: .85; }

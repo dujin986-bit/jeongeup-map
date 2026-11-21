@@ -143,15 +143,31 @@ function addMarker(item, isLandmark) {
   const m = new maplibregl.Marker({ element: el }).setLngLat(item.coord).setPopup(popup).addTo(map);
   m._item = item; markers.push(m);
 }
+let OFFICE_NOTES = [];
+async function fetchOfficeNotes() {
+  try {
+    const today = new Date(Date.now() + 9 * 3600e3).toISOString().slice(0, 10);   // 한국 날짜
+    const r = await fetch(SUPABASE_URL + "/rest/v1/office_notice?select=id,office,title,body,link,until&or=(until.is.null,until.gte." + today + ")&order=created_at.desc&limit=60", { headers: { apikey: SUPABASE_KEY, Authorization: "Bearer " + SUPABASE_KEY } });
+    if (r.ok) OFFICE_NOTES = await r.json();
+  } catch (e) {}
+}
+const officeNoteHtml = name => {
+  const L = OFFICE_NOTES.filter(n => n.office === name).slice(0, 3);
+  if (!L.length) return "";
+  const safe = u => /^https:\/\//i.test(u || "") ? u : "";
+  return `<div class="on-box"><div class="on-hd">📢 행사·공지</div>` + L.map(n => `<div class="on-it"><b>${safe(n.link) ? `<a href="${esc(safe(n.link))}" target="_blank" rel="noopener noreferrer">${esc(n.title)} ↗</a>` : esc(n.title)}</b>${n.body ? `<div>${esc(n.body)}</div>` : ""}${n.until ? `<small>~ ${esc(String(n.until).slice(5).replace("-", "/"))}까지</small>` : ""}</div>`).join("") + `<div class="on-ft">※ 정읍 지금 앱이 전하는 소식이에요. 공식 공지는 시청 누리집에서 확인하세요.</div></div>`;
+};
 function addOffice(o) {                    // 관공서: 큰 남색 배지 + 굵은 이름
   const el = document.createElement("div");
   el.className = "office-pin";
   el.innerHTML = `<span class="op-ic">🏛</span><span class="op-nm">${esc(o.name)}</span>`;
-  const popup = new maplibregl.Popup({ offset: 24, className: "office-popup" }).setHTML(
-    `<div class="op-type">${esc(o.type)}</div><div class="op-title">${esc(o.name)}</div><div class="op-addr">📍 ${esc(o.addr)}</div>` +
+  const build = () => `<div class="op-type">${esc(o.type)}</div><div class="op-title">${esc(o.name)}</div><div class="op-addr">📍 ${esc(o.addr)}</div>` +
     (o.tel ? `<a class="op-tel" href="tel:${esc(o.tel)}">📞 ${esc(o.tel)}</a>` : "") +
+    officeNoteHtml(o.name) +
     (o.approx ? `<div class="op-note">위치가 대략적이에요. 정확하지 않으면 🛠 정보 수정으로 알려주세요.</div>` : "") +
-    navLinks(o.name, o.coord[0], o.coord[1]));
+    navLinks(o.name, o.coord[0], o.coord[1]);
+  const popup = new maplibregl.Popup({ offset: 24, className: "office-popup" }).setHTML(build());
+  popup.on("open", () => { popup.setHTML(build()); fetchOfficeNotes().then(() => { try { if (popup.isOpen()) popup.setHTML(build()); } catch (e) {} }); });
   const m = new maplibregl.Marker({ element: el, anchor: "bottom" }).setLngLat(o.coord).setPopup(popup).addTo(map);
   m._item = { name: o.name, coord: o.coord }; markers.push(m);
 }
@@ -2022,7 +2038,7 @@ const SFX_GAIN = { open: 0.7, close: 0.7, on: 0.8, off: 0.8, done: 0.9, win: 1, 
 const sfxBuf = {}; let sfxLoading = false;
 function sfxLoad() {
   if (sfxLoading || !AC) return; sfxLoading = true;
-  for (const k in SFX_FILES) fetch("sounds/" + SFX_FILES[k] + ".mp3?v=178").then(r => r.arrayBuffer()).then(b => new Promise((ok, no) => AC.decodeAudioData(b, ok, no))).then(buf => { sfxBuf[k] = buf; }).catch(() => {});
+  for (const k in SFX_FILES) fetch("sounds/" + SFX_FILES[k] + ".mp3?v=179").then(r => r.arrayBuffer()).then(b => new Promise((ok, no) => AC.decodeAudioData(b, ok, no))).then(buf => { sfxBuf[k] = buf; }).catch(() => {});
 }
 function sfx(kind) {
   if (!sndOn || !AC) return;
