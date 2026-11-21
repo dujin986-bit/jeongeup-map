@@ -81,10 +81,10 @@
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.js"></script>
-<script src="data.js?v=125"></script>
+<script src="data.js?v=126"></script>
 <script>
 const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
-const TABS = [["pending", "대기"], ["approved", "승인됨"], ["hidden", "숨김"], ["notice", "공지"], ["wx", "날씨"], ["fix", "수정요청"], ["fb", "고쳐줘"], ["log", "편집기록"], ["map", "지도 수정 ↗"]];
+const TABS = [["pending", "대기"], ["approved", "승인됨"], ["hidden", "숨김"], ["notice", "공지"], ["wx", "날씨"], ["fix", "수정요청"], ["fb", "고쳐줘"], ["talk", "얘기방"], ["log", "편집기록"], ["map", "지도 수정 ↗"]];
 let tab = "pending", rows = [];
 const $ = id => document.getElementById(id);
 const esc = s => String(s == null ? "" : s).replace(/[&<>"']/g, c => ({ "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;" }[c]));
@@ -209,6 +209,26 @@ async function drawFb() {
   }
   loadFbCount();
 }
+async function drawTalk() {                       // 얘기방·지금 정읍 글 관리 (신고 많은 글·숨겨진 글이 위에)
+  const box = $("extra"); delete box.dataset.n;
+  const { data, error } = await sb.from("talk_posts").select("*").order("hidden", { ascending: false }).order("flags", { ascending: false }).order("created_at", { ascending: false }).limit(100);
+  if (error) { box.innerHTML = '<div class="empty">불러오기 실패: ' + esc(error.message) + '<br>(Supabase에서 sql/talk.sql 을 실행했는지 확인하세요)</div>'; return; }
+  if (!data.length) { box.innerHTML = '<div class="empty">아직 글이 없어요</div>'; return; }
+  const K = { chat: "🗣 얘기방", ask: "❓ 질문", reply: "↳ 답" };
+  box.innerHTML = "";
+  for (const r of data) {
+    const el = document.createElement("div"); el.className = "card"; if (r.hidden) el.style.opacity = ".6";
+    el.innerHTML = `<div style="font-size:12px;color:#666">${new Date(r.created_at).toLocaleString("ko-KR")} · ${K[r.kind] || r.kind} · ${esc(r.nick)}${r.hidden ? " · 🙈 숨김" : ""}${r.flags ? " · 🚩" + r.flags : ""} · 👍${r.likes}</div>` +
+      `<div style="margin:6px 0;white-space:pre-wrap;font-size:16px">${esc(r.body)}</div>` +
+      `<div style="display:flex;gap:8px;margin-top:8px">${r.hidden ? '<button class="act ok" data-a="show" style="flex:1">↩ 다시 보이기</button>' : '<button class="act" data-a="hide" style="flex:1">🙈 숨기기</button>'}<button class="act hide" data-a="del" style="flex:1">🗑 삭제</button></div>`;
+    el.querySelectorAll("button").forEach(b => b.onclick = async () => {
+      if (b.dataset.a === "del") { if (!confirm("삭제할까요? (이 글의 답글도 같이 지워져요)")) return; await sb.from("talk_posts").delete().eq("id", r.id); }
+      else await sb.from("talk_posts").update(b.dataset.a === "hide" ? { hidden: true } : { hidden: false, flags: 0 }).eq("id", r.id);
+      drawTalk();
+    });
+    box.appendChild(el);
+  }
+}
 async function drawFix() {
   const box = $("extra"); delete box.dataset.n;
   const { data, error } = await sb.from("shop_corrections").select("*").eq("status", "pending").order("created_at", { ascending: false }).limit(100);
@@ -262,13 +282,14 @@ async function load() {
 function draw() {
   const counts = {}; rows.forEach(r => counts[r.status] = (counts[r.status] || 0) + 1);
   document.querySelectorAll(".tab[data-k]").forEach(t => { const k = t.dataset.k; t.textContent = TABS.find(x => x[0] === k)[1] + (["pending","approved","hidden"].includes(k) ? " " + (counts[k] || 0) : k === "fb" && fbNew ? " 🔴" + fbNew : ""); });
-  const ext = ["notice", "log", "wx", "fix", "fb"].includes(tab);
+  const ext = ["notice", "log", "wx", "fix", "fb", "talk"].includes(tab);
   $("list").hidden = ext; $("mapedit").hidden = true; $("extra").hidden = !ext;
   if (tab === "notice") { drawNotice(); return; }
   if (tab === "log") { drawLog(); return; }
   if (tab === "wx") { drawWx(); return; }
   if (tab === "fix") { drawFix(); return; }
   if (tab === "fb") { drawFb(); return; }
+  if (tab === "talk") { drawTalk(); return; }
   const list = rows.filter(r => r.status === tab);
   const box = $("list");
   if (!list.length) { box.innerHTML = '<div class="empty">없어요</div>'; return; }
