@@ -898,3 +898,6 @@ body.tools-open #shop-sub.open { display: flex; }
 /* v153 설정 안 버튼은 늘어나지 않게 (커뮤니티도 작은 버튼) */
 body.tools-open #top #comm-btn { flex: none; min-height: 36px; font-size: 14px; font-weight: 700; border-radius: 16px; padding: 0 12px; }
 body.tools-open #tools > .chip { flex: none; width: auto; }
+/* v154 친구 초대 (노란 말풍선) */
+#share-btn .inv-ic { width: 18px; height: 18px; vertical-align: -4px; margin-right: 2px; }
+body.tools-open #top #share-btn { background: #FEE500; border-color: #FEE500; color: #3A1D1D; font-weight: 800; }
