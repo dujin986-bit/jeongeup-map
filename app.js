@@ -1867,7 +1867,7 @@ const SFX_GAIN = { open: 0.7, close: 0.7, on: 0.8, off: 0.8, done: 0.9, win: 1, 
 const sfxBuf = {}; let sfxLoading = false;
 function sfxLoad() {
   if (sfxLoading || !AC) return; sfxLoading = true;
-  for (const k in SFX_FILES) fetch("sounds/" + SFX_FILES[k] + ".mp3?v=142").then(r => r.arrayBuffer()).then(b => new Promise((ok, no) => AC.decodeAudioData(b, ok, no))).then(buf => { sfxBuf[k] = buf; }).catch(() => {});
+  for (const k in SFX_FILES) fetch("sounds/" + SFX_FILES[k] + ".mp3?v=143").then(r => r.arrayBuffer()).then(b => new Promise((ok, no) => AC.decodeAudioData(b, ok, no))).then(buf => { sfxBuf[k] = buf; }).catch(() => {});
 }
 function sfx(kind) {
   if (!sndOn || !AC) return;
@@ -2200,13 +2200,11 @@ function vdBars(c) {
   return `<div class="vd-stack">` + VD.filter(([k]) => c[k]).map(([k]) => `<i class="vd-${k}" style="flex:${c[k]}"></i>`).join("") + `</div><div class="vd-legend">` + VD.map(([k, ic]) => `<span class="vd-${k}">${ic} ${Math.round(c[k] / n * 100)}%</span>`).join("") + `<em>👥 ${n}명 참여</em></div>`;
 }
 function vdBlock(id) {
-  return `<div class="vd" data-id="${esc(id)}"><div class="vd-hd">🔥 오늘 어땠어요? <small>자정 초기화</small></div><div class="vd-btns">` +
-    VD.map(([k, ic, tx]) => `<button class="vd-b vd-${k}" data-k="${k}"><span>${ic}</span>${tx}</button>`).join("") + `</div><div class="vd-res"></div></div>`;
+  return `<div class="vd" data-id="${esc(id)}"><div class="vd-hd">🔥 오늘 어땠어요? <small>자정 초기화</small></div><button class="vd-open" type="button">🍚 이 가게 알려주기</button><div class="vd-res"></div></div>`;
 }
 async function vdHydrate(root) {
   const boxes = [...root.querySelectorAll(".vd")]; if (!boxes.length) return;
   const mine = vdMine().m;
-  boxes.forEach(b => b.querySelectorAll(".vd-b").forEach(x => x.classList.toggle("on", mine[b.dataset.id] === x.dataset.k)));
   const rows = await vdLoad();
   boxes.forEach(b => { const r = b.querySelector(".vd-res"); if (r) r.innerHTML = vdBars(rows[b.dataset.id] || { again: 0, local: 0, meh: 0 }); });
 }
@@ -2250,14 +2248,7 @@ function openVotePick() {
     const ad = list.querySelector(".vp-addr"); if (ad) ad.onclick = () => { m.hidden = true; goTo(rs); };
     const nw = list.querySelector(".vp-new"); if (nw) nw.onclick = () => { m.hidden = true; startAddShop(qq); };
   };
-  const pick = id => {
-    const s = shopInfo(id); if (!s) return;
-    m.querySelector("#vp-main").hidden = true; const d = m.querySelector("#vp-one"); d.hidden = false;
-    d.innerHTML = `<button id="vp-back" type="button">↩ 다시 고르기</button><div class="vp-nm">${esc(s.name)}</div>` + vdBlock(id) + `<button id="vp-done" type="button">닫기</button>`;
-    vdHydrate(d);
-    d.querySelector("#vp-back").onclick = () => { d.hidden = true; m.querySelector("#vp-main").hidden = false; };
-    d.querySelector("#vp-done").onclick = () => { m.hidden = true; };
-  };
+  const pick = id => { m.hidden = true; voteFlow(id); };
   m.innerHTML = `<div class="vp-box"><div class="vp-hd"><b>🍚 오늘 맛있게 먹은 곳</b><button id="vp-x" type="button">✕</button></div><div id="vp-main"><input id="vp-q" type="search" placeholder="🔍 가게 이름 검색 (예: 안나감성)" autocomplete="off"><div id="vp-list">불러오는 중…</div><button id="vp-map" type="button">🗺 지도에서 직접 찾기</button></div><div id="vp-one" hidden></div></div>`;
   m.querySelector("#vp-x").onclick = () => { m.hidden = true; };
   m.querySelector("#vp-q").oninput = e => draw(e.target.value);
@@ -2265,26 +2256,54 @@ function openVotePick() {
   draw("");
 }
 function exitJudge() { judging = false; document.body.classList.remove("judging"); const bar = document.getElementById("vd-bar"); if (bar) bar.hidden = true; }
-document.addEventListener("click", async e => {
-  const b = e.target.closest(".vd-b"); if (!b) return;
-  const box = b.closest(".vd"), id = box.dataset.id, k = b.dataset.k, s = shopInfo(id); if (!s) return;
+async function vdSubmit(id, k) {
+  const s = shopInfo(id); if (!s) return false;
   const mine = vdMine(), prev = mine.m[id];
-  if (prev === k) { shareToast("이미 이렇게 알려줬어요 (바꾸려면 다른 버튼을 눌러요)"); return; }
-  box.querySelectorAll(".vd-b").forEach(x => x.disabled = true);
   try {
     const r = await fetch(SUPABASE_URL + "/rest/v1/rpc/food_judge", { method: "POST", headers: vdHdr, body: JSON.stringify({ p_shop_id: id, p_shop_name: s.name, p_voter: voterId(), p_choice: k }) });
-    if (!r.ok) { const t = await r.text(); shareToast(/ratelimit/.test(t) ? "오늘은 많이 알려주셨어요. 내일 또 해 주세요!" : "전송에 실패했어요. 잠시 뒤 다시 해 주세요."); return; }
+    if (!r.ok) { const t = await r.text(); shareToast(/ratelimit/.test(t) ? "오늘은 많이 알려주셨어요. 내일 또 해 주세요!" : "전송에 실패했어요. 잠시 뒤 다시 해 주세요."); return false; }
     mine.m[id] = k; vdMineSave(mine);
     if (vdData.day !== kstDay()) vdData = { day: kstDay(), t: 0, rows: {} };
     const row = vdData.rows[id] || (vdData.rows[id] = { again: 0, local: 0, meh: 0 });
     if (prev) row[prev] = Math.max(0, row[prev] - 1); row[k]++; vdData.t = 0;
     vdRefreshAll(); shareToast(prev ? "바꿨어요!" : "알려줘서 고마워요! 커뮤니티에서 확인해 보세요");
     if (judging) exitJudge();
-    if (judgePop) { const p = judgePop; judgePop = null; setTimeout(() => p.remove(), 900); }
+    if (judgePop) { const p = judgePop; judgePop = null; p.remove(); }
     loadFood(); vdLoad(true).then(vdRefreshAll);
-  } catch (err) { shareToast("전송에 실패했어요. 인터넷을 확인해 주세요."); }
-  finally { box.querySelectorAll(".vd-b").forEach(x => x.disabled = false); vdHydrate(box.parentNode || document); }
-});
+    return true;
+  } catch (err) { shareToast("전송에 실패했어요. 인터넷을 확인해 주세요."); return false; }
+}
+// ----- 가게 확인 → 고르기 → 마지막 확인 → 반영 -----
+const VD_DESC = { again: "맛있어서 또 갈 집", local: "오래 다닌 단골집", meh: "한 번이면 충분한 집" };
+function voteFlow(id) {
+  const s = shopInfo(id); if (!s) return;
+  let m = document.getElementById("vf"); if (!m) { m = document.createElement("div"); m.id = "vf"; document.body.appendChild(m); }
+  m.hidden = false;
+  const close = () => { m.hidden = true; if (judging) exitJudge(); };
+  const mine = vdMine().m[id]; let pick = mine || "";
+  const step1 = () => {
+    m.innerHTML = `<div class="vf-box"><div class="vf-q">이 가게가 맞나요?</div><div class="vf-nm">${esc(s.name)}</div><div class="vf-sub">${esc(s.category)}</div>` +
+      `<div class="vf-row"><button class="vf-no" type="button">다시 고를게요</button><button class="vf-ok" type="button">맞아요</button></div></div>`;
+    m.querySelector(".vf-no").onclick = close; m.querySelector(".vf-ok").onclick = step2;
+  };
+  const step2 = () => {
+    m.innerHTML = `<div class="vf-box"><div class="vf-nm">${esc(s.name)}</div><div class="vf-q">오늘 어땠어요?</div>` +
+      VD.map(([k, ic, tx]) => `<button class="vf-c${pick === k ? " on" : ""}" data-k="${k}" type="button"><span>${ic}</span><b>${tx}</b><small>${VD_DESC[k]}</small></button>`).join("") +
+      (mine ? `<div class="vf-sub">오늘 이미 알려줬어요. 바꾸려면 다시 골라요.</div>` : "") +
+      `<div class="vf-row"><button class="vf-no" type="button">취소</button><button class="vf-ok" type="button" ${pick ? "" : "disabled"}>다음</button></div></div>`;
+    m.querySelectorAll(".vf-c").forEach(b => b.onclick = () => { pick = b.dataset.k; m.querySelectorAll(".vf-c").forEach(x => x.classList.toggle("on", x === b)); m.querySelector(".vf-ok").disabled = false; });
+    m.querySelector(".vf-no").onclick = close; m.querySelector(".vf-ok").onclick = step3;
+  };
+  const step3 = () => {
+    const v = VD.find(x => x[0] === pick);
+    m.innerHTML = `<div class="vf-box"><div class="vf-q"><b>${esc(s.name)}</b>에<br>${v[1]} ${v[2]} 한 표 줄까요?</div><div class="vf-sub">가게마다 하루 1표예요 · 자정에 초기화돼요</div>` +
+      `<div class="vf-row"><button class="vf-no" type="button">취소</button><button class="vf-ok" type="button">한 표 주기</button></div></div>`;
+    m.querySelector(".vf-no").onclick = step2;
+    m.querySelector(".vf-ok").onclick = async e => { e.target.disabled = true; const ok = await vdSubmit(id, pick); if (ok) m.hidden = true; else e.target.disabled = false; };
+  };
+  step1();
+}
+document.addEventListener("click", e => { const b = e.target.closest(".vd-open"); if (b) { const box = b.closest(".vd"); if (box) voteFlow(box.dataset.id); } });
 
 
 // ===== 👍/👎 반응 (한 사람당 하나, 다시 누르면 취소) + "정보가 틀렸어요" 수정 요청 =====
