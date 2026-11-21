@@ -944,3 +944,5 @@ body.live #op-btn, body.tools-open #op-btn, body.rp-pick #op-btn, body.rp-form #
 .talk-row input{flex:1;min-width:0;font-size:16px;padding:10px;border:1px solid var(--line);border-radius:10px;background:var(--card);color:var(--ink);font-family:inherit}
 .talk-row .fb-send{flex:none;width:auto;margin-top:0;min-height:44px;padding:0 16px}
 .talk-nick{margin:0 0 6px;font-size:14px}
+.talk-act .chip{flex:none;padding:0 14px}
+.talk-act .tk-flag{margin-left:auto;color:var(--muted)}

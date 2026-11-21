@@ -1639,7 +1639,7 @@ async function postTalk(kind, parent, inp, btn) {
 function talkMsg(p, canReply) {
   const liked = talkLiked().includes(p.id);
   return `<div class="talk-msg" data-id="${p.id}"><div class="talk-meta"><b>${esc(p.nick)}</b> · ${timeAgo(p.created_at)}</div><div class="talk-body">${esc(p.body)}</div>` +
-    `<div class="talk-act"><button class="chip tk-like${liked ? " on" : ""}">👍 도움돼요 <i>${p.likes || 0}</i></button>${canReply ? `<button class="chip tk-rep">💬 답하기</button>` : ""}<button class="chip tk-flag" title="신고">🚩</button></div>` +
+    `<div class="talk-act"><button class="chip tk-like${liked ? " on" : ""}">👍 좋아요 <i>${p.likes || 0}</i></button>${canReply ? `<button class="chip tk-rep">💬 답하기</button>` : ""}<button class="chip tk-flag" title="신고">🚩 신고</button></div>` +
     (canReply ? `<div class="talk-reply-box" hidden><input maxlength="200" placeholder="답을 적어 주세요"><button class="chip fb-send">답 올리기</button></div>` : "") + `</div>`;
 }
 async function loadTalk() {
@@ -1943,7 +1943,7 @@ const SFX_GAIN = { open: 0.7, close: 0.7, on: 0.8, off: 0.8, done: 0.9, win: 1, 
 const sfxBuf = {}; let sfxLoading = false;
 function sfxLoad() {
   if (sfxLoading || !AC) return; sfxLoading = true;
-  for (const k in SFX_FILES) fetch("sounds/" + SFX_FILES[k] + ".mp3?v=160").then(r => r.arrayBuffer()).then(b => new Promise((ok, no) => AC.decodeAudioData(b, ok, no))).then(buf => { sfxBuf[k] = buf; }).catch(() => {});
+  for (const k in SFX_FILES) fetch("sounds/" + SFX_FILES[k] + ".mp3?v=161").then(r => r.arrayBuffer()).then(b => new Promise((ok, no) => AC.decodeAudioData(b, ok, no))).then(buf => { sfxBuf[k] = buf; }).catch(() => {});
 }
 function sfx(kind) {
   if (!sndOn || !AC) return;
