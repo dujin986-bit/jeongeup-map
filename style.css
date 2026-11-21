@@ -881,3 +881,5 @@ body.judging #fab { display: none !important; }
 .vf-ok:disabled { opacity: .4; }
 /* v145 위쪽 종류 버튼 줄 제거 (아래 아이콘과 중복) */
 #pills { display: none !important; }
+/* v146 시트를 끝까지 올리면 제보 버튼은 숨김 */
+body.sheet-full #fab { display: none !important; }

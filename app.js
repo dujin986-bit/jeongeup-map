@@ -1867,7 +1867,7 @@ const SFX_GAIN = { open: 0.7, close: 0.7, on: 0.8, off: 0.8, done: 0.9, win: 1, 
 const sfxBuf = {}; let sfxLoading = false;
 function sfxLoad() {
   if (sfxLoading || !AC) return; sfxLoading = true;
-  for (const k in SFX_FILES) fetch("sounds/" + SFX_FILES[k] + ".mp3?v=145").then(r => r.arrayBuffer()).then(b => new Promise((ok, no) => AC.decodeAudioData(b, ok, no))).then(buf => { sfxBuf[k] = buf; }).catch(() => {});
+  for (const k in SFX_FILES) fetch("sounds/" + SFX_FILES[k] + ".mp3?v=146").then(r => r.arrayBuffer()).then(b => new Promise((ok, no) => AC.decodeAudioData(b, ok, no))).then(buf => { sfxBuf[k] = buf; }).catch(() => {});
 }
 function sfx(kind) {
   if (!sndOn || !AC) return;
@@ -2414,7 +2414,7 @@ if (new URLSearchParams(location.search).get("debug") === "1") {
 // ===== 상단 도구 서랍: 손잡이를 아래로 끌거나 누르면 도구가 여러 줄로 펼쳐져 글자까지 보인다 =====
 const SLIDE_N = (() => { try { const n = (+localStorage.getItem("slide_n") || 0) + 1; localStorage.setItem("slide_n", n); return n; } catch (e) { return 1; } })();
 const SLIDE_LEARNED = SLIDE_N > 6;     // 여섯 번 넘게 쓰셨으면 안내 글씨를 짧게
-const toolsTxt = on => on ? "▴ 접기" : "▾ 더 보기 · 보고 싶은 것만 골라보기";
+const toolsTxt = on => on ? "▴ 접기" : "▾ 더 보기 · 설정";
 let toolsClose = () => {}, toolsToggle = () => {};
 (function toolsDrawer() {
   const g = document.getElementById("tools-grab"), tx = document.getElementById("tools-grab-t"); if (!g || LIVE) return;
@@ -2475,7 +2475,7 @@ const foodSheet = (function () {
   let lvl = 0, dragging = false, y0 = 0, off0 = 0, curOff = 0, moved = 0, t0 = 0, ignoreClick = false;   // lvl: 0 접힘 · 1 반쯤 · 2 끝까지
   const peek = () => { const ic = el.querySelector(".fm-ic"); return head.offsetHeight + (ic ? ic.offsetHeight + 16 + mid.querySelector(".fm-hd").offsetHeight : 0); };   // 접혀도 첫 아이콘 줄까지 걸쳐 보이게
   const closedOff = () => Math.max(0, el.offsetHeight - peek());
-  const halfOff = () => Math.max(0, Math.min(closedOff(), el.offsetHeight - peek() - mid.offsetHeight - 14));
+  const halfOff = () => { const hd = mid.querySelector(".fm-hd"), ic = mid.querySelector("#fm-icons"); const vis = head.offsetHeight + (hd ? hd.offsetHeight : 0) + (ic ? ic.offsetHeight : 0) + 12; return Math.max(0, Math.min(closedOff(), el.offsetHeight - vis)); };   // 중간 높이 = 아이콘 줄까지만
   const fitMax = () => {                              // 시트가 위쪽 영역(검색·도구·공지 띠)을 덮지 않게 최대 높이를 맞춘다
     const t = document.getElementById("top"), tk = document.getElementById("ticker");
     let end = t ? t.getBoundingClientRect().bottom : 0;
@@ -2486,6 +2486,7 @@ const foodSheet = (function () {
   setTimeout(() => { fitAll(); try { const ro = new ResizeObserver(fitAll); ro.observe(document.getElementById("top")); const tk = document.getElementById("ticker"); if (tk) ro.observe(tk); } catch (e) {} addEventListener("resize", fitAll); addEventListener("orientationchange", () => setTimeout(fitAll, 300)); }, 600);
   const offs = () => [closedOff(), halfOff(), 0];
   function apply(off, anim) {
+    document.body.classList.toggle("sheet-full", off <= 1);
     el.style.transition = anim ? "transform .3s cubic-bezier(.22,.8,.3,1)" : "none"; el.style.transform = "translateY(" + off + "px)"; curOff = off;
     document.documentElement.style.setProperty("--sheet-vis", Math.max(0, el.offsetHeight - off) + "px");   // 제보 버튼 등이 시트 위로 올라가게
   }
