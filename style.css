@@ -928,3 +928,8 @@ body.live #op-btn, body.tools-open #op-btn, body.rp-pick #op-btn, body.rp-form #
 .op-row { display: flex; gap: 8px; margin-top: 10px; } .op-row button { flex: 1; padding: 12px; font-size: 16px; font-weight: 800; border-radius: 12px; }
 .op-back { background: #e9ecef; color: #444; }
 .op-q { font-size: 18px; font-weight: 800; text-align: center; line-height: 1.6; padding: 14px 0; } .op-ok { width: 100%; padding: 12px; font-size: 16px; font-weight: 800; border-radius: 12px; }
+/* v159 의견 창: 키보드에 안 가리게, 버튼은 공지 밑 왼쪽 */
+#op.say { align-items: flex-start; padding-top: 10px; }
+#op.say .op-box { max-height: 100%; overflow-y: auto; }
+#op-body { min-height: 76px; }
+#op .op-row { margin: 8px 0; }

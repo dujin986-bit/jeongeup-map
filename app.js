@@ -1520,7 +1520,7 @@ let commTab = "news";
   try { first = +localStorage.getItem("op_first") || 0; if (!first) { first = Date.now(); localStorage.setItem("op_first", String(first)); } seen = localStorage.getItem("op_seen") === "1"; } catch (e) {}
   if (seen || Date.now() - first > 3 * 86400e3) b.classList.add("calm");      // 화살표 움직임은 처음 3일, 눌러 본 사람에게는 끔
   let m = document.getElementById("op"); if (!m) { m = document.createElement("div"); m.id = "op"; m.hidden = true; document.body.appendChild(m); }
-  const close = () => { m.hidden = true; };
+  const close = () => { m.hidden = true; m.classList.remove("say"); };
   const send = async (kind, body, contact) => {
     try {
       const res = await fetch(SUPABASE_URL + "/rest/v1/feedback", { method: "POST", headers: { apikey: SUPABASE_KEY, Authorization: "Bearer " + SUPABASE_KEY, "Content-Type": "application/json", Prefer: "return=minimal" },
@@ -1532,6 +1532,7 @@ let commTab = "news";
   };
   const thanks = msg => { m.innerHTML = `<div class="op-box"><div class="op-q">${msg}</div><button class="op-ok" type="button">닫기</button></div>`; m.querySelector(".op-ok").onclick = close; };
   const home = () => {
+    m.classList.remove("say");
     m.innerHTML = `<div class="op-box"><div class="op-x"><b>정읍 지금에 의견을 들려주세요</b><button type="button" class="op-close" aria-label="닫기">✕</button></div>` +
       `<button class="op-c" data-k="like" type="button"><span>👍</span><b>좋아요</b><small>마음에 들어요</small></button>` +
       `<button class="op-c" data-k="say" type="button"><span>💬</span><b>하고 싶은 말</b><small>바라는 점, 불편한 점을 적어요</small></button></div>`;
@@ -1541,8 +1542,10 @@ let commTab = "news";
   };
   const say = () => {
     m.innerHTML = `<div class="op-box"><div class="op-x"><b>💬 하고 싶은 말</b><button type="button" class="op-close" aria-label="닫기">✕</button></div>` +
-      `<textarea id="op-body" maxlength="300" placeholder="예: 제보하기가 어려워요 / 이런 기능이 있으면 좋겠어요"></textarea><div class="op-sub">운영자만 읽어요 · 답장을 원하면 연락처도 적어 주세요(선택)</div>` +
-      `<input id="op-contact" maxlength="60" placeholder="연락처 (선택)"><div class="op-row"><button type="button" class="op-back">뒤로</button><button type="button" class="op-send">보내기</button></div></div>`;
+      `<textarea id="op-body" maxlength="300" placeholder="예: 제보하기가 어려워요 / 이런 기능이 있으면 좋겠어요"></textarea>` +
+      `<div class="op-row"><button type="button" class="op-back">뒤로</button><button type="button" class="op-send">보내기</button></div>` +
+      `<div class="op-sub">운영자만 읽어요 · 답장을 원하면 연락처도 적어 주세요(선택)</div><input id="op-contact" maxlength="60" placeholder="연락처 (선택)"></div>`;
+    m.classList.add("say");
     m.querySelector(".op-close").onclick = close; m.querySelector(".op-back").onclick = home;
     m.querySelector(".op-send").onclick = async e => {
       const body = m.querySelector("#op-body").value.trim(); if (body.length < 2) { shareToast("내용을 두 글자 이상 적어 주세요"); return; }
@@ -1553,8 +1556,17 @@ let commTab = "news";
     };
     setTimeout(() => { try { m.querySelector("#op-body").focus(); } catch (e) {} }, 200);
   };
+  const vvFit = () => { const v = window.visualViewport; if (!v || m.hidden) return; m.style.height = v.height + "px"; m.style.top = v.offsetTop + "px"; m.style.bottom = "auto"; };   // 키보드가 올라온 만큼 창을 줄여 보내기 버튼이 가려지지 않게
+  if (window.visualViewport) { visualViewport.addEventListener("resize", vvFit); visualViewport.addEventListener("scroll", vvFit); }
+  const place = () => {                                  // 위쪽 영역(공지 띠 포함) 바로 아래, 왼쪽
+    const t = document.getElementById("top"), tk = document.getElementById("ticker");
+    let end = t ? t.getBoundingClientRect().bottom : 0;
+    if (tk && !tk.hidden) end = Math.max(end, tk.getBoundingClientRect().bottom);
+    b.style.top = Math.round(end + 10) + "px";
+  };
+  setTimeout(() => { place(); try { const ro = new ResizeObserver(place); ro.observe(document.getElementById("top")); const tk = document.getElementById("ticker"); if (tk) ro.observe(tk); } catch (e) {} addEventListener("resize", place); }, 700);
   m.onclick = e => { if (e.target === m) close(); };
-  b.onclick = () => { try { localStorage.setItem("op_seen", "1"); } catch (e) {} b.classList.add("calm"); sfx("on"); home(); m.hidden = false; };
+  b.onclick = () => { try { localStorage.setItem("op_seen", "1"); } catch (e) {} b.classList.add("calm"); sfx("on"); home(); m.hidden = false; vvFit(); };
 })();
 
 // ---------- 🛠 고쳐줘 (베타 의견함: 관리자만 읽음. 욕설은 서버에서 차단) ----------
@@ -1951,7 +1963,7 @@ const SFX_GAIN = { open: 0.7, close: 0.7, on: 0.8, off: 0.8, done: 0.9, win: 1, 
 const sfxBuf = {}; let sfxLoading = false;
 function sfxLoad() {
   if (sfxLoading || !AC) return; sfxLoading = true;
-  for (const k in SFX_FILES) fetch("sounds/" + SFX_FILES[k] + ".mp3?v=158").then(r => r.arrayBuffer()).then(b => new Promise((ok, no) => AC.decodeAudioData(b, ok, no))).then(buf => { sfxBuf[k] = buf; }).catch(() => {});
+  for (const k in SFX_FILES) fetch("sounds/" + SFX_FILES[k] + ".mp3?v=159").then(r => r.arrayBuffer()).then(b => new Promise((ok, no) => AC.decodeAudioData(b, ok, no))).then(buf => { sfxBuf[k] = buf; }).catch(() => {});
 }
 function sfx(kind) {
   if (!sndOn || !AC) return;
