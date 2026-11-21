@@ -1061,3 +1061,10 @@ body.pop-open #op-btn, body.pop-open #cf { display: none !important; }
 /* v189 2D/3D 버튼 */
 #v3d-btn{width:auto;min-width:29px;height:auto;padding:3px 2px;display:flex;flex-direction:column;align-items:center;line-height:1.05}
 #v3d-btn span{font-size:16px}#v3d-btn small{font-size:10px;font-weight:700;color:#333}
+
+/* v192 관리자 편집: 도구 줄을 위로, 아래 시트 접기, 팝업 수정 버튼 */
+body.editing #ed-bar{bottom:auto;top:84px;left:8px;right:8px;max-width:none;z-index:9;flex-wrap:nowrap;overflow-x:auto}
+body.editing #ed-bar button{white-space:nowrap}
+body.editing #ed-bar #ed-add{background:#1f6feb !important;color:#fff !important;font-size:16px;padding:10px 16px}
+body.editing #feed, body.editing #cat-banner{display:none !important}
+.ed-pop{display:block;width:100%;margin-top:8px;padding:10px;border:2px solid #1f6feb;background:#fff;color:#1f6feb;font-weight:800;font-size:15px;border-radius:10px}

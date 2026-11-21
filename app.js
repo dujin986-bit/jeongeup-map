@@ -585,6 +585,7 @@ async function loadShops() {
       hydrateRx(pop.getElement()); vdHydrate(pop.getElement());
       pop.getElement().querySelectorAll(".shop-row").forEach(row => {
         const p = list[Number(row.dataset.i)];
+        if (isAdminUi() && p.id) { const eb = document.createElement("button"); eb.className = "ed-pop"; eb.textContent = "✏️ 수정 (관리자)"; eb.onclick = () => { pop.remove(); openEditSheet([p.id]); }; row.appendChild(eb); }
         if (!IS_LOCAL) return;
         row.querySelector('[data-a="rename"]').onclick = async () => {
           const n = window.prompt("올바른 가게 이름", p.name);
@@ -1320,7 +1321,7 @@ function searchIndex() {
     const e = (EDITS.edits || {})[s.id] || {};
     if (e.hidden) continue;
     out.push({ name: e.name || s.name, sub: (e.category || s.category || "").split(">").pop().trim() + (s.address ? " · " + s.address.replace("전북특별자치도 ", "") : ""),
-               addr: s.address || "", coord: e.coord || s.coord, kind: "상가" });
+               addr: s.address || "", coord: e.coord || s.coord, kind: "상가", id: s.id });
   }
   for (const p of PLACES_IDX) out.push({ name: p.name, sub: p.address ? p.address.replace("전북특별자치도 ", "") : "", addr: p.address || "", coord: p.coord, kind: "장소" });
   for (const n of NAMED) out.push({ name: n.name, sub: "건물", addr: "", coord: n.coord, kind: "건물" });
@@ -1422,12 +1423,14 @@ function doSearch() {
   }
   resEl.hidden = false;
 }
+const isAdminUi = () => { const b = document.getElementById("edit-btn"); return !!(b && !b.hidden); };
 function goTo(it) {
   resEl.hidden = true; qEl.blur();
   map.flyTo({ center: it.coord, zoom: 18, pitch: PT(60), duration: 1500, essential: true });
   if (searchPin) searchPin.remove();
   const pop = new maplibregl.Popup({ offset: 24, closeOnClick: true })
-    .setHTML(`<strong>${esc(it.name)}</strong><br><small>${esc(it.sub)}</small>` + navLinks(it.name, it.coord[0], it.coord[1]));
+    .setHTML(`<strong>${esc(it.name)}</strong><br><small>${esc(it.sub)}</small>` + navLinks(it.name, it.coord[0], it.coord[1]) + (it.id && isAdminUi() ? `<button class="ed-pop" id="ed-pop-s">✏️ 수정 (관리자)</button>` : ""));
+  pop.on("open", () => { const b = pop.getElement().querySelector("#ed-pop-s"); if (b) b.onclick = () => { pop.remove(); openEditSheet([it.id]); }; });
   searchPin = new maplibregl.Marker({ color: "#e5484d" }).setLngLat(it.coord).setPopup(pop).addTo(map);
   setTimeout(() => searchPin && !searchPin.getPopup().isOpen() && searchPin.togglePopup(), 1500);
 }
@@ -2046,7 +2049,7 @@ const SFX_GAIN = { open: 0.7, close: 0.7, on: 0.8, off: 0.8, done: 0.9, win: 1, 
 const sfxBuf = {}; let sfxLoading = false;
 function sfxLoad() {
   if (sfxLoading || !AC) return; sfxLoading = true;
-  for (const k in SFX_FILES) fetch("sounds/" + SFX_FILES[k] + ".mp3?v=191").then(r => r.arrayBuffer()).then(b => new Promise((ok, no) => AC.decodeAudioData(b, ok, no))).then(buf => { sfxBuf[k] = buf; }).catch(() => {});
+  for (const k in SFX_FILES) fetch("sounds/" + SFX_FILES[k] + ".mp3?v=192").then(r => r.arrayBuffer()).then(b => new Promise((ok, no) => AC.decodeAudioData(b, ok, no))).then(buf => { sfxBuf[k] = buf; }).catch(() => {});
 }
 function sfx(kind) {
   if (!sndOn || !AC) return;
