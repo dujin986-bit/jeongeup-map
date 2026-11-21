@@ -1296,7 +1296,7 @@ function buildRoadIdx() {
   ROAD_IDX = {};
   const add = (addr, coord) => {
     const m = String(addr || "").match(ROAD_RE); if (!m || !coord) return;
-    (ROAD_IDX[m[1]] = ROAD_IDX[m[1]] || []).push({ n: +m[2], coord });
+    (ROAD_IDX[m[1]] = ROAD_IDX[m[1]] || []).push({ n: +m[2], s: m[3] ? +m[3] : 0, coord });
   };
   for (const s of (typeof SHOPS !== "undefined" ? SHOPS : []).concat(EDITS.added || [])) add(s.address, s.coord);
   for (const p of PLACES_IDX) add(p.address, p.coord);
@@ -1309,9 +1309,12 @@ function roadSearch(raw) {
   const list = ROAD_IDX[m[1]]; if (!list || !list.length) return null;
   const n = +m[2], par = n % 2;
   const same = list.filter(x => x.n % 2 === par), pool = same.length ? same : list;
-  const exact = pool.find(x => x.n === n);
+  const sub = m[3] ? +m[3] : 0;
+  let exact = pool.find(x => x.n === n && x.s === sub);                 // 부번(-31)까지 같은 곳을 먼저
+  if (!exact && sub) { const same = list.filter(x => x.n === n); if (same.length) exact = same.reduce((b, x) => Math.abs(x.s - sub) < Math.abs(b.s - sub) ? x : b); }   // 없으면 같은 본번에서 부번이 가장 가까운 곳
+  if (!exact && !sub) exact = pool.find(x => x.n === n);
   let coord, approx = true;
-  if (exact) { coord = exact.coord; approx = false; }
+  if (exact) { coord = exact.coord; approx = exact.n === n && exact.s !== sub; }
   else {
     let lo = null, hi = null;
     for (const x of pool) { if (x.n < n) lo = x; else if (x.n > n && !hi) hi = x; }
@@ -1901,7 +1904,7 @@ const SFX_GAIN = { open: 0.7, close: 0.7, on: 0.8, off: 0.8, done: 0.9, win: 1, 
 const sfxBuf = {}; let sfxLoading = false;
 function sfxLoad() {
   if (sfxLoading || !AC) return; sfxLoading = true;
-  for (const k in SFX_FILES) fetch("sounds/" + SFX_FILES[k] + ".mp3?v=156").then(r => r.arrayBuffer()).then(b => new Promise((ok, no) => AC.decodeAudioData(b, ok, no))).then(buf => { sfxBuf[k] = buf; }).catch(() => {});
+  for (const k in SFX_FILES) fetch("sounds/" + SFX_FILES[k] + ".mp3?v=157").then(r => r.arrayBuffer()).then(b => new Promise((ok, no) => AC.decodeAudioData(b, ok, no))).then(buf => { sfxBuf[k] = buf; }).catch(() => {});
 }
 function sfx(kind) {
   if (!sndOn || !AC) return;
