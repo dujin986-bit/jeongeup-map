@@ -2022,7 +2022,7 @@ const SFX_GAIN = { open: 0.7, close: 0.7, on: 0.8, off: 0.8, done: 0.9, win: 1, 
 const sfxBuf = {}; let sfxLoading = false;
 function sfxLoad() {
   if (sfxLoading || !AC) return; sfxLoading = true;
-  for (const k in SFX_FILES) fetch("sounds/" + SFX_FILES[k] + ".mp3?v=176").then(r => r.arrayBuffer()).then(b => new Promise((ok, no) => AC.decodeAudioData(b, ok, no))).then(buf => { sfxBuf[k] = buf; }).catch(() => {});
+  for (const k in SFX_FILES) fetch("sounds/" + SFX_FILES[k] + ".mp3?v=177").then(r => r.arrayBuffer()).then(b => new Promise((ok, no) => AC.decodeAudioData(b, ok, no))).then(buf => { sfxBuf[k] = buf; }).catch(() => {});
 }
 function sfx(kind) {
   if (!sndOn || !AC) return;
@@ -2510,24 +2510,45 @@ function infoHtml(p) {
 }
 const INFO_OK = /^https:\/\/([a-z0-9-]+\.)*(instagram\.com|blog\.naver\.com|naver\.me|tistory\.com|brunch\.co\.kr|cafe\.naver\.com|facebook\.com|pf\.kakao\.com)(\/|$)/i;
 function normInsta(v) { v = (v || "").trim(); if (!v) return ""; if (/^@?[A-Za-z0-9._]{2,30}$/.test(v)) return "https://www.instagram.com/" + v.replace(/^@/, ""); return v; }
+const IF_TIMES = ph => `<option value="">${ph} 시간</option>` + Array.from({ length: 48 }, (_, i) => { const t = String(Math.floor(i / 2)).padStart(2, "0") + ":" + (i % 2 ? "30" : "00"); return `<option>${t}</option>`; }).join("");
 function openInfo(id, name) {
   const m = document.getElementById("notice-modal");
   const inp = "width:100%;padding:10px;font-size:16px;border:1px solid #ccc;border-radius:8px;margin-bottom:8px;background:#fff;color:#222;box-sizing:border-box";
   m.innerHTML = `<div class="nm"><b>✏ ${esc(name)}</b><div style="margin:6px 0 10px;color:#555;font-size:14px;line-height:1.5">아는 것만 적어 주세요. 확인 후 가게에 올라가요.</div>
     <input id="if-insta" maxlength="120" placeholder="📷 인스타 (@아이디 또는 주소)" style="${inp}">
     <input id="if-blog" maxlength="160" placeholder="📝 블로그 주소 (https://...)" style="${inp}" inputmode="url">
-    <input id="if-phone" maxlength="20" placeholder="📞 전화번호 (예: 063-123-4567)" style="${inp}" inputmode="tel">
-    <input id="if-hours" maxlength="80" placeholder="🕐 영업시간 (예: 매일 10:00~21:00 · 일 휴무)" style="${inp}">
+    <input id="if-phone" maxlength="13" placeholder="📞 전화번호 (숫자만 눌러도 돼요)" style="${inp}" inputmode="numeric" autocomplete="tel">
+    <div id="if-hw" style="border:1px solid #ccc;border-radius:8px;padding:8px;margin-bottom:8px;background:#fff;color:#222">
+      <div style="font-weight:700;margin-bottom:6px">🕐 영업시간 <small style="font-weight:500;color:#777">(눌러서 고르세요)</small></div>
+      <div class="if-chips" data-g="day"><button type="button" data-v="매일">매일</button><button type="button" data-v="평일">평일만</button><button type="button" data-v="주말">주말만</button></div>
+      <div style="display:flex;gap:6px;align-items:center;margin:6px 0"><select id="if-open" style="flex:1;padding:8px;font-size:16px;background:#fff;color:#222">${IF_TIMES("오픈")}</select><span>~</span><select id="if-close" style="flex:1;padding:8px;font-size:16px;background:#fff;color:#222">${IF_TIMES("마감")}</select></div>
+      <div class="if-chips" data-g="off"><button type="button" data-v="연중무휴">연중무휴</button><button type="button" data-v="일요일 휴무">일 휴무</button><button type="button" data-v="월요일 휴무">월 휴무</button><button type="button" data-v="매주 토·일 휴무">토·일 휴무</button><button type="button" data-v="첫째·셋째 일요일 휴무">격주 일 휴무</button></div>
+      <input id="if-hours" maxlength="80" placeholder="직접 쓰기 (예: 점심 12~13시 쉼)" style="${inp};margin:6px 0 0">
+      <div id="if-prev" style="margin-top:6px;font-size:14px;color:#1648a8;font-weight:700;min-height:18px"></div>
+    </div>
     <div id="if-err" style="color:#c0392b;font-size:13px;min-height:18px"></div>
     <div style="display:flex;gap:8px"><button id="nm-x" style="flex:1">닫기</button><button id="if-send" style="flex:2;background:#C83E2B">보내기</button></div>
     <div style="margin-top:10px;text-align:center"><a href="#" id="if-other" style="font-size:13px;color:#666">이름·위치가 틀렸어요 / 없어진 가게예요</a></div></div>`;
   m.hidden = false; document.getElementById("nm-x").onclick = () => m.hidden = true;
   document.getElementById("if-other").onclick = e => { e.preventDefault(); openFix(id, name); };
+  const v = id2 => document.getElementById(id2);
+  const sel = { day: "", off: "" };
+  const hoursText = () => {
+    const o = v("if-open").value, c = v("if-close").value, extra = v("if-hours").value.trim();
+    const p = [];
+    if (sel.day || o || c) p.push([sel.day, o && c ? o + "~" + c : (o ? o + " 오픈" : c ? c + " 마감" : "")].filter(Boolean).join(" "));
+    if (sel.off) p.push(sel.off);
+    if (extra) p.push(extra);
+    return p.join(" · ");
+  };
+  const showPrev = () => { const t = hoursText(); v("if-prev").textContent = t ? "→ " + t : ""; };
+  m.querySelectorAll(".if-chips").forEach(g => g.querySelectorAll("button").forEach(b => b.onclick = () => { const k = g.dataset.g, on = sel[k] === b.dataset.v; sel[k] = on ? "" : b.dataset.v; g.querySelectorAll("button").forEach(x => x.classList.toggle("on", !on && x === b)); showPrev(); }));
+  ["if-open", "if-close"].forEach(i => v(i).onchange = showPrev); v("if-hours").oninput = showPrev;
+  const ph = v("if-phone"); ph.oninput = () => { const d = ph.value.replace(/\D/g, "").slice(0, 11); ph.value = /^02/.test(d) ? (d.length > 9 ? d.slice(0, 2) + "-" + d.slice(2, 6) + "-" + d.slice(6) : d.length > 5 ? d.slice(0, 2) + "-" + d.slice(2, 5) + "-" + d.slice(5) : d.length > 2 ? d.slice(0, 2) + "-" + d.slice(2) : d) : (d.length > 10 ? d.slice(0, 3) + "-" + d.slice(3, 7) + "-" + d.slice(7) : d.length > 6 ? d.slice(0, 3) + "-" + d.slice(3, 6) + "-" + d.slice(6) : d.length > 3 ? d.slice(0, 3) + "-" + d.slice(3) : d); };
   const err = (t, el) => { const e = document.getElementById("if-err"); e.textContent = "⚠ " + t; e.style.cssText = "color:#fff;background:#c0392b;font-size:15px;font-weight:700;padding:8px 10px;border-radius:8px;margin-bottom:8px"; e.scrollIntoView({ block: "center" }); if (el) el.focus(); };
   const done = (ok, msg) => { m.querySelector(".nm").innerHTML = `<div style="text-align:center;padding:14px 4px"><div style="font-size:40px">${ok ? "✅" : "❌"}</div><div style="font-size:18px;font-weight:800;margin:8px 0">${ok ? "보냈어요!" : "보내지 못했어요"}</div><div style="color:#555;font-size:14px;line-height:1.5;margin-bottom:14px">${esc(msg)}</div><button id="nm-x2" style="width:100%;padding:12px;font-size:16px;background:#C83E2B;color:#fff;border:0;border-radius:10px">확인</button></div>`; document.getElementById("nm-x2").onclick = () => m.hidden = true; };
-  const v = id2 => document.getElementById(id2);
-  document.getElementById("if-send").onclick = async () => {
-    const insta = normInsta(v("if-insta").value), phone = v("if-phone").value.replace(/[\s.()]/g, ""), hours = v("if-hours").value.trim();
+    document.getElementById("if-send").onclick = async () => {
+    const insta = normInsta(v("if-insta").value), phone = v("if-phone").value.replace(/[\s.()]/g, ""), hours = hoursText().slice(0, 80);
     let blog = v("if-blog").value.trim(); if (blog && !/^https?:\/\//i.test(blog)) blog = "https://" + blog;
     if (!insta && !blog && !phone && !hours) return err("한 칸 이상 적어 주세요.", v("if-insta"));
     if (insta && !INFO_OK.test(insta)) return err("인스타는 @아이디나 instagram.com 주소만 돼요.", v("if-insta"));

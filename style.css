@@ -237,7 +237,7 @@ body.live #edit-btn, body.live #ed-bar, body.live #ed-sheet { display: none !imp
 
 #notice-modal { position: fixed; inset: 0; z-index: 20; background: rgba(0,0,0,.55); display: flex; align-items: center; justify-content: center; padding: 20px; }
 #notice-modal[hidden] { display: none; }
-#notice-modal .nm { background: #fff; color: #222; border-radius: 14px; padding: 16px; max-width: 420px; width: 100%; max-height: 70vh; overflow-y: auto; }
+#notice-modal .nm { background: #fff; color: #222; border-radius: 14px; padding: 16px; max-width: 420px; width: 100%; max-height: 88vh; overflow-y: auto; }
 #notice-modal .nm p { margin: 0 0 10px; padding: 8px 10px; border-left: 5px solid #1f6feb; background: #eef4ff; border-radius: 4px; font-size: 15px; }
 #notice-modal .nm p.u { border-color: #d9232d; background: #ffeeee; }
 #notice-modal .nm button { width: 100%; padding: 12px; border: 0; border-radius: 10px; background: #868e96; color: #fff; font-size: 15px; font-weight: 700; }
@@ -1011,3 +1011,8 @@ body.live #cf, body.tools-open #cf, body.rp-pick #cf, body.rp-form #cf, body.edi
 .si-h small { font-weight: 500; opacity: .7; }
 .si-b { display: flex; gap: 6px; flex-wrap: wrap; }
 .si-b a { background: var(--brand-soft, #FBEAE6); color: #A8301F; border-radius: 16px; padding: 6px 12px; font-size: 14px; font-weight: 700; text-decoration: none; }
+/* v177 영업시간 고르기 */
+.if-chips { display: flex; gap: 6px; flex-wrap: wrap; }
+.if-chips button { border: 1px solid #bbb; background: #fff; color: #222; border-radius: 16px; padding: 7px 12px; font-size: 14px; font-weight: 700; }
+.if-chips button.on { background: #C83E2B; color: #fff; border-color: #C83E2B; }
+#notice-modal .nm { max-height: 92vh; overflow-y: auto; }
