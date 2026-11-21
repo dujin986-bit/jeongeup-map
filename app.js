@@ -1866,7 +1866,7 @@ const SFX_GAIN = { open: 0.7, close: 0.7, on: 0.8, off: 0.8, done: 0.9, win: 1, 
 const sfxBuf = {}; let sfxLoading = false;
 function sfxLoad() {
   if (sfxLoading || !AC) return; sfxLoading = true;
-  for (const k in SFX_FILES) fetch("sounds/" + SFX_FILES[k] + ".mp3?v=139").then(r => r.arrayBuffer()).then(b => new Promise((ok, no) => AC.decodeAudioData(b, ok, no))).then(buf => { sfxBuf[k] = buf; }).catch(() => {});
+  for (const k in SFX_FILES) fetch("sounds/" + SFX_FILES[k] + ".mp3?v=140").then(r => r.arrayBuffer()).then(b => new Promise((ok, no) => AC.decodeAudioData(b, ok, no))).then(buf => { sfxBuf[k] = buf; }).catch(() => {});
 }
 function sfx(kind) {
   if (!sndOn || !AC) return;
@@ -2221,7 +2221,7 @@ async function vdSummary(force) {
 function enterJudge() {
   judging = true;
   let bar = document.getElementById("vd-bar");
-  if (!bar) { bar = document.createElement("div"); bar.id = "vd-bar"; bar.innerHTML = `<span>🗺 지도에서 가게 점을 눌러 보세요</span><button id="vd-x">취소 ✕</button>`; document.body.appendChild(bar); bar.querySelector("#vd-x").onclick = exitJudge; }
+  if (!bar) { bar = document.createElement("div"); bar.id = "vd-bar"; bar.innerHTML = `<span>🗺 지도를 움직여 가게를 눌러 주세요</span><button id="vd-x">취소 ✕</button>`; document.body.appendChild(bar); bar.querySelector("#vd-x").onclick = exitJudge; }
   bar.hidden = false;
 }
 // ----- 🍚 가게 고르기 창: 검색 · 목록 · 지도에서 찾기 -----
@@ -2240,14 +2240,14 @@ function openVotePick() {
     const hot = !qq ? shops.filter(x => n(x) > 0).slice(0, 3) : [];
     const item = x => `<button class="vp-it" data-id="${esc(x.id)}"><b>${esc(x.name)}</b><small>${esc(x.category)}${n(x) ? " · " + n(x) + "명" : ""}</small></button>`;
     const list = m.querySelector("#vp-list");
-    list.innerHTML = (hot.length ? `<div class="vp-t">🔥 오늘 인기</div>` + hot.map(item).join("") : "") +
-      `<div class="vp-t">${qq ? "검색 결과" : "전체 가게"}</div>` + (shops.length ? shops.slice(0, 80).map(item).join("") : `<div class="vd-empty">찾는 가게가 없어요.</div>`);
     const rs = qq ? (roadSearch(qq) || jibunSearch(qq)) : null;
-    if (rs) list.insertAdjacentHTML("afterbegin", `<div class="vp-t">📍 주소</div><button class="vp-it vp-addr"><b>${esc(rs.name)}</b><small>지도에서 보기</small></button>`);
-    if (qq) list.insertAdjacentHTML("beforeend", `<button class="vp-it vp-new"><b>➕ 찾는 곳이 없나요? '${esc(qq)}' 가게 추가하기</b></button>`);
+    list.innerHTML = (rs ? `<div class="vp-t">📍 주소</div><button class="vp-it vp-addr"><b>${esc(rs.name)}</b><small>지도에서 보기</small></button>` : "") +
+      (qq ? `<div class="vp-t">검색 결과</div>` + (shops.length ? shops.slice(0, 40).map(item).join("") : `<div class="vd-empty">찾는 가게가 없어요.</div>`)
+          : (hot.length ? `<div class="vp-t">🔥 오늘 인기</div>` + hot.map(item).join("") : `<div class="vd-empty">가게 이름을 검색해 보세요</div>`)) +
+      (qq ? `<button class="vp-it vp-new"><b>➕ 찾는 곳이 없나요? '${esc(qq)}' 가게 추가하기</b></button>` : "");
+    list.querySelectorAll(".vp-it[data-id]").forEach(b => b.onclick = () => pick(b.dataset.id));
     const ad = list.querySelector(".vp-addr"); if (ad) ad.onclick = () => { m.hidden = true; goTo(rs); };
     const nw = list.querySelector(".vp-new"); if (nw) nw.onclick = () => { m.hidden = true; startAddShop(qq); };
-    list.querySelectorAll(".vp-it").forEach(b => b.onclick = () => pick(b.dataset.id));
   };
   const pick = id => {
     const s = shopInfo(id); if (!s) return;

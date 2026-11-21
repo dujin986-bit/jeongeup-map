@@ -855,3 +855,6 @@ body.rp-pick #cat-banner, body.rp-form #cat-banner, body.editing #cat-banner { d
 #vp-back { width: auto; background: #eef4ff; color: #1f6feb; padding: 7px 12px; border-radius: 14px; }
 #vp-done { width: 100%; margin-top: 12px; padding: 12px; font-size: 15px; font-weight: 800; }
 .res-add b { color: #1f6feb; } .vp-new b { color: #1f6feb; } .vp-addr { background: #eef4ff; }
+/* v140 가게 고르기 안내를 아래쪽 알약으로 */
+#vd-bar { top: auto; bottom: calc(var(--sheet-vis, 52px) + 14px); left: 50%; right: auto; transform: translateX(-50%); width: max-content; max-width: calc(100vw - 24px); padding: 8px 12px; font-size: 14px; border-radius: 22px; }
+#vd-bar button { width: auto; flex: none; padding: 6px 12px; }
