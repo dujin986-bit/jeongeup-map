@@ -2006,7 +2006,7 @@ const SFX_GAIN = { open: 0.7, close: 0.7, on: 0.8, off: 0.8, done: 0.9, win: 1, 
 const sfxBuf = {}; let sfxLoading = false;
 function sfxLoad() {
   if (sfxLoading || !AC) return; sfxLoading = true;
-  for (const k in SFX_FILES) fetch("sounds/" + SFX_FILES[k] + ".mp3?v=172").then(r => r.arrayBuffer()).then(b => new Promise((ok, no) => AC.decodeAudioData(b, ok, no))).then(buf => { sfxBuf[k] = buf; }).catch(() => {});
+  for (const k in SFX_FILES) fetch("sounds/" + SFX_FILES[k] + ".mp3?v=173").then(r => r.arrayBuffer()).then(b => new Promise((ok, no) => AC.decodeAudioData(b, ok, no))).then(buf => { sfxBuf[k] = buf; }).catch(() => {});
 }
 function sfx(kind) {
   if (!sndOn || !AC) return;
@@ -2692,12 +2692,21 @@ const foodSheet = (function () {
 // ----- 시트 소식 전광판 (최근 제보 4개 + 맛집 1위, 위로 계속 올라감) -----
 function sheetSum() {
   const live = reports.filter(r => expAt(r) > Date.now()).sort((a, b) => new Date(b.ts) - new Date(a.ts)).slice(0, 5);
-  const parts = live.map(r => CATEGORIES[r.cat].icon + " " + esc(r.title));
-  if (foodTop) parts.push("🍚 오늘 맛집 1위 " + esc(foodTop.shop_name) + " " + foodTop.cnt + "표");
-  if (!parts.length) parts.push("🍚 오늘의 맛집 · 첫 표를 남겨 보세요");
-  const txt = parts.join("　　　　");
-  foodSheet.summary(`<span class="fs-mq" style="animation-duration:${Math.max(12, txt.length * 0.32)}s">${txt}</span>`);
+  const parts = live.map(r => { const c = CATEGORIES[r.cat]; return `<span class="mq-c" data-rid="${esc(String(r.id))}" style="--c:${c.color}"><i style="background:${c.color};color:${c.fg || "#fff"}">${c.icon}</i>${esc(r.title)}</span>`; });
+  if (foodTop) parts.push(`<span class="mq-c mq-food" data-food="1"><i>🥇</i>오늘 맛집 1위 <b>${esc(foodTop.shop_name)}</b> · ${foodTop.cnt}표</span>`);
+  if (!parts.length) parts.push(`<span class="mq-c mq-food" data-food="1"><i>🍚</i>오늘의 맛집 · 첫 표를 남겨 보세요</span>`);
+  const len = live.reduce((n, r) => n + String(r.title).length + 4, 0) + (foodTop ? 22 : 18);
+  foodSheet.summary(`<span class="fs-mq" style="animation-duration:${Math.max(14, len * 0.5)}s">${parts.join("")}</span>`);
 }
+(function mqClick() {
+  const e = document.getElementById("fs-sum"); if (!e) return;
+  e.addEventListener("click", ev => {
+    const c = ev.target.closest(".mq-c"); if (!c) return;
+    ev.stopPropagation();
+    if (c.dataset.rid) { const r = reports.find(x => String(x.id) === c.dataset.rid); if (r) { foodSheet.setLevel(0); focusReport(r); } }
+    else foodSheet.set(true);
+  }, true);
+})();
 function renderSheetNews() {
   try { sheetSum(); } catch (e) {}
   const box = document.getElementById("fm-news"); if (!box) return;

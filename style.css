@@ -996,3 +996,10 @@ body.live #cf, body.tools-open #cf, body.rp-pick #cf, body.rp-form #cf, body.edi
 @media (prefers-reduced-motion: reduce) { #cf .cf-track { animation: none; transform: none; } }
 #cf .cf-track { gap: 0; }
 #cf .cf-track .cf-m { padding-bottom: 7px; }
+/* v173 광고판(소식줄) */
+#fs-sum { font-size: 16px; font-weight: 700; }
+.mq-c { display: inline-flex; align-items: center; gap: 6px; margin-right: 22px; padding: 3px 12px 3px 4px; border-radius: 16px; background: color-mix(in srgb, var(--c, #E09F3E) 14%, #fff); border: 1px solid color-mix(in srgb, var(--c, #E09F3E) 55%, #fff); color: #1E1B18; vertical-align: middle; }
+.mq-c i { font-style: normal; font-size: 16px; width: 26px; height: 26px; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; flex: none; }
+.mq-c b { color: #A8691A; font-weight: 800; }
+.mq-food { --c: #E09F3E; background: #FFF3D6; }
+.mq-food i { background: #E09F3E; color: #fff; }
