@@ -91,12 +91,26 @@ for (const [key, c] of Object.entries(CATEGORIES)) {
   b.style.setProperty("--c", c.color); b.style.setProperty("--cf", c.fg || "#fff");
   b.onclick = () => {
     activeCats.has(key) ? activeCats.delete(key) : activeCats.add(key);
-    b.classList.toggle("on"); sfx(b.classList.contains("on") ? "on" : "off");
+    sfx(activeCats.has(key) ? "on" : "off");
     render();
   };
   filtersEl.appendChild(b);
+  const pb = document.createElement("button");
+  pb.className = "pill"; pb.dataset.k = key; pb.textContent = c.icon + " " + c.label;
+  pb.onclick = () => { sfx("on"); (activeCats.size === 1 && activeCats.has(key)) ? resetCats() : setOnlyCat(key, true); };
+  document.getElementById("pills").appendChild(pb);
   catSel.add(new Option(c.icon + " " + c.label, key));
 }
+function syncCatUI() {
+  const keys = Object.keys(CATEGORIES), all = activeCats.size === keys.length;
+  [...filtersEl.querySelectorAll(".cat-chip")].forEach((b, i) => b.classList.toggle("on", activeCats.has(keys[i])));
+  document.querySelectorAll("#pills .pill").forEach(b => b.classList.toggle("on", !all && activeCats.size === 1 && activeCats.has(b.dataset.k)));
+  const bn = document.getElementById("cat-banner"); if (!bn) return;
+  bn.hidden = all;
+  if (!all) bn.firstChild.textContent = activeCats.size === 1 ? CATEGORIES[[...activeCats][0]].icon + " " + CATEGORIES[[...activeCats][0]].label + "만 보는 중 · " : "일부만 보는 중 · ";
+}
+document.getElementById("cat-banner").onclick = () => { sfx("off"); resetCats(); };
+function resetCats() { activeCats = new Set(Object.keys(CATEGORIES)); render(); }
 let showOffices = true;
 // (관공서 필터 칩은 v84에서 제거. 관공서 배지는 항상 표시)
 if (!IS_LOCAL) { catSel.add(new Option("🛠 가게 정보 수정", "__fix")); catSel.add(new Option("➕ 없는 가게 알려주기", "__newshop")); }
@@ -154,6 +168,7 @@ function openShared() {
 function esc(s) { return String(s).replace(/[&<>"']/g, ch => ({ "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;" }[ch])); }
 
 function render() {
+  if (typeof syncCatUI === "function") try { syncCatUI(); } catch (e) {}
   markers.forEach(m => m.remove()); markers = [];
   LANDMARKS.filter(l => activeCats.has(l.cat)).forEach(l => addMarker(l, true));
   if (showOffices) OFFICES.forEach(addOffice);
@@ -1818,7 +1833,7 @@ const SFX_GAIN = { open: 0.7, close: 0.7, on: 0.8, off: 0.8, done: 0.9, win: 1, 
 const sfxBuf = {}; let sfxLoading = false;
 function sfxLoad() {
   if (sfxLoading || !AC) return; sfxLoading = true;
-  for (const k in SFX_FILES) fetch("sounds/" + SFX_FILES[k] + ".mp3?v=132").then(r => r.arrayBuffer()).then(b => new Promise((ok, no) => AC.decodeAudioData(b, ok, no))).then(buf => { sfxBuf[k] = buf; }).catch(() => {});
+  for (const k in SFX_FILES) fetch("sounds/" + SFX_FILES[k] + ".mp3?v=133").then(r => r.arrayBuffer()).then(b => new Promise((ok, no) => AC.decodeAudioData(b, ok, no))).then(buf => { sfxBuf[k] = buf; }).catch(() => {});
 }
 function sfx(kind) {
   if (!sndOn || !AC) return;
@@ -1960,8 +1975,6 @@ function setEditMode(on) {
 
 // ===== 헤더 필터 접기 =====
 (function () {
-  const b = document.getElementById("filter-btn"), f = document.getElementById("filters");
-  b.onclick = () => toolsToggle();   // 👀 골라보기 = 상단 서랍 열기/닫기 (서랍 안에 종류별 칩이 같이 펼쳐진다)
 })();
 
 // ===== 공지사항 띠 (긴급=빨강, 일반=파랑 / 관리자 "공지" 탭에서 등록) =====
@@ -2009,8 +2022,8 @@ const HELP = [
     b: `<ol class="hp-steps"><li><b>💬 커뮤니티</b>를 열어요.</li><li>맨 위쪽 <b>알림 받기</b> 카드의 버튼을 눌러요.</li><li>폰에서 <b>허용</b>을 눌러요.</li></ol><p>허용 창이 안 뜨면: 크롬·삼성 인터넷 주소창 왼쪽 <b>자물쇠 → 권한(사이트 설정) → 알림 → 허용</b>으로 바꿔 주세요.</p>`,
     a: ["커뮤니티 열어보기", () => setTimeout(openComm, 250)] },
   { id: "filter", ic: "👀", t: "골라보기", s: "보고 싶은 정보만 켜기",
-    b: `<ol class="hp-steps"><li>위쪽 <b>👀 골라보기</b>를 눌러요.</li><li>펼쳐진 <b>종류 칩</b>(교통·행사·웨이팅 등)을 눌러서 켜고 끄세요.</li></ol><p>꺼진 종류는 지도에서 사라져서 지도가 깔끔해져요.</p>`,
-    a: ["골라보기 열어보기", () => setTimeout(() => toolsToggle(), 250)] },
+    b: `<ol class="hp-steps"><li>검색창 아래 <b>🚗 교통 · 🎉 행사 · ⏳ 웨이팅</b> 버튼을 눌러요.</li><li>그 종류만 지도에 보여요. 다시 누르거나 <b>전체 보기 ✕</b>를 누르면 돌아와요.</li></ol><p>꺼진 종류는 지도에서 사라져서 지도가 깔끔해져요.</p>`,
+    a: ["더 보기 열어보기", () => setTimeout(() => toolsToggle(), 250)] },
   { id: "install", ic: "🏠", t: "홈 화면에 추가", s: "앱처럼 바로 열어요",
     b: `<p><b>갤럭시(크롬):</b> 오른쪽 위 <b>⋮</b> → <b>홈 화면에 추가</b></p><p><b>아이폰(사파리):</b> 아래 <b>공유 버튼</b> → <b>홈 화면에 추가</b></p><p>인스타·카톡 안에서 열었다면 먼저 위쪽 <b>크롬으로 열기</b> 안내를 눌러요.</p>`,
     a: ["설치 안내 열기", () => { const b = document.getElementById("install-btn"); if (b && !b.hidden) b.click(); else shareToast("브라우저 메뉴에서 '홈 화면에 추가'를 눌러 주세요"); }] },
@@ -2269,7 +2282,7 @@ function openFix(id, name) {
       if (vis("feed")) { document.getElementById("feed").hidden = true; return true; }
       if (document.body.classList.contains("searching") || !resEl.hidden) { resEl.hidden = true; qEl.blur(); return true; }
       if (document.querySelector(".maplibregl-popup")) { closePopups(); return true; }
-      if (vis("filters")) { document.getElementById("filter-btn").click(); return true; }
+      if (vis("filters")) { toolsClose(); return true; }
     } catch (e) {}
     return false;
   }
@@ -2308,11 +2321,11 @@ if (new URLSearchParams(location.search).get("debug") === "1") {
 // ===== 상단 도구 서랍: 손잡이를 아래로 끌거나 누르면 도구가 여러 줄로 펼쳐져 글자까지 보인다 =====
 const SLIDE_N = (() => { try { const n = (+localStorage.getItem("slide_n") || 0) + 1; localStorage.setItem("slide_n", n); return n; } catch (e) { return 1; } })();
 const SLIDE_LEARNED = SLIDE_N > 6;     // 여섯 번 넘게 쓰셨으면 안내 글씨를 짧게
-const toolsTxt = on => SLIDE_LEARNED ? (on ? "접기 ▴" : "더 보기 ▾") : (on ? "▴ 밀어서 접기" : "▾ 밀어서 더 보기");
+const toolsTxt = on => on ? "▴ 접기" : "▾ 더 보기 · 보고 싶은 것만 골라보기";
 let toolsClose = () => {}, toolsToggle = () => {};
 (function toolsDrawer() {
   const g = document.getElementById("tools-grab"), tx = document.getElementById("tools-grab-t"); if (!g || LIVE) return;
-  const top = document.getElementById("top"), body = document.body, fb = document.getElementById("filter-btn");
+  const top = document.getElementById("top"), body = document.body;
   tx.textContent = toolsTxt(false);
   const calm = matchMedia("(prefers-reduced-motion: reduce)").matches;
   let state = false, timer = 0;                       // state: 논리적 열림 여부 (애니메이션 중에도 즉시 바뀐다)
@@ -2326,7 +2339,6 @@ let toolsClose = () => {}, toolsToggle = () => {};
     on = !!on; if (on === state) return;
     settle(); state = on; sfx(on ? "open" : "close");
     g.setAttribute("aria-expanded", on ? "true" : "false"); tx.textContent = toolsTxt(on);
-    if (fb) fb.textContent = on ? "👀 골라보기 ▴" : "👀 골라보기 ▾";
     if (calm) { body.classList.toggle("tools-open", on); return; }
     const h0 = top.getBoundingClientRect().height;
     let h1;
@@ -2431,10 +2443,19 @@ const foodSheet = (function () {
   const settle = () => { if (dragging) return; lvl = init; el.classList.toggle("half", lvl === 1); const hn = document.getElementById("fs-hint"); if (hn) hn.textContent = hintTxt(lvl); apply(offs()[lvl], false); };
   requestAnimationFrame(settle); setTimeout(() => { if (lvl === init) settle(); }, 800);
   return { set(v) { v ? setLevel(2, false, true) : setLevel(0); }, setLevel, isOpen: () => lvl === 2, level: () => lvl,
-    summary(t) { const e = document.getElementById("fs-sum"); if (e) e.innerHTML = t; }, refit() { if (!dragging) apply(offs()[lvl], false); } };
+    summary(t) { const e = document.getElementById("fs-sum"); if (e && e.dataset.t !== t) { e.dataset.t = t; e.innerHTML = t; } }, refit() { if (!dragging) apply(offs()[lvl], false); } };
 })();
 // ----- 시트 소식 전광판 (최근 제보 4개 + 맛집 1위, 위로 계속 올라감) -----
+function sheetSum() {
+  const live = reports.filter(r => expAt(r) > Date.now()).sort((a, b) => new Date(b.ts) - new Date(a.ts)).slice(0, 5);
+  const parts = live.map(r => CATEGORIES[r.cat].icon + " " + esc(r.title));
+  if (foodTop) parts.push("🍚 오늘 맛집 1위 " + esc(foodTop.shop_name) + " " + foodTop.cnt + "표");
+  if (!parts.length) parts.push("🍚 오늘의 맛집 · 첫 표를 남겨 보세요");
+  const txt = parts.join("　　•　　");
+  foodSheet.summary(`<span class="fs-mq" style="animation-duration:${Math.max(12, txt.length * 0.32)}s">${txt}</span>`);
+}
 function renderSheetNews() {
+  try { sheetSum(); } catch (e) {}
   const box = document.getElementById("fm-news"); if (!box) return;
   const live = reports.filter(r => expAt(r) > Date.now()).sort((a, b) => new Date(b.ts) - new Date(a.ts)).slice(0, 4);
   const items = live.map(r => ({ ic: CATEGORIES[r.cat].icon, t: r.title, m: timeAgo(r.ts), go: () => { foodSheet.setLevel(1); focusReport(r); } }));
@@ -2454,12 +2475,10 @@ function openBoard(key) {
   document.querySelectorAll("#comm-tabs button").forEach(x => x.classList.remove("on"));
   if (commEl.hidden) openComm(); else { commBody.scrollTop = 0; renderComm(); }
 }
-function setOnlyCat(key) {
+function setOnlyCat(key, quiet) {
   activeCats = new Set([key]);
-  const keys = Object.keys(CATEGORIES);
-  [...filtersEl.querySelectorAll(".cat-chip")].forEach((b, i) => b.classList.toggle("on", keys[i] === key));
   render();
-  shareToast(CATEGORIES[key].icon + " " + CATEGORIES[key].label + "만 보여요 · 위쪽 '더 보기'에서 다시 켤 수 있어요");
+  if (!quiet) shareToast(CATEGORIES[key].icon + " " + CATEGORIES[key].label + "만 보여요 · 위쪽 '전체 보기 ✕'로 돌아와요");
 }
 function renderBoard() {
   const c = CATEGORIES[boardCat], byNew = (a, b) => new Date(b.ts) - new Date(a.ts);
@@ -2501,7 +2520,7 @@ function foodClock() {
   const left = foodLeft(), c = document.getElementById("food-clock");
   if (c) c.innerHTML = `🕛 오늘 0시~24시 집계 · <b>${left}</b> 후 마감`;
   if (typeof renderSheetNews === "function") renderSheetNews();
-  foodSheet.summary(foodTop ? `🍚 <b>🥇 ${esc(foodTop.shop_name)}</b> ${foodTop.cnt}표 · ⏰${left}` : `🍚 오늘의 맛집 · 첫 표를 남겨 보세요 · ⏰ ${left}`);
+  try { sheetSum(); } catch (e) {}
 }
 loadFood();
 setInterval(() => { if (document.hidden) return; if (kstDay() !== foodDay) loadFood(); else { foodClock(); loadFood(); } }, 60000);

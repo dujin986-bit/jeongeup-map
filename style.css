@@ -808,3 +808,16 @@ body:not(.tools-open):not(.live) #tools > #share-btn { display: none; }
 .bd-act { position: sticky; bottom: -12px; display: flex; gap: 8px; padding: 10px 0 12px; background: var(--bg); margin-top: 8px; }
 .bd-act .chip { flex: 1; min-height: 46px; font-size: 15px; font-weight: 800; justify-content: center; }
 #bd-add { background: var(--brand) !important; border-color: var(--brand) !important; color: #fff !important; }
+
+/* v133 종류 버튼 · 굴러가는 한 줄 · 필터 배너 */
+#pills { order: 4; width: 100%; display: flex; gap: 6px; overflow-x: auto; scrollbar-width: none; }
+#pills::-webkit-scrollbar { display: none; }
+#pills .pill { flex: none; width: auto; border: 1px solid #ccd3dc; background: #fff; color: #222; border-radius: 16px; padding: 5px 12px; font-size: 14px; font-weight: 700; }
+#pills .pill.on { background: #1f6feb; color: #fff; border-color: #1f6feb; }
+body.live #pills { display: none; }
+#fs-sum { text-overflow: clip; }
+.fs-mq { display: inline-block; padding-left: 100%; animation: tkmove 20s linear infinite; will-change: transform; }
+@media (prefers-reduced-motion: reduce) { .fs-mq { animation: none; padding-left: 0; } }
+#cat-banner { position: fixed; left: 50%; transform: translateX(-50%); bottom: calc(var(--sheet-vis, 52px) + 14px); z-index: 7; width: auto; flex: none; background: #1f6feb; color: #fff; border: 0; border-radius: 20px; padding: 10px 16px; font-size: 14px; font-weight: 700; box-shadow: 0 3px 12px rgba(0,0,0,.35); white-space: nowrap; }
+#cat-banner[hidden] { display: none; }
+body.rp-pick #cat-banner, body.rp-form #cat-banner, body.editing #cat-banner { display: none; }
