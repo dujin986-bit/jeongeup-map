@@ -1511,6 +1511,54 @@ addEventListener("pageshow", autoRefresh);
 const commEl = document.getElementById("comm"), commBody = document.getElementById("comm-body");
 let commTab = "chat";
 // ---------- 💡 지도 왼쪽 "의견(제안)" 버튼: 👍 좋아요 / 💬 하고 싶은 말 (같은 의견함으로 들어감) ----------
+// ===== 지도 왼쪽 채팅 미리보기 (반투명, 펼침/접힘, 크기 3단계) =====
+(function chatFloat() {
+  if (LIVE) return;
+  const SZ = [{ w: 130, h: 80, n: 2 }, { w: 160, h: 120, n: 4 }, { w: 220, h: 200, n: 7 }];
+  let size = 1, open = true, last = "";
+  try { const z = localStorage.getItem("cf_size"); if (z !== null && SZ[+z]) size = +z; open = localStorage.getItem("cf_open") !== "0"; } catch (e) {}
+  const root = document.createElement("div"); root.id = "cf";
+  root.innerHTML = '<div class="cf-bar"><button type="button" class="cf-tg"></button><button type="button" class="cf-sz" aria-label="크기 바꾸기">⤢</button></div><div class="cf-box"><div class="cf-list"></div></div>';
+  document.body.appendChild(root);
+  const tg = root.querySelector(".cf-tg"), szb = root.querySelector(".cf-sz"), box = root.querySelector(".cf-box"), list = root.querySelector(".cf-list");
+  function layout() {
+    const z = SZ[size];
+    box.style.width = z.w + "px"; box.style.height = z.h + "px";
+    root.classList.toggle("shut", !open);
+    tg.textContent = "💬 채팅 " + (open ? "▴" : "▾");
+    szb.hidden = !open;
+  }
+  tg.onclick = () => { open = !open; try { localStorage.setItem("cf_open", open ? "1" : "0"); } catch (e) {} layout(); };
+  szb.onclick = () => { size = (size + 1) % 3; try { localStorage.setItem("cf_size", String(size)); } catch (e) {} layout(); draw(rows); };
+  box.onclick = () => openComm();
+  let rows = [];
+  function draw(r) {
+    const n = SZ[size].n, show = r.slice(0, n);
+    const key = show.map(p => p.id).join(",") + "|" + size;
+    if (key === last) return;
+    const prev = new Set((last.split("|")[0] || "").split(","));
+    last = key;
+    list.innerHTML = show.length ? show.map(p => `<div class="cf-m${prev.size > 1 && !prev.has(String(p.id)) ? " new" : ""}"><b>${esc(p.nick.replace("정읍 ", ""))}</b> ${esc(p.body)}</div>`).join("") : `<div class="cf-m cf-empty">한마디 남겨 보세요 ▸</div>`;
+  }
+  async function load() {
+    try {
+      const r = await fetch(TALK_URL + "?select=id,nick,body&hidden=eq.false&kind=in.(chat,ask)&order=created_at.desc&limit=7", { headers: { apikey: SUPABASE_KEY, Authorization: "Bearer " + SUPABASE_KEY } });
+      if (r.ok) { rows = await r.json(); draw(rows); }
+    } catch (e) {}
+  }
+  function fit() {   // 아래 시트가 올라와 칸과 닿으면 숨김
+    const vis = parseFloat(getComputedStyle(document.documentElement).getPropertyValue("--sheet-vis")) || 0;
+    const r = root.getBoundingClientRect();
+    root.classList.toggle("clash", r.bottom > innerHeight - vis - 6);
+  }
+  layout(); draw([]); load();
+  setInterval(() => { if (!document.hidden) { load(); } }, 30000);
+  setInterval(fit, 500);
+  try {
+    const sb = window.supabase && window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+    if (sb) { let t = 0; sb.channel("talk-float").on("postgres_changes", { event: "*", schema: "public", table: "talk_posts" }, () => { clearTimeout(t); t = setTimeout(load, 500); }).subscribe(); }
+  } catch (e) {}
+})();
 (function opinionBtn() {
   if (LIVE) return;
   const b = document.createElement("button"); b.id = "op-btn"; b.type = "button"; b.setAttribute("aria-label", "의견 보내기");
@@ -1943,7 +1991,7 @@ const SFX_GAIN = { open: 0.7, close: 0.7, on: 0.8, off: 0.8, done: 0.9, win: 1, 
 const sfxBuf = {}; let sfxLoading = false;
 function sfxLoad() {
   if (sfxLoading || !AC) return; sfxLoading = true;
-  for (const k in SFX_FILES) fetch("sounds/" + SFX_FILES[k] + ".mp3?v=164").then(r => r.arrayBuffer()).then(b => new Promise((ok, no) => AC.decodeAudioData(b, ok, no))).then(buf => { sfxBuf[k] = buf; }).catch(() => {});
+  for (const k in SFX_FILES) fetch("sounds/" + SFX_FILES[k] + ".mp3?v=165").then(r => r.arrayBuffer()).then(b => new Promise((ok, no) => AC.decodeAudioData(b, ok, no))).then(buf => { sfxBuf[k] = buf; }).catch(() => {});
 }
 function sfx(kind) {
   if (!sndOn || !AC) return;
