@@ -2053,7 +2053,7 @@ const SFX_GAIN = { open: 0.7, close: 0.7, on: 0.8, off: 0.8, done: 0.9, win: 1, 
 const sfxBuf = {}; let sfxLoading = false;
 function sfxLoad() {
   if (sfxLoading || !AC) return; sfxLoading = true;
-  for (const k in SFX_FILES) fetch("sounds/" + SFX_FILES[k] + ".mp3?v=194").then(r => r.arrayBuffer()).then(b => new Promise((ok, no) => AC.decodeAudioData(b, ok, no))).then(buf => { sfxBuf[k] = buf; }).catch(() => {});
+  for (const k in SFX_FILES) fetch("sounds/" + SFX_FILES[k] + ".mp3?v=195").then(r => r.arrayBuffer()).then(b => new Promise((ok, no) => AC.decodeAudioData(b, ok, no))).then(buf => { sfxBuf[k] = buf; }).catch(() => {});
 }
 function sfx(kind) {
   if (!sndOn || !AC) return;
@@ -2174,13 +2174,20 @@ function setEditMode(on) {
   edEl("ed-bar").hidden = !editMode; if (!editMode) { edClose(); editShowHidden = false; edEl("ed-hid").classList.remove("on"); }
   if (map.getSource("shops")) edRefresh();
 }
+function logVisit() {   // 하루에 폰 1대 = 1명 (익명 번호표만 저장)
+  try {
+    const day = new Date().toDateString(); if (localStorage.getItem("vday") === day) return;
+    let vid = localStorage.getItem("vid"); if (!vid) { vid = (crypto.randomUUID ? crypto.randomUUID() : String(Math.random()).slice(2) + Date.now()); localStorage.setItem("vid", vid); }
+    fetch(SUPABASE_URL + "/rest/v1/rpc/log_visit", { method: "POST", headers: rxHdr, body: JSON.stringify({ p_vid: vid }) }).then(r => { if (r.ok) localStorage.setItem("vday", day); }).catch(() => {});
+  } catch (e) {}
+}
 (async function adminInit() {
   try {
     if (!window.supabase || LIVE || IS_LOCAL) return;
     sbAdmin = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
     const { data } = await sbAdmin.auth.getSession();
     const u = data && data.session && data.session.user;
-    if (!u || u.email !== ADMIN_EMAIL) return;             // 관리자가 아니면 편집 버튼 자체가 안 보임 (서버에서도 막힘)
+    if (!u || u.email !== ADMIN_EMAIL) { logVisit(); return; }             // 관리자가 아니면 편집 버튼 자체가 안 보임 (서버에서도 막힘). 방문 기록은 관리자 본인은 제외
     edEl("edit-btn").hidden = false;
     { const nb = document.getElementById("night-btn"); if (nb) nb.hidden = false; }
     { const bb = document.getElementById("bell-btn"); if (bb && bb.parentElement) bb.parentElement.hidden = true; }   // 관리자 폰은 admin.html에서 알림 관리

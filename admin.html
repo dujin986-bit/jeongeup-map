@@ -66,6 +66,7 @@
 <div id="app" hidden>
   <header>
     <div class="top"><h1>제보 관리</h1><button class="link" onclick="cleanupPhotos(true)">🧹 사진정리</button><button class="link" id="logout">로그아웃</button></div>
+    <div id="visits" style="font-size:13px;color:#555;padding:4px 2px">👥 방문자: 불러오는 중…</div>
     <div class="tabs" id="tabs"></div>
   </header>
   <main id="list"></main>
@@ -81,7 +82,7 @@
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.js"></script>
-<script src="data.js?v=194"></script>
+<script src="data.js?v=195"></script>
 <script>
 const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 const TABS = [["info", "가게정보"], ["office", "시청공지"], ["pending", "대기"], ["approved", "승인됨"], ["hidden", "숨김"], ["notice", "공지"], ["wx", "날씨"], ["fix", "수정요청"], ["fb", "고쳐줘"], ["talk", "얘기방"], ["log", "편집기록"], ["map", "지도 수정 ↗"]];
@@ -188,6 +189,18 @@ async function drawWx() {
 
 let fbNew = 0;
 let infoNew = 0;
+async function loadVisits() {
+  const el = $("visits"); if (!el) return;
+  try {
+    const { data, error } = await sb.rpc("visit_stats");
+    if (error) { el.textContent = "👥 방문자: 아직 준비 안 됨 (SQL 실행 필요)"; return; }
+    const m = {}; (data || []).forEach(r => m[String(r.day).slice(0, 10)] = Number(r.n));
+    const kst = d => new Date(d.getTime() + 9 * 3600e3).toISOString().slice(0, 10);
+    const t = kst(new Date()), y = kst(new Date(Date.now() - 864e5));
+    const sum = Object.values(m).reduce((a, b) => a + b, 0);
+    el.innerHTML = `👥 방문자 · <b>오늘 ${m[t] || 0}명</b> · 어제 ${m[y] || 0}명 · 최근 7일 ${sum}명`;
+  } catch (e) { el.textContent = "👥 방문자: 불러오지 못했어요"; }
+}
 async function loadInfoCount() { try { const { count } = await sb.from("shop_info_req").select("id", { count: "exact", head: true }).eq("status", "pending"); infoNew = count || 0; const t = document.querySelector('.tab[data-k="info"]'); if (t) t.textContent = "가게정보" + (infoNew ? " 🔴" + infoNew : ""); } catch (e) {} }
 async function loadFbCount() { try { const { count } = await sb.from("feedback").select("id", { count: "exact", head: true }).eq("status", "new"); fbNew = count || 0; const t = document.querySelector('.tab[data-k="fb"]'); if (t) t.textContent = "고쳐줘" + (fbNew ? " 🔴" + fbNew : ""); } catch (e) {} }
 async function drawFb() {
@@ -305,7 +318,7 @@ async function drawFix() {
 }
 
 function start() {
-  setTimeout(loadFbCount, 800); setTimeout(loadInfoCount, 900); setInterval(loadInfoCount, 30000);
+  setTimeout(loadFbCount, 800); setTimeout(loadInfoCount, 900); setTimeout(loadVisits, 1000); setInterval(loadVisits, 60000); setInterval(loadInfoCount, 30000);
   cleanupPhotos(false);
   $("login").hidden = true; $("app").hidden = false;
   $("tabs").innerHTML = "";
