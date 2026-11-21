@@ -1,4 +1,4 @@
-const CACHE="jeongeup-v126";
+const CACHE="jeongeup-v127";
 const SHELL=["./","index.html","admin.html","style.css","data.js","app.js","manifest.json","admin-manifest.json"];
 self.addEventListener("install",e=>{e.waitUntil(caches.open(CACHE).then(c=>c.addAll(SHELL)).catch(()=>{}));self.skipWaiting();});
 self.addEventListener("activate",e=>{e.waitUntil(caches.keys().then(k=>Promise.all(k.filter(x=>x!==CACHE).map(x=>caches.delete(x)))).then(()=>self.clients.claim()));});
@@ -9,7 +9,7 @@ self.addEventListener("fetch",e=>{
 });
 self.addEventListener("push",e=>{
   let d={};try{d=e.data.json();}catch(_){d={title:"정읍 지금",body:e.data?e.data.text():""};}
-  e.waitUntil(self.registration.showNotification(d.title||"정읍 지금",{body:d.body||"",icon:"icons/user-192.png",badge:"icons/user-192.png",tag:d.tag||undefined,data:{url:d.url||"./"}}));
+  e.waitUntil(self.registration.showNotification(d.title||"정읍 지금",{body:d.body||"",icon:"icons/user-192.png",badge:"icons/user-192.png",tag:d.tag||undefined,renotify:!!d.tag,vibrate:[200,100,200],data:{url:d.url||"./"}}));
 });
 self.addEventListener("notificationclick",e=>{
   e.notification.close();
