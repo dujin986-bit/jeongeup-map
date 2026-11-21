@@ -933,3 +933,14 @@ body.live #op-btn, body.tools-open #op-btn, body.rp-pick #op-btn, body.rp-form #
 #op.say .op-box { max-height: 100%; overflow-y: auto; }
 #op-body { min-height: 76px; }
 #op .op-row { margin: 8px 0; }
+
+/* v160 community cleanup */
+#comm-body{overflow-x:hidden}
+#comm-body *{max-width:100%;box-sizing:border-box}
+#comm-tabs{user-select:none;-webkit-user-select:none}
+#comm-head,#comm-hd,#comm header{user-select:none;-webkit-user-select:none}
+.talk-form{width:100%}
+.talk-row{display:flex;gap:6px;width:100%}
+.talk-row input{flex:1;min-width:0;font-size:16px;padding:10px;border:1px solid var(--line);border-radius:10px;background:var(--card);color:var(--ink);font-family:inherit}
+.talk-row .fb-send{flex:none;width:auto;margin-top:0;min-height:44px;padding:0 16px}
+.talk-nick{margin:0 0 6px;font-size:14px}

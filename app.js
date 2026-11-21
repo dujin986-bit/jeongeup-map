@@ -1509,7 +1509,7 @@ addEventListener("pageshow", autoRefresh);
 
 // ===== 커뮤니티 화면 (제보 피드 + 오늘의 주제) =====
 const commEl = document.getElementById("comm"), commBody = document.getElementById("comm-body");
-let commTab = "news";
+let commTab = "ask";
 // ---------- 💡 지도 왼쪽 "의견(제안)" 버튼: 👍 좋아요 / 💬 하고 싶은 말 (같은 의견함으로 들어감) ----------
 (function opinionBtn() {
   if (LIVE) return;
@@ -1703,30 +1703,10 @@ function renderComm() {
     commBody.innerHTML = `<div class="soon"><div class="soon-ic">${s[0]}</div><div class="soon-t">${s[1]}</div><div class="soon-d">${s[2]}</div><div class="soon-b">🛠 곧 열려요 · 업데이트 예정</div></div>`;
     return;
   }
-  let html = `<div class="vd-card"><div class="vd-card-hd"><b>🔥 오늘의 찐맛집 판정</b><span>자정 초기화</span></div><div id="vd-sum" class="vd-sum"><div class="vd-empty">불러오는 중…</div></div><button class="vd-go" id="vd-go">🍚 오늘 맛있게 먹은 곳 알려주기</button><div class="vd-foot">재미로 보는 정읍 주민의 주관적 판정이에요 (자정 초기화)</div></div>`;
-  html += `<button class="comm-topic food-go" id="food-go">🍚 오늘의 맛집 순위 보러가기 <span>지도 아래에서 확인 ▴</span></button>`;
+  let html = `<div class="comm-note">📢 긴급 공지·동네 소식은 지도 위 공지줄에 떠요.</div>`;
   if (pushReady()) html += `<div class="comm-note" id="push-card"></div>`;
-  html += `<div class="comm-head">실시간 제보 ${reports.length}건</div>`;
-  if (!reports.length) html += `<div class="feed-empty">아직 제보가 없어요. 첫 제보를 남겨 보세요!</div>`;
   commBody.innerHTML = html;
-  const vg = document.getElementById("vd-go"); if (vg) vg.onclick = () => { closeComm(); setTimeout(enterJudge, 260); };
-  vdSummary(true);
-  const fg = document.getElementById("food-go"); if (fg) fg.onclick = () => { closeComm(); setTimeout(() => foodSheet.set(true), 260); };
   setupPushCard();
-  for (const r of reports) {
-    const c = CATEGORIES[r.cat];
-    if (expAt(r) <= Date.now()) continue;
-    const card = document.createElement("div"); card.className = "comm-card";
-    card.innerHTML = `<div class="comm-meta"><span class="cat-badge" style="background:${c.color};color:${c.fg || '#fff'}">${c.icon} ${c.label}</span><span>${timeAgo(r.ts)}</span><span class="exp-badge" data-exp="${expAt(r)}"></span></div>` +
-      `<div class="comm-title">${esc(r.title)}</div>` + (r.desc ? `<div class="comm-desc">${esc(r.desc)}</div>` : "") + (r.photo ? `<a href="${esc(r.photo)}" target="_blank" rel="noopener"><img class="comm-photo" src="${esc(r.photo)}" loading="lazy"></a>` : "") +
-      `<div class="shop-act">${rxHtml("report", r.id)}<button class="chip comm-go">📍 지도에서 보기</button><button class="chip comm-share">🔗 공유</button></div>`;
-    card.querySelector(".comm-share").onclick = () => shareReport(r);
-    card.querySelector(".comm-go").onclick = () => {
-      closeComm();
-      focusReport(r);
-    };
-    commBody.appendChild(card);
-  }
   hydrateRx(commBody);
   tickExp();
 }
@@ -1766,7 +1746,7 @@ function stopExp() { if (expTimer) { clearInterval(expTimer); expTimer = 0; } }
 document.addEventListener("visibilitychange", () => { if (document.hidden) stopExp(); else if (commEl && !commEl.hidden) startExp(); });
 let commPushed = false, ignorePop = false, jgReady = false;   // 커뮤니티 전용 뒤로가기 기록
 function openComm() { if (jgReady && !commPushed) { try { history.pushState({ jg: 2 }, ""); commPushed = true; } catch (e) {} } renderComm(); commEl.hidden = false; startExp(); requestAnimationFrame(() => commEl.classList.add("open")); document.body.style.overflow = "hidden"; fetchReports(); }
-function closeComm(fromPop) { if (commTab === "board") { commTab = "news"; document.querySelectorAll("#comm-tabs button").forEach(x => x.classList.toggle("on", x.dataset.t === "news")); } if (commPushed && fromPop !== true) { commPushed = false; ignorePop = true; try { history.back(); } catch (e) { ignorePop = false; } } talkStop(); stopExp(); commEl.classList.remove("open"); setTimeout(() => { commEl.hidden = true; }, 220); document.body.style.overflow = ""; }
+function closeComm(fromPop) { if (commTab === "board") { commTab = "ask"; document.querySelectorAll("#comm-tabs button").forEach(x => x.classList.toggle("on", x.dataset.t === "ask")); } if (commPushed && fromPop !== true) { commPushed = false; ignorePop = true; try { history.back(); } catch (e) { ignorePop = false; } } talkStop(); stopExp(); commEl.classList.remove("open"); setTimeout(() => { commEl.hidden = true; }, 220); document.body.style.overflow = ""; }
 if (commEl) {
   document.getElementById("comm-btn").onclick = openComm;
   document.getElementById("comm-back").onclick = closeComm;
@@ -1963,7 +1943,7 @@ const SFX_GAIN = { open: 0.7, close: 0.7, on: 0.8, off: 0.8, done: 0.9, win: 1, 
 const sfxBuf = {}; let sfxLoading = false;
 function sfxLoad() {
   if (sfxLoading || !AC) return; sfxLoading = true;
-  for (const k in SFX_FILES) fetch("sounds/" + SFX_FILES[k] + ".mp3?v=159").then(r => r.arrayBuffer()).then(b => new Promise((ok, no) => AC.decodeAudioData(b, ok, no))).then(buf => { sfxBuf[k] = buf; }).catch(() => {});
+  for (const k in SFX_FILES) fetch("sounds/" + SFX_FILES[k] + ".mp3?v=160").then(r => r.arrayBuffer()).then(b => new Promise((ok, no) => AC.decodeAudioData(b, ok, no))).then(buf => { sfxBuf[k] = buf; }).catch(() => {});
 }
 function sfx(kind) {
   if (!sndOn || !AC) return;
