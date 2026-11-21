@@ -1847,7 +1847,11 @@ function thunderLoop() {                       // 천둥번개 날씨에서만, 
 thunderLoop();
 (function sndBtn() {
   const b = document.getElementById("snd-btn"); if (!b || LIVE) return;
-  const label = () => { b.textContent = sndOn ? "🔊" : "🔇"; b.classList.toggle("on", sndOn); };
+  const label = () => {
+    b.textContent = sndOn ? "🔊" : "🔇"; b.classList.toggle("on", sndOn);
+    const c = document.getElementById("snd-ctl"); if (c) { c.classList.toggle("on", sndOn); c.querySelector("span").textContent = sndOn ? "🔊" : "🔇"; c.querySelector("small").textContent = sndOn ? "소리 켬" : "소리 꺼짐"; }
+  };
+  if (typeof map !== "undefined") map.addControl({ onAdd() { const c = document.createElement("div"); c.className = "maplibregl-ctrl maplibregl-ctrl-group"; c.innerHTML = '<button type="button" id="snd-ctl" title="소리" aria-label="소리 켜고 끄기"><span>🔇</span><small>소리 꺼짐</small></button>'; c.firstChild.onclick = () => { b.click(); shareToast(sndOn ? "🔊 소리를 켰어요 · 배경음악과 효과음이 나와요" : "🔇 소리를 껐어요"); }; return c; }, onRemove() {} }, "top-right");
   b.onclick = () => {
     sndOn = !sndOn; try { localStorage.setItem("snd", sndOn ? "1" : "0"); } catch (e) {}
     if (sndOn) { startAmbience(); sfx("on"); bgmSync(); } else { if (amb) amb.master.gain.setTargetAtTime(0, AC.currentTime, 0.3); bgmStop(); }
@@ -1887,7 +1891,7 @@ const SFX_GAIN = { open: 0.7, close: 0.7, on: 0.8, off: 0.8, done: 0.9, win: 1, 
 const sfxBuf = {}; let sfxLoading = false;
 function sfxLoad() {
   if (sfxLoading || !AC) return; sfxLoading = true;
-  for (const k in SFX_FILES) fetch("sounds/" + SFX_FILES[k] + ".mp3?v=154").then(r => r.arrayBuffer()).then(b => new Promise((ok, no) => AC.decodeAudioData(b, ok, no))).then(buf => { sfxBuf[k] = buf; }).catch(() => {});
+  for (const k in SFX_FILES) fetch("sounds/" + SFX_FILES[k] + ".mp3?v=155").then(r => r.arrayBuffer()).then(b => new Promise((ok, no) => AC.decodeAudioData(b, ok, no))).then(buf => { sfxBuf[k] = buf; }).catch(() => {});
 }
 function sfx(kind) {
   if (!sndOn || !AC) return;

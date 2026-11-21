@@ -901,3 +901,9 @@ body.tools-open #tools > .chip { flex: none; width: auto; }
 /* v154 친구 초대 (노란 말풍선) */
 #share-btn .inv-ic { width: 18px; height: 18px; vertical-align: -4px; margin-right: 2px; }
 body.tools-open #top #share-btn { background: #FEE500; border-color: #FEE500; color: #3A1D1D; font-weight: 800; }
+/* v155 소리 버튼을 지도 오른쪽으로 (설정 안 소리 버튼은 숨김) */
+#snd-btn { display: none !important; }
+#snd-ctl { width: 44px !important; height: auto !important; padding: 4px 0 3px; display: flex; flex-direction: column; align-items: center; line-height: 1.1; }
+#snd-ctl span { font-size: 22px; } #snd-ctl small { font-size: 10px; font-weight: 800; color: #1E1B18; }
+#snd-ctl.on { background: #fff4d6; }
+body.live #snd-ctl { display: none !important; }
