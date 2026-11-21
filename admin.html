@@ -81,10 +81,10 @@
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.js"></script>
-<script src="data.js?v=173"></script>
+<script src="data.js?v=174"></script>
 <script>
 const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
-const TABS = [["pending", "대기"], ["approved", "승인됨"], ["hidden", "숨김"], ["notice", "공지"], ["wx", "날씨"], ["fix", "수정요청"], ["fb", "고쳐줘"], ["talk", "얘기방"], ["log", "편집기록"], ["map", "지도 수정 ↗"]];
+const TABS = [["pending", "대기"], ["approved", "승인됨"], ["hidden", "숨김"], ["notice", "공지"], ["wx", "날씨"], ["fix", "수정요청"], ["info", "가게정보"], ["fb", "고쳐줘"], ["talk", "얘기방"], ["log", "편집기록"], ["map", "지도 수정 ↗"]];
 let tab = "pending", rows = [];
 const $ = id => document.getElementById(id);
 const esc = s => String(s == null ? "" : s).replace(/[&<>"']/g, c => ({ "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;" }[c]));
@@ -229,6 +229,31 @@ async function drawTalk() {                       // 얘기방·지금 정읍 �
     box.appendChild(el);
   }
 }
+async function drawInfo() {
+  const box = $("extra"); delete box.dataset.n;
+  const { data, error } = await sb.from("shop_info_req").select("*").eq("status", "pending").order("created_at", { ascending: false }).limit(100);
+  if (error) { box.innerHTML = '<div class="empty">불러오기 실패: ' + esc(error.message) + '</div>'; return; }
+  if (!data.length) { box.innerHTML = '<div class="empty">들어온 가게 정보가 없어요</div>'; return; }
+  box.innerHTML = "";
+  const safe = u => /^https:\/\//i.test(u || "") ? u : "";
+  for (const r of data) {
+    const el = document.createElement("div"); el.className = "card";
+    const row = (ic, v, link) => v ? `<div style="margin:3px 0">${ic} ${link && safe(v) ? `<a href="${esc(v)}" target="_blank" rel="noopener">${esc(v)}</a>` : esc(v)}</div>` : "";
+    el.innerHTML = `<div style="font-size:12px;color:#666">${new Date(r.created_at).toLocaleString("ko-KR")}</div><div style="margin:4px 0"><b>${esc(r.shop_name || r.shop_id)}</b></div>` +
+      row("📷", r.insta, 1) + row("📝", r.blog, 1) + row("📞", r.phone) + row("🕐", r.hours) +
+      `<div style="display:flex;gap:8px;margin-top:8px"><button class="act ok" data-a="ok" style="flex:2;padding:12px;border-radius:10px;color:#fff;font-weight:700">✅ 가게에 올리기</button><button class="act" data-a="no" style="flex:1;padding:12px;border-radius:10px">거절</button></div>`;
+    el.querySelectorAll("button").forEach(b => b.onclick = async () => {
+      if (b.dataset.a === "ok") {
+        const patch = { id: r.shop_id, info_at: new Date().toISOString() };
+        if (r.insta) patch.insta = r.insta; if (r.blog) patch.blog = r.blog; if (r.phone) patch.phone = r.phone; if (r.hours) patch.hours = r.hours;
+        const { error: e1 } = await sb.from("shop_edits").upsert(patch);
+        if (e1) { alert("올리기 실패: " + e1.message); return; }
+      }
+      await sb.from("shop_info_req").update({ status: b.dataset.a === "ok" ? "done" : "rejected" }).eq("id", r.id); drawInfo();
+    });
+    box.appendChild(el);
+  }
+}
 async function drawFix() {
   const box = $("extra"); delete box.dataset.n;
   const { data, error } = await sb.from("shop_corrections").select("*").eq("status", "pending").order("created_at", { ascending: false }).limit(100);
@@ -282,12 +307,13 @@ async function load() {
 function draw() {
   const counts = {}; rows.forEach(r => counts[r.status] = (counts[r.status] || 0) + 1);
   document.querySelectorAll(".tab[data-k]").forEach(t => { const k = t.dataset.k; t.textContent = TABS.find(x => x[0] === k)[1] + (["pending","approved","hidden"].includes(k) ? " " + (counts[k] || 0) : k === "fb" && fbNew ? " 🔴" + fbNew : ""); });
-  const ext = ["notice", "log", "wx", "fix", "fb", "talk"].includes(tab);
+  const ext = ["notice", "log", "wx", "fix", "info", "fb", "talk"].includes(tab);
   $("list").hidden = ext; $("mapedit").hidden = true; $("extra").hidden = !ext;
   if (tab === "notice") { drawNotice(); return; }
   if (tab === "log") { drawLog(); return; }
   if (tab === "wx") { drawWx(); return; }
   if (tab === "fix") { drawFix(); return; }
+  if (tab === "info") { drawInfo(); return; }
   if (tab === "fb") { drawFb(); return; }
   if (tab === "talk") { drawTalk(); return; }
   const list = rows.filter(r => r.status === tab);

@@ -1003,3 +1003,11 @@ body.live #cf, body.tools-open #cf, body.rp-pick #cf, body.rp-form #cf, body.edi
 .mq-c b { color: #A8691A; font-weight: 800; }
 .mq-food { --c: #E09F3E; background: #FFF3D6; }
 .mq-food i { background: #E09F3E; color: #fff; }
+/* v174 가게 정보(인스타·영업시간) */
+.info-btn { display: block; width: 100%; margin-top: 10px; padding: 12px 10px; border: 2px solid #1f6feb; background: #E8F0FE; color: #1648a8; border-radius: 12px; font-size: 16px; font-weight: 800; }
+.info-btn small { display: block; font-size: 12px; font-weight: 600; opacity: .85; margin-top: 2px; }
+.si { margin: 8px 0 4px; }
+.si-h { font-size: 15px; font-weight: 700; margin-bottom: 6px; }
+.si-h small { font-weight: 500; opacity: .7; }
+.si-b { display: flex; gap: 6px; flex-wrap: wrap; }
+.si-b a { background: var(--brand-soft, #FBEAE6); color: #A8301F; border-radius: 16px; padding: 6px 12px; font-size: 14px; font-weight: 700; text-decoration: none; }

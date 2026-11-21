@@ -402,15 +402,16 @@ const kstToday = () => new Date(Date.now() + 9 * 3600e3).toISOString().slice(0, 
 const brandOf = r => r.brand_color ? { color: r.brand_color, name: r.brand_name || "", link: r.brand_link || "", from: r.brand_from || "", until: r.brand_until || "" } : null;
 const brandActive = b => { const t = kstToday(); return !!(b && b.color && (!b.from || b.from <= t) && (!b.until || b.until >= t)); };   // 노출 기간 안일 때만 간판 표시
 const safeLink = u => /^https?:\/\//i.test(u || "") ? u : "";
+const infoOf = r => ({ insta: r.insta || "", blog: r.blog || "", phone: r.phone || "", hours: r.hours || "", infoAt: r.info_at || "" });
 function mergeRemote() {                // 파일 수정 위에 관리자 화면(Supabase)의 수정을 덮어씀
   const E = { edits: { ...(EDITS_FILE.edits || {}) }, added: [...(EDITS_FILE.added || [])] };
   for (const r of REMOTE_ROWS) {
     if (r.is_new) {
       E.added = E.added.filter(s => s.id !== r.id);
       E.added.push({ id: r.id, name: r.name, category: r.category || "기타", address: "", coord: [r.lon, r.lat] });
-      E.edits[r.id] = { ...(E.edits[r.id] || {}), hidden: !!r.hidden, brand: brandOf(r) };
+      E.edits[r.id] = { ...(E.edits[r.id] || {}), hidden: !!r.hidden, brand: brandOf(r), ...infoOf(r) };
     } else {
-      const e = { ...(E.edits[r.id] || {}), hidden: !!r.hidden, brand: brandOf(r) };
+      const e = { ...(E.edits[r.id] || {}), hidden: !!r.hidden, brand: brandOf(r), ...infoOf(r) };
       if (r.name) e.name = r.name;
       if (r.category) e.category = r.category;
       if (r.lon != null && r.lat != null) e.coord = [r.lon, r.lat];
@@ -468,7 +469,7 @@ function shopFeatures() {
     out.push({ type: "Feature", geometry: { type: "Point", coordinates: co },
       properties: { id: s.id, name: (e.name || s.name) + (e.hidden ? " (숨김)" : ""), category: cat, address: s.address, lon: co[0], lat: co[1],
                     color: e.hidden ? "#bbbbbb" : shopColor(cat, e.name || s.name),
-                    brand: bOn ? 1 : 0, bcolor: bOn ? b.color : "", bink: bOn ? brandInk(b.color) : "#fff", bname: bOn ? (b.name || e.name || s.name) : "", blink: bOn ? safeLink(b.link) : "" } });
+                    brand: bOn ? 1 : 0, bcolor: bOn ? b.color : "", bink: bOn ? brandInk(b.color) : "#fff", bname: bOn ? (b.name || e.name || s.name) : "", blink: bOn ? safeLink(b.link) : "", insta: safeLink(e.insta), blog: safeLink(e.blog), phone: String(e.phone || "").replace(/[^0-9-]/g, ""), hours: e.hours || "", infoAt: e.infoAt || "" } });
   }
   return out;
 }
@@ -537,7 +538,7 @@ async function loadShops() {
       if (!list.length) return;
       const rows = list.map((p, i) =>
         `<div class="shop-row" data-i="${i}"><strong>${p.brand == 1 ? "⭐ " + esc(p.bname) : esc(p.name)}</strong>${p.brand == 1 && p.bname !== p.name ? `<br><small>(${esc(p.name)})</small>` : ""}<br>${esc(p.category)}<br>` +
-        `<small>${esc(p.address)}</small>` + navLinks(p.name, p.lon, p.lat) + (p.blink ? `<a class="brand-link" href="${esc(p.blink)}" target="_blank" rel="noopener noreferrer">🔗 가게 소식 보기</a>` : "") + (VD_CAT.test(p.category || "") ? vdBlock(p.id) : "") + `<div class="shop-act">${rxHtml("shop", p.id)}<button class="fix-btn" data-id="${esc(p.id)}" data-name="${esc(p.name)}">✏ 정보가 틀렸어요</button></div>` + (IS_LOCAL ? `<div class="edit-row">` +
+        `<small>${esc(p.address)}</small>` + infoHtml(p) + navLinks(p.name, p.lon, p.lat) + (p.blink ? `<a class="brand-link" href="${esc(p.blink)}" target="_blank" rel="noopener noreferrer">🔗 가게 소식 보기</a>` : "") + (VD_CAT.test(p.category || "") ? vdBlock(p.id) : "") + `<div class="shop-act">${rxHtml("shop", p.id)}</div>` + `<button class="info-btn" data-id="${esc(p.id)}" data-name="${esc(p.name)}">✏ 가게 정보 고치기 <small>인스타·영업시간 알려주기</small></button>` + (IS_LOCAL ? `<div class="edit-row">` +
         `<button data-a="rename">이름 수정</button><button data-a="hide">없는 가게</button></div>` : "") + `</div>`).join("");
       const head = list.length > 1 ? `<div class="shop-head">이 위치에 가게 ${list.length}곳</div>` : "";
       const pop = new maplibregl.Popup({ offset: 10, maxWidth: "300px" }).setLngLat(e.lngLat)
@@ -1554,7 +1555,7 @@ let commTab = "chat";
     const ob = document.getElementById("op-btn");
     if (ob && ob.getClientRects().length) { const t = Math.round(ob.getBoundingClientRect().bottom + 8); if (root.dataset.t !== String(t)) { root.dataset.t = String(t); root.style.top = t + "px"; } }
     const h = root.offsetHeight;   // 숨겨도 높이는 그대로라 깜박이지 않음
-    const clash = root.offsetTop + h > innerHeight - vis - 6;
+    const pn = document.getElementById("panel"), clash = (pn && !pn.hidden) || root.offsetTop + h > innerHeight - vis - 6;
     if (clash !== root.classList.contains("clash")) root.classList.toggle("clash", clash);
   }
   layout(); draw([]); load();
@@ -2006,7 +2007,7 @@ const SFX_GAIN = { open: 0.7, close: 0.7, on: 0.8, off: 0.8, done: 0.9, win: 1, 
 const sfxBuf = {}; let sfxLoading = false;
 function sfxLoad() {
   if (sfxLoading || !AC) return; sfxLoading = true;
-  for (const k in SFX_FILES) fetch("sounds/" + SFX_FILES[k] + ".mp3?v=173").then(r => r.arrayBuffer()).then(b => new Promise((ok, no) => AC.decodeAudioData(b, ok, no))).then(buf => { sfxBuf[k] = buf; }).catch(() => {});
+  for (const k in SFX_FILES) fetch("sounds/" + SFX_FILES[k] + ".mp3?v=174").then(r => r.arrayBuffer()).then(b => new Promise((ok, no) => AC.decodeAudioData(b, ok, no))).then(buf => { sfxBuf[k] = buf; }).catch(() => {});
 }
 function sfx(kind) {
   if (!sndOn || !AC) return;
@@ -2479,7 +2480,48 @@ document.addEventListener("click", async e => {
   }
   const f = e.target.closest(".fix-btn");
   if (f) openFix(f.dataset.id, f.dataset.name);
+  const ib = e.target.closest(".info-btn");
+  if (ib) openInfo(ib.dataset.id, ib.dataset.name);
 });
+function infoHtml(p) {
+  const L = [];
+  if (p.hours) L.push(`<div class="si-h">🕐 ${esc(p.hours)}${p.infoAt ? ` <small>· ${timeAgo(p.infoAt)} 확인</small>` : ""}</div>`);
+  const B = [];
+  if (p.insta) B.push(`<a href="${esc(p.insta)}" target="_blank" rel="noopener noreferrer">📷 인스타</a>`);
+  if (p.blog) B.push(`<a href="${esc(p.blog)}" target="_blank" rel="noopener noreferrer">📝 블로그</a>`);
+  if (p.phone) B.push(`<a href="tel:${esc(p.phone)}">📞 전화</a>`);
+  if (B.length) L.push(`<div class="si-b">${B.join("")}</div>`);
+  return L.length ? `<div class="si">${L.join("")}</div>` : "";
+}
+const INFO_OK = /^https:\/\/([a-z0-9-]+\.)*(instagram\.com|blog\.naver\.com|naver\.me|tistory\.com|brunch\.co\.kr|cafe\.naver\.com|facebook\.com|pf\.kakao\.com)(\/|$)/i;
+function normInsta(v) { v = (v || "").trim(); if (!v) return ""; if (/^@?[A-Za-z0-9._]{2,30}$/.test(v)) return "https://www.instagram.com/" + v.replace(/^@/, ""); return v; }
+function openInfo(id, name) {
+  const m = document.getElementById("notice-modal");
+  const inp = "width:100%;padding:10px;font-size:16px;border:1px solid #ccc;border-radius:8px;margin-bottom:8px;background:#fff;color:#222;box-sizing:border-box";
+  m.innerHTML = `<div class="nm"><b>✏ ${esc(name)}</b><div style="margin:6px 0 10px;color:#555;font-size:14px;line-height:1.5">아는 것만 적어 주세요. 확인 후 가게에 올라가요.</div>
+    <input id="if-insta" maxlength="120" placeholder="📷 인스타 (@아이디 또는 주소)" style="${inp}">
+    <input id="if-blog" maxlength="160" placeholder="📝 블로그 주소 (https://...)" style="${inp}" inputmode="url">
+    <input id="if-phone" maxlength="20" placeholder="📞 전화번호 (예: 063-123-4567)" style="${inp}" inputmode="tel">
+    <input id="if-hours" maxlength="80" placeholder="🕐 영업시간 (예: 매일 10:00~21:00 · 일 휴무)" style="${inp}">
+    <div id="if-err" style="color:#c0392b;font-size:13px;min-height:18px"></div>
+    <div style="display:flex;gap:8px"><button id="nm-x" style="flex:1">닫기</button><button id="if-send" style="flex:2;background:#C83E2B">보내기</button></div>
+    <div style="margin-top:10px;text-align:center"><a href="#" id="if-other" style="font-size:13px;color:#666">이름·위치가 틀렸어요 / 없어진 가게예요</a></div></div>`;
+  m.hidden = false; document.getElementById("nm-x").onclick = () => m.hidden = true;
+  document.getElementById("if-other").onclick = e => { e.preventDefault(); openFix(id, name); };
+  const err = t => document.getElementById("if-err").textContent = t;
+  document.getElementById("if-send").onclick = async () => {
+    const insta = normInsta(document.getElementById("if-insta").value), blog = document.getElementById("if-blog").value.trim(), phone = document.getElementById("if-phone").value.trim(), hours = document.getElementById("if-hours").value.trim();
+    if (!insta && !blog && !phone && !hours) return err("한 칸 이상 적어 주세요.");
+    if (insta && !INFO_OK.test(insta)) return err("인스타는 @아이디나 instagram.com 주소만 돼요.");
+    if (blog && !INFO_OK.test(blog)) return err("블로그는 네이버·티스토리·브런치 주소(https://)만 돼요.");
+    if (phone && !/^[0-9-]{7,20}$/.test(phone)) return err("전화번호는 숫자와 - 만 적어 주세요.");
+    let n = 0; try { const d = new Date().toDateString(), o = JSON.parse(localStorage.getItem("info_n") || "{}"); n = o.d === d ? o.n : 0; if (n >= 5) return err("오늘은 5번까지 보낼 수 있어요. 내일 또 부탁드려요 🙏"); localStorage.setItem("info_n", JSON.stringify({ d, n: n + 1 })); } catch (e) {}
+    const b = document.getElementById("if-send"); b.disabled = true;
+    let ok = false;
+    try { const r = await fetch(SUPABASE_URL + "/rest/v1/shop_info_req", { method: "POST", headers: { ...rxHdr, Prefer: "return=minimal" }, body: JSON.stringify({ shop_id: id, shop_name: name, insta: insta || null, blog: blog || null, phone: phone || null, hours: hours || null, voter: voterId() }) }); ok = r.ok; } catch (e) {}
+    m.hidden = true; alert(ok ? "알려주셔서 고마워요! 확인 후 가게에 올릴게요 🙏" : "보내지 못했어요. 잠시 뒤 다시 해 주세요.");
+  };
+}
 function openFix(id, name) {
   const m = document.getElementById("notice-modal");
   m.innerHTML = `<div class="nm"><b>${esc(name)}</b><div style="margin:6px 0;color:#555;font-size:14px">어떤 점이 틀렸나요?</div>
