@@ -946,3 +946,4 @@ body.live #op-btn, body.tools-open #op-btn, body.rp-pick #op-btn, body.rp-form #
 .talk-nick{margin:0 0 6px;font-size:14px}
 .talk-act .chip{flex:none;padding:0 14px}
 .talk-act .tk-flag{margin-left:auto;color:var(--muted)}
+.talk-act .tk-flag{margin-left:0}
