@@ -1,10 +1,12 @@
-const CACHE="jeongeup-v196";
+const CACHE="jeongeup-v197", DATA="jeongeup-data-1";   // 큰 지도 데이터(건물·경계)는 DATA 캐시에 두고 파일이 바뀔 때만 번호를 올린다
+const BIG=/\/data\/(residential|downtown|boundary|naejangsan)\.geojson$/;
 const SHELL=["./","index.html","admin.html","style.css","data.js","app.js","manifest.json","admin-manifest.json"];
 self.addEventListener("install",e=>{e.waitUntil(caches.open(CACHE).then(c=>c.addAll(SHELL)).catch(()=>{}));self.skipWaiting();});
-self.addEventListener("activate",e=>{e.waitUntil(caches.keys().then(k=>Promise.all(k.filter(x=>x!==CACHE).map(x=>caches.delete(x)))).then(()=>self.clients.claim()));});
+self.addEventListener("activate",e=>{e.waitUntil(caches.keys().then(k=>Promise.all(k.filter(x=>x!==CACHE&&x!==DATA).map(x=>caches.delete(x)))).then(()=>self.clients.claim()));});
 self.addEventListener("fetch",e=>{
   const r=e.request;
   if(r.method!=="GET"||new URL(r.url).origin!==location.origin)return;   // 지도타일·API는 건드리지 않음
+  if(BIG.test(new URL(r.url).pathname)){e.respondWith(caches.open(DATA).then(c=>c.match(r.url).then(m=>m||fetch(r).then(res=>{if(res.ok)c.put(r.url,res.clone());return res;}))));return;}
   e.respondWith(fetch(r,{cache:"no-store"}).then(res=>{const cp=res.clone();caches.open(CACHE).then(c=>c.put(r,cp));return res;}).catch(()=>caches.match(r)));
 });
 self.addEventListener("push",e=>{
