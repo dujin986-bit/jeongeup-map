@@ -27,8 +27,8 @@ const LANDMARKS = [
 
 // 관공서 (지도에 크게 표시). approx:true 는 위치가 대략적이라는 뜻 → 팝업에 안내. 전화번호는 확인된 것만 넣을 것
 const OFFICES = [
-  { name: "정읍시청",       type: "시청",   coord: [126.8560, 35.5700], addr: "정읍시 충정로 234 (수성동)", approx: false },
-  { name: "정읍시보건소",   type: "보건소", coord: [126.8539, 35.5773], addr: "정읍시 수성1로 61", approx: true },
+  { name: "정읍시청",       type: "시청",   coord: [126.8560, 35.5700], addr: "정읍시 충정로 234 (수성동)", tel: "063-539-7114", approx: false },
+  { name: "정읍시보건소",   type: "보건소", coord: [126.8545, 35.5780], addr: "정읍시 수성1로 61 (수성동)", approx: false },
   { name: "정읍역",         type: "역",     coord: [126.8424, 35.5755], addr: "정읍시 연지동 343-414", approx: false },
   { name: "내장산동 주민센터 내장출장소", type: "주민센터", coord: [126.89089, 35.53468], addr: "정읍시 대석1길 13-16", approx: false },
 ];
