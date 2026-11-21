@@ -2039,7 +2039,7 @@ const SFX_GAIN = { open: 0.7, close: 0.7, on: 0.8, off: 0.8, done: 0.9, win: 1, 
 const sfxBuf = {}; let sfxLoading = false;
 function sfxLoad() {
   if (sfxLoading || !AC) return; sfxLoading = true;
-  for (const k in SFX_FILES) fetch("sounds/" + SFX_FILES[k] + ".mp3?v=183").then(r => r.arrayBuffer()).then(b => new Promise((ok, no) => AC.decodeAudioData(b, ok, no))).then(buf => { sfxBuf[k] = buf; }).catch(() => {});
+  for (const k in SFX_FILES) fetch("sounds/" + SFX_FILES[k] + ".mp3?v=184").then(r => r.arrayBuffer()).then(b => new Promise((ok, no) => AC.decodeAudioData(b, ok, no))).then(buf => { sfxBuf[k] = buf; }).catch(() => {});
 }
 function sfx(kind) {
   if (!sndOn || !AC) return;
@@ -2216,28 +2216,34 @@ fetchNotices(); setInterval(fetchNotices, 60000);
 // ===== 처음 방문 안내 (3단계로 가볍게) + 🙋 도움말 (기능별 카드) =====
 const HELP = [
   { id: "report", ic: "📍", t: "제보하기", s: "길 막힘·웨이팅·행사를 이웃에게 알려요",
-    b: `<ol class="hp-steps"><li><b>＋ 제보하기</b> 버튼을 눌러요 <small>(지도 오른쪽 아래)</small></li><li><b>지도를 손으로 움직여서</b> 가운데 📍 핀 <b>끝</b>을 일어난 장소에 맞춰요.<br>지금 있는 곳이면 <b>📍 내 위치로 이동</b>을 눌러요.</li><li><b>여기로 정했어요 ▶</b>를 누르고, 종류를 고른 뒤 한 줄만 쓰면 끝! 사진은 안 넣어도 돼요.</li></ol><p>🔍 지도가 너무 멀리 보이면 손가락 두 개를 벌려서 확대하세요. 더 정확해져요.<br>⏳ 제보는 시간이 지나면 저절로 사라져요.<br>🚫 욕설이 들어 있으면 올라가지 않아요.</p>`,
+    b: `<ol class="hp-steps"><li>지도 오른쪽 아래 <b>＋ 제보하기</b>를 눌러요.</li><li><b>종류</b>(교통·행사·웨이팅 등)를 큰 버튼으로 골라요.</li><li><b>위치</b>를 정해요. <b>📍 내 위치</b>를 누르거나, 장소를 검색하거나, 지도를 움직여 핀을 맞춰요.</li><li><b>제목 한 줄</b>만 쓰고 올리면 끝! 사진은 안 넣어도 돼요.</li></ol><p>제보는 관리자가 확인한 뒤 올라가요. 시간이 지나면 저절로 사라져요.<br>🚫 욕설이 들어 있으면 올라가지 않아요.</p>`,
     a: ["지금 제보해보기", () => setTimeout(() => document.getElementById("fab").click(), 250)] },
+  { id: "chat", ic: "💬", t: "실시간 채팅", s: "지금 정읍 사람들과 한 줄로 이야기해요",
+    b: `<ol class="hp-steps"><li>위쪽 <b>💬 실시간 채팅</b>을 눌러요.</li><li>아래 칸에 <b>한마디</b>를 쓰고 <b>↑</b>를 눌러요.</li><li>남의 글은 <b>👍 좋아요</b>, 이상한 글은 <b>🚩 신고</b>를 눌러요. <small>(여러 명이 신고하면 자동으로 숨겨져요)</small></li></ol><p>지도 왼쪽 <b>💬 채팅</b> 칸에는 최근 글이 흘러가요. 누르면 채팅이 열리고, <b>⤢</b>로 크기를, <b>채팅 ▴</b>로 접고 펼 수 있어요.</p>`,
+    a: ["채팅 열어보기", () => setTimeout(openComm, 250)] },
   { id: "food", ic: "🍚", t: "오늘의 찐맛집 판정", s: "가게마다 하루 한 번, 🔥👴😅 중 하나",
-    b: `<ol class="hp-steps"><li>아래 <b>맛집 시트</b>를 위로 끌어올리거나, 커뮤니티의 <b>판정 카드</b>를 열어요.</li><li><b>🍚 오늘 맛있게 먹은 곳 알려주기</b>를 누르고 음식점·카페를 눌러요.</li><li>팝업에서 <b>🔥 또 갈 거임 · 👴 토박이 단골 · 😅 한 번으로 족함</b> 중 하나를 눌러요.</li></ol><p>가게마다 하루 한 번이에요. 같은 날엔 마음을 바꿔 다시 눌러도 돼요. 자정이 지나면 처음부터 다시 시작해요. 재미로 보는 주민 판정이에요.</p>`,
+    b: `<ol class="hp-steps"><li>지도에서 가게 점을 눌러요. (또는 <b>🍚 오늘 맛있게 먹은 곳 알려주기</b>)</li><li>팝업의 <b>이 가게 알려주기</b>를 눌러요.</li><li><b>🔥 또 갈 거임 · 👴 토박이 단골 · 😅 한 번으로 족함</b> 중 하나를 골라요.</li></ol><p>가게마다 하루 한 번이에요. 같은 날엔 마음을 바꿔 다시 눌러도 돼요. 자정이 지나면 처음부터 다시 시작해요. 아래 <b>맛집 줄</b>을 누르면 오늘의 순위를 볼 수 있어요. 재미로 보는 주민 판정이에요.</p>`,
     a: ["지금 판정해보기", () => enterJudge()] },
-  { id: "sound", ic: "🔊", t: "소리·배경음악", s: "낮엔 밝은 피아노, 밤엔 차분한 피아노",
-    b: `<ol class="hp-steps"><li>위쪽 <b>더 보기</b>를 열면 <b>🔇</b> 버튼이 있어요.</li><li>누르면 <b>🔊</b>로 바뀌면서 소리와 배경음악이 켜져요.</li><li>다시 누르면 꺼져요.</li></ol><p>소리가 안 나면 폰이 <b>무음(진동)</b> 모드인지, <b>미디어 볼륨</b>이 0인지 확인해 보세요.</p>`,
-    a: ["소리 켜보기", () => { const b = document.getElementById("snd-btn"); if (b) b.click(); }] },
-  { id: "push", ic: "🔔", t: "알림 받기", s: "새 공지가 오면 폰이 알려줘요",
-    b: `<ol class="hp-steps"><li><b>💬 커뮤니티</b>를 열어요.</li><li>맨 위쪽 <b>알림 받기</b> 카드의 버튼을 눌러요.</li><li>폰에서 <b>허용</b>을 눌러요.</li></ol><p>허용 창이 안 뜨면: 크롬·삼성 인터넷 주소창 왼쪽 <b>자물쇠 → 권한(사이트 설정) → 알림 → 허용</b>으로 바꿔 주세요.</p>`,
-    a: ["커뮤니티 열어보기", () => setTimeout(openComm, 250)] },
-  { id: "filter", ic: "👀", t: "골라보기", s: "보고 싶은 정보만 켜기",
-    b: `<ol class="hp-steps"><li>검색창 아래 <b>🚗 교통 · 🎉 행사 · ⏳ 웨이팅</b> 버튼을 눌러요.</li><li>그 종류만 지도에 보여요. 다시 누르거나 <b>전체 보기 ✕</b>를 누르면 돌아와요.</li></ol><p>꺼진 종류는 지도에서 사라져서 지도가 깔끔해져요.</p>`,
+  { id: "shopinfo", ic: "✏", t: "가게정보수정", s: "인스타·블로그·전화·영업시간 알려주기",
+    b: `<ol class="hp-steps"><li>지도에서 <b>가게 점</b>을 눌러요.</li><li>팝업의 파란 <b>✏ 가게정보수정</b>을 눌러요.</li><li>아는 것만 적어요. <b>인스타·블로그·전화·영업시간</b> (전화번호는 숫자만 눌러도 돼요, 영업시간은 눌러서 골라요)</li><li><b>보내기</b>를 눌러요.</li></ol><p>관리자가 확인한 뒤 가게에 올라가요. 이름·위치가 틀렸거나 없어진 가게라면 창 맨 아래 작은 글자를 눌러 주세요.</p>` },
+  { id: "office", ic: "🏛", t: "관공서·행사 공지", s: "시청 등을 누르면 행사 소식이 보여요",
+    b: `<p>지도의 <b>🏛 정읍시청</b>·<b>보건소</b> 같은 남색 배지를 누르면 <b>주소·전화·길찾기</b>가 나와요.</p><p>행사 소식이 있으면 <b>📢 행사·공지</b> 칸이 같이 보여요. 공식 공지는 시청 누리집에서 꼭 확인해 주세요.</p>` },
+  { id: "filter", ic: "👀", t: "보고 싶은 것만 보기", s: "더 보기 · 설정에서 종류를 골라요",
+    b: `<ol class="hp-steps"><li>위쪽 <b>▾ 더 보기 · 설정</b>을 눌러요.</li><li><b>🚗 교통 · 🎉 행사 · ⏳ 웨이팅</b> 같은 종류를 누르면 그것만 지도에 보여요.</li><li><b>🍽 가게</b>를 누르면 식당·카페·마트·약국·숙박 등 <b>가게 종류</b>를 골라 볼 수 있어요.</li><li>돌아오려면 <b>🗺 전체</b>나 위쪽 <b>✕</b>를 눌러요.</li></ol><p>아래 시트의 <b>교통·행사·웨이팅·사건사고</b> 아이콘을 눌러도 그 종류의 최근 소식을 볼 수 있어요.</p>`,
     a: ["더 보기 열어보기", () => setTimeout(() => toolsToggle(), 250)] },
+  { id: "push", ic: "🔔", t: "알림 받기", s: "긴급 공지가 오면 폰이 알려줘요",
+    b: `<ol class="hp-steps"><li>위쪽 <b>▾ 더 보기 · 설정</b>을 열어요.</li><li><b>🔔 알림 받기</b> 버튼을 눌러요.</li><li>폰에서 <b>허용</b>을 눌러요.</li></ol><p>제보나 투표를 한 직후에도 "알림 받고 싶으세요?" 안내가 떠요.<br>허용 창이 안 뜨면: 크롬·삼성 인터넷 주소창 왼쪽 <b>자물쇠 → 권한(사이트 설정) → 알림 → 허용</b>으로 바꿔 주세요.</p>`,
+    a: ["설정 열어보기", () => setTimeout(() => toolsToggle(), 250)] },
+  { id: "sound", ic: "🔊", t: "소리·배경음악", s: "낮엔 밝은 피아노, 밤엔 차분한 피아노",
+    b: `<ol class="hp-steps"><li>지도 <b>오른쪽</b>의 <b>🔇 소리 꺼짐</b> 버튼을 눌러요.</li><li><b>🔊 소리 켬</b>으로 바뀌면서 소리와 배경음악이 켜져요.</li><li>다시 누르면 꺼져요.</li></ol><p>소리가 안 나면 폰이 <b>무음(진동)</b> 모드인지, <b>미디어 볼륨</b>이 0인지 확인해 보세요.</p>`,
+    a: ["소리 켜보기", () => { const b = document.getElementById("snd-btn"); if (b) b.click(); }] },
   { id: "install", ic: "🏠", t: "홈 화면에 추가", s: "앱처럼 바로 열어요",
-    b: `<p><b>갤럭시(크롬):</b> 오른쪽 위 <b>⋮</b> → <b>홈 화면에 추가</b></p><p><b>아이폰(사파리):</b> 아래 <b>공유 버튼</b> → <b>홈 화면에 추가</b></p><p>인스타·카톡 안에서 열었다면 먼저 위쪽 <b>크롬으로 열기</b> 안내를 눌러요.</p>`,
-    a: ["설치 안내 열기", () => { const b = document.getElementById("install-btn"); if (b && !b.hidden) b.click(); else shareToast("브라우저 메뉴에서 '홈 화면에 추가'를 눌러 주세요"); }] },
-  { id: "fix", ic: "🛠", t: "틀린 정보·불편한 점", s: "가게 정보 수정, 앱 의견 남기기",
-    b: `<p><b>가게 정보가 틀리면:</b> 지도에서 그 가게를 눌러 <b>✏ 정보가 틀렸어요</b>를 눌러요.</p><p><b>앱이 불편하거나 바라는 게 있으면:</b> 💬 커뮤니티 → <b>🛠 고쳐줘</b>에 써 주세요. 관리자가 바로 확인해요.</p>`,
-    a: ["의견 남기러 가기", () => setTimeout(() => { openComm(); const b = document.querySelector('#comm-tabs button[data-t="fb"]'); if (b) b.click(); }, 250)] },
-  { id: "share", ic: "🔗", t: "친구에게 공유", s: "카톡·인스타로 보내기",
-    b: `<p>제보 팝업이나 커뮤니티 글의 <b>🔗 공유</b>를 누르면 카톡·인스타로 보낼 수 있어요.</p><p>받은 사람이 누르면 <b>그 제보로 바로 이동</b>해요.</p>` },
+    b: `<p><b>갤럭시(크롬):</b> 오른쪽 위 <b>⋮</b> → <b>홈 화면에 추가</b></p><p><b>아이폰(사파리):</b> 아래 <b>공유 버튼</b> → <b>홈 화면에 추가</b></p><p>카톡·인스타 안에서 열었다면 먼저 <b>다른 브라우저(크롬·사파리)로 열기</b>를 눌러요.</p>` },
+  { id: "idea", ic: "💡", t: "의견·제안 남기기", s: "불편한 점, 바라는 점을 알려 주세요",
+    b: `<p>지도 왼쪽 <b>💡 의견(제안)</b>을 눌러 한 줄 남겨 주세요. 관리자만 읽고 바로 확인해요.</p><p>가게 정보가 틀렸다면 그 가게의 <b>✏ 가게정보수정</b>을 눌러 주세요.</p>`,
+    a: ["의견 남기러 가기", () => setTimeout(() => { const b = document.getElementById("op-btn"); if (b) b.click(); }, 250)] },
+  { id: "share", ic: "🔗", t: "친구 초대·공유", s: "카톡·인스타로 보내기",
+    b: `<p>설정의 <b>친구 초대</b>를 누르면 앱 주소를 카톡으로 보낼 수 있어요.</p><p>제보 팝업의 <b>🔗 공유</b>를 누르면 그 제보를 보낼 수 있고, 받은 사람이 누르면 <b>그 제보로 바로 이동</b>해요.</p>` },
 ];
 const helpPulse = on => ["help-btn", "help-ctl"].forEach(id => { const e = document.getElementById(id); if (e) e.classList.toggle("pulse", on); });
 function closeHelp() { const h = document.getElementById("help"); if (h) h.hidden = true; document.body.classList.remove("help-open"); }
@@ -2246,7 +2252,7 @@ function openHelp(id) {
   try { localStorage.setItem("help_seen", "1"); } catch (e) {}
   helpPulse(false);
   h.innerHTML = `<div class="hp-top"><b>🙋 도움말</b><button id="hp-x" aria-label="닫기">✕</button></div><div class="hp-scroll"><button id="hp-tour" class="hp-tour">👋 처음이세요? 시작 화면 다시 보기</button><p class="hp-lead">궁금한 칸을 눌러 보세요. <b>[지금 해보기]</b> 버튼으로 바로 따라 할 수 있어요.</p>` +
-    HELP.map(c => `<details class="hp-c" id="hp-${c.id}"><summary><span class="hp-ic">${c.ic}</span><span class="hp-st"><b>${c.t}</b><small>${c.s}</small></span></summary><div class="hp-b">${c.b}${c.a ? `<button class="hp-go" data-id="${c.id}">▶ ${c.a[0]}</button>` : ""}</div></details>`).join("") + `<p class="hp-end">그래도 모르겠으면 💬 커뮤니티 → 🛠 고쳐줘에 물어보세요.</p></div>`;
+    HELP.map(c => `<details class="hp-c" id="hp-${c.id}"><summary><span class="hp-ic">${c.ic}</span><span class="hp-st"><b>${c.t}</b><small>${c.s}</small></span></summary><div class="hp-b">${c.b}${c.a ? `<button class="hp-go" data-id="${c.id}">▶ ${c.a[0]}</button>` : ""}</div></details>`).join("") + `<p class="hp-end">그래도 모르겠으면 지도 왼쪽 💡 의견(제안)에 물어보세요.</p></div>`;
   h.hidden = false; document.body.classList.add("help-open");
   document.getElementById("hp-x").onclick = closeHelp;
   document.getElementById("hp-tour").onclick = () => { closeHelp(); setTimeout(() => window.showWelcome && window.showWelcome(), 250); };
