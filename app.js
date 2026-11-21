@@ -442,6 +442,21 @@ async function fetchShopEdits() {
 function isFoodCafe(cat) { cat = cat || ""; return /음식점|카페|주점|아동복지급식/.test(cat) && !/진출입|독서실|스터디/.test(cat); }
 const SHOP_GROUPS = [["food", "🍴", "식당"], ["cafe", "☕", "카페"], ["mart", "🛒", "마트·편의점"], ["meat", "🥩", "정육"], ["stay", "🏨", "숙박"], ["pharm", "💊", "약국"], ["park", "🅿", "주차장"]];
 let shopSub = "";                         // "" = 가게 전체, 아니면 SHOP_GROUPS 키 하나만
+const CAT_LEAF = { "슈퍼마켓": "🛒 슈퍼마켓", "체인화편의점": "🏪 편의점", "카페": "☕ 카페", "김밥/만두/분식": "🍙 분식", "여관/모텔": "🛏 여관·모텔", "치킨": "🍗 치킨", "백반/한정식": "🍚 백반·한정식", "국/탕/찌개류": "🍲 국·탕·찌개", "횟집": "🐟 횟집", "돼지고기구이/찜": "🥩 고기집", "소고기구이/찜": "🥩 고기집", "해산물구이/찜": "🐟 해산물", "정육점": "🥩 정육점", "화장품소매업": "💄 화장품", "세탁소": "🧺 세탁소", "목욕탕/사우나": "♨ 목욕탕·사우나", "경로당": "🏠 경로당", "한옥체험": "🏯 한옥체험", "컴퓨터학원": "💻 컴퓨터학원", "구내식당": "🍱 구내식당", "기타한식음식점": "🍚 한식", "요리주점": "🍶 주점", "빵/도넛": "🥐 빵·도넛", "피자": "🍕 피자", "기타오락장": "🎮 오락", "버스정류장": "🚌 버스정류장", "주차장운영업": "🅿 주차장", "주차장": "🅿 주차장", "펜션": "🏡 펜션", "전기차충전소": "🔌 전기차 충전소", "기념품점": "🎁 기념품점", "독서실/스터디카페": "📚 독서실·스터디카페", "국수/칼국수": "🍜 국수·칼국수", "뷔페": "🍽 뷔페", "경양식": "🍽 양식", "베트남식전문": "🍜 베트남식", "핸드폰소매업": "📱 휴대폰", "자동차정비/카센타": "🔧 카센터" };
+function catLabel(c) {               // "음식점업 > 한식일반음식점업 > 국/탕/찌개류" → "🍲 국·탕·찌개" (보이는 글자만 바꿈, 분류 값은 그대로)
+  c = String(c || "").trim(); if (!c) return "";
+  const parts = c.split(">").map(x => x.trim()).filter(Boolean), leaf = parts[parts.length - 1] || "";
+  if (CAT_LEAF[leaf]) return CAT_LEAF[leaf];
+  if (/의약품및의료용품/.test(c)) return "💊 약국";
+  if (/숙박/.test(c)) return "🛏 숙박";
+  if (/한식/.test(c)) return "🍚 한식";
+  if (/일식/.test(c)) return "🍣 일식";
+  if (/중식|중국/.test(c)) return "🥟 중식";
+  if (/음식점|주점/.test(c)) return "🍽 " + leaf.replace(/음식점업$|전문점$|업$/, "").replace(/\//g, "·");
+  if (/진출입|건물|도로시설|민방위|발전|스마트팜|재해/.test(c)) return "";
+  const t = leaf.replace(/(소매|운영|제조|판매)업$/, "").replace(/\//g, "·");
+  return t.length > 12 ? "" : t;   // 너무 긴 공공자료 이름은 숨김
+}
 function shopGroup(cat, name) {
   cat = cat || ""; name = name || "";
   if (/정육|축산|푸줏간|육류/.test(name + cat)) return "meat";
@@ -537,7 +552,7 @@ async function loadShops() {
       }
       if (!list.length) return;
       const rows = list.map((p, i) =>
-        `<div class="shop-row" data-i="${i}"><strong>${p.brand == 1 ? "⭐ " + esc(p.bname) : esc(p.name)}</strong>${p.brand == 1 && p.bname !== p.name ? `<br><small>(${esc(p.name)})</small>` : ""}<br>${esc(p.category)}<br>` +
+        `<div class="shop-row" data-i="${i}"><strong>${p.brand == 1 ? "⭐ " + esc(p.bname) : esc(p.name)}</strong>${p.brand == 1 && p.bname !== p.name ? `<br><small>(${esc(p.name)})</small>` : ""}<br>${esc(catLabel(p.category))}${catLabel(p.category) ? "<br>" : ""}` +
         `<small>${esc(p.address)}</small>` + infoHtml(p) + navLinks(p.name, p.lon, p.lat) + (p.blink ? `<a class="brand-link" href="${esc(p.blink)}" target="_blank" rel="noopener noreferrer">🔗 가게 소식 보기</a>` : "") + (VD_CAT.test(p.category || "") ? vdBlock(p.id) : "") + `<div class="shop-act">${rxHtml("shop", p.id)}</div>` + `<button class="info-btn" data-id="${esc(p.id)}" data-name="${esc(p.name)}">✏ 가게 정보 고치기 <small>인스타·영업시간 알려주기</small></button>` + (IS_LOCAL ? `<div class="edit-row">` +
         `<button data-a="rename">이름 수정</button><button data-a="hide">없는 가게</button></div>` : "") + `</div>`).join("");
       const head = list.length > 1 ? `<div class="shop-head">이 위치에 가게 ${list.length}곳</div>` : "";
@@ -2007,7 +2022,7 @@ const SFX_GAIN = { open: 0.7, close: 0.7, on: 0.8, off: 0.8, done: 0.9, win: 1, 
 const sfxBuf = {}; let sfxLoading = false;
 function sfxLoad() {
   if (sfxLoading || !AC) return; sfxLoading = true;
-  for (const k in SFX_FILES) fetch("sounds/" + SFX_FILES[k] + ".mp3?v=174").then(r => r.arrayBuffer()).then(b => new Promise((ok, no) => AC.decodeAudioData(b, ok, no))).then(buf => { sfxBuf[k] = buf; }).catch(() => {});
+  for (const k in SFX_FILES) fetch("sounds/" + SFX_FILES[k] + ".mp3?v=175").then(r => r.arrayBuffer()).then(b => new Promise((ok, no) => AC.decodeAudioData(b, ok, no))).then(buf => { sfxBuf[k] = buf; }).catch(() => {});
 }
 function sfx(kind) {
   if (!sndOn || !AC) return;
@@ -2377,7 +2392,7 @@ function openVotePick() {
     const qq = (q || "").trim();
     if (qq) shops = shops.filter(x => x.name.includes(qq));
     const hot = !qq ? shops.filter(x => n(x) > 0).slice(0, 3) : [];
-    const item = x => `<button class="vp-it" data-id="${esc(x.id)}"><b>${esc(x.name)}</b><small>${vdMine().m[x.id] ? "✅ 내가 알려줌" : esc(x.category) + (n(x) ? " · " + n(x) + "명" : "")}</small></button>`;
+    const item = x => `<button class="vp-it" data-id="${esc(x.id)}"><b>${esc(x.name)}</b><small>${vdMine().m[x.id] ? "✅ 내가 알려줌" : esc(catLabel(x.category)) + (n(x) ? " · " + n(x) + "명" : "")}</small></button>`;
     const list = m.querySelector("#vp-list");
     const rs = qq ? (roadSearch(qq) || jibunSearch(qq)) : null;
     list.innerHTML = (rs ? `<div class="vp-t">📍 주소</div><button class="vp-it vp-addr"><b>${esc(rs.name)}</b><small>지도에서 보기</small></button>` : "") +
@@ -2423,7 +2438,7 @@ function voteFlow(id) {
   const close = () => { m.hidden = true; if (judging) exitJudge(); };
   const mine = vdMine().m[id]; let pick = mine || "";
   const step1 = () => {
-    m.innerHTML = `<div class="vf-box"><div class="vf-q">이 가게가 맞나요?</div><div class="vf-nm">${esc(s.name)}</div><div class="vf-sub">${esc(s.category)}</div>` +
+    m.innerHTML = `<div class="vf-box"><div class="vf-q">이 가게가 맞나요?</div><div class="vf-nm">${esc(s.name)}</div><div class="vf-sub">${esc(catLabel(s.category))}</div>` +
       `<div class="vf-row"><button class="vf-no" type="button">다시 고를게요</button><button class="vf-ok" type="button">맞아요</button></div></div>`;
     m.querySelector(".vf-no").onclick = close; m.querySelector(".vf-ok").onclick = step2;
   };
