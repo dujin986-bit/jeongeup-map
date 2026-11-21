@@ -569,10 +569,10 @@ async function loadShops() {
       if (!list.length) return;
       const rows = list.map((p, i) =>
         `<div class="shop-row" data-i="${i}"><strong>${p.brand == 1 ? "⭐ " + esc(p.bname) : esc(p.name)}</strong>${p.brand == 1 && p.bname !== p.name ? `<br><small>(${esc(p.name)})</small>` : ""}<br>${esc(catLabel(p.category))}${catLabel(p.category) ? "<br>" : ""}` +
-        `<small>${esc(p.address)}</small>` + infoHtml(p) + navLinks(p.name, p.lon, p.lat) + (p.blink ? `<a class="brand-link" href="${esc(p.blink)}" target="_blank" rel="noopener noreferrer">🔗 가게 소식 보기</a>` : "") + (VD_CAT.test(p.category || "") ? vdBlock(p.id) : "") + `<div class="shop-act">${rxHtml("shop", p.id)}</div>` + `<button class="info-btn" data-id="${esc(p.id)}" data-name="${esc(p.name)}">✏ 가게정보수정 <small>인스타·영업시간 알려주기</small></button>` + (IS_LOCAL ? `<div class="edit-row">` +
+        `<small>${esc(p.address)}</small>` + infoHtml(p) + navLinks(p.name, p.lon, p.lat) + (p.blink ? `<a class="brand-link" href="${esc(p.blink)}" target="_blank" rel="noopener noreferrer">🔗 가게 소식 보기</a>` : "") + (VD_CAT.test(p.category || "") ? vdBlock(p.id) : "") + `<div class="shop-act">${rxHtml("shop", p.id)}<button class="info-btn" data-id="${esc(p.id)}" data-name="${esc(p.name)}">✏ 가게정보수정</button></div>` + (IS_LOCAL ? `<div class="edit-row">` +
         `<button data-a="rename">이름 수정</button><button data-a="hide">없는 가게</button></div>` : "") + `</div>`).join("");
       const head = list.length > 1 ? `<div class="shop-head">이 위치에 가게 ${list.length}곳</div>` : "";
-      const pop = new maplibregl.Popup({ offset: 10, maxWidth: "300px" }).setLngLat(e.lngLat)
+      const pop = new maplibregl.Popup({ offset: 10, maxWidth: "270px" }).setLngLat(e.lngLat)
         .setHTML(`${head}<div class="shop-list">${rows}</div>`).addTo(map);
       if (judging) { const bar = document.getElementById("vd-bar"); if (bar) bar.hidden = true; judgePop = pop; pop.on("close", () => { if (judgePop === pop) { judgePop = null; if (judging) exitJudge(); } }); }
       hydrateRx(pop.getElement()); vdHydrate(pop.getElement());
@@ -2038,7 +2038,7 @@ const SFX_GAIN = { open: 0.7, close: 0.7, on: 0.8, off: 0.8, done: 0.9, win: 1, 
 const sfxBuf = {}; let sfxLoading = false;
 function sfxLoad() {
   if (sfxLoading || !AC) return; sfxLoading = true;
-  for (const k in SFX_FILES) fetch("sounds/" + SFX_FILES[k] + ".mp3?v=180").then(r => r.arrayBuffer()).then(b => new Promise((ok, no) => AC.decodeAudioData(b, ok, no))).then(buf => { sfxBuf[k] = buf; }).catch(() => {});
+  for (const k in SFX_FILES) fetch("sounds/" + SFX_FILES[k] + ".mp3?v=181").then(r => r.arrayBuffer()).then(b => new Promise((ok, no) => AC.decodeAudioData(b, ok, no))).then(buf => { sfxBuf[k] = buf; }).catch(() => {});
 }
 function sfx(kind) {
   if (!sndOn || !AC) return;
