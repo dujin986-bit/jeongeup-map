@@ -146,7 +146,7 @@ function addMarker(item, isLandmark) {
   const popup = new maplibregl.Popup({ offset: 20 }).setHTML(
     `<div class="pop-cat" style="background:${c.color};color:${c.fg || "#fff"}">${c.icon} ${c.label}</div><div class="pop-title">${esc(item.name || item.title)}</div>${item.desc ? `<div class="pop-desc">${esc(item.desc)}</div>` : ""}${when}` + (item.photo ? `<a href="${esc(item.photo)}" target="_blank" rel="noopener"><img class="pop-photo" src="${esc(item.photo)}" loading="lazy"></a>` : "") + navLinks(item.name || item.title, item.coord[0], item.coord[1]) + (item.id && item.ts ? `<div class="shop-act">${rxHtml("report", item.id)}<button class="chip share-r">🔗 공유</button></div>` : "")
   );
-  popup.on("open", () => { hydrateRx(popup.getElement()); popup.getElement().querySelectorAll(".share-r").forEach(b => b.onclick = () => shareReport(item)); });
+  popup.on("open", () => { fitPopup(popup); hydrateRx(popup.getElement()); popup.getElement().querySelectorAll(".share-r").forEach(b => b.onclick = () => shareReport(item)); });
   el.addEventListener("click", () => playFx(item.cat, el));      // 클릭 연출 (1~2초)
   const m = new maplibregl.Marker({ element: el }).setLngLat(item.coord).setPopup(popup).addTo(map);
   m._item = item; markers.push(m);
@@ -585,7 +585,7 @@ async function loadShops() {
       const pop = new maplibregl.Popup({ offset: 10, maxWidth: "270px" }).setLngLat(e.lngLat)
         .setHTML(`${head}<div class="shop-list">${rows}</div>`).addTo(map);
       if (judging) { const bar = document.getElementById("vd-bar"); if (bar) bar.hidden = true; judgePop = pop; pop.on("close", () => { if (judgePop === pop) { judgePop = null; if (judging) exitJudge(); } }); }
-      hydrateRx(pop.getElement()); vdHydrate(pop.getElement());
+      fitPopup(pop); hydrateRx(pop.getElement()); vdHydrate(pop.getElement());
       pop.getElement().querySelectorAll(".shop-row").forEach(row => {
         const p = list[Number(row.dataset.i)];
         if (isAdminUi() && p.id) { const eb = document.createElement("button"); eb.className = "ed-pop"; eb.textContent = "✏️ 수정 (관리자)"; eb.onclick = () => { pop.remove(); openEditSheet([p.id]); }; row.appendChild(eb); }
@@ -1427,6 +1427,20 @@ function doSearch() {
   }
   resEl.hidden = false;
 }
+function fitPopup(pop) {   // 팝업이 아래 시트나 위쪽 바에 가리면 지도를 살짝 밀어서 전체가 보이게 함
+  setTimeout(() => {
+    try {
+      const el = pop.getElement(); if (!el) return;
+      const r = el.getBoundingClientRect(), sh = document.getElementById("food-sheet");
+      const limit = (sh && sh.offsetHeight && !sh.hidden ? sh.getBoundingClientRect().top : innerHeight) - 10;
+      const topLimit = 96;
+      let dy = 0;
+      if (r.bottom > limit) dy = r.bottom - limit;                 // 아래로 넘침 → 지도를 위로
+      if (r.top - dy < topLimit) dy = Math.max(0, r.top - topLimit); // 위쪽 바에 닿지 않게
+      if (dy > 4) map.panBy([0, dy], { duration: 350 });
+    } catch (e) {}
+  }, 160);
+}
 const isAdminUi = () => { const b = document.getElementById("edit-btn"); return !!(b && !b.hidden); };
 function goTo(it) {
   resEl.hidden = true; qEl.blur();
@@ -2053,7 +2067,7 @@ const SFX_GAIN = { open: 0.7, close: 0.7, on: 0.8, off: 0.8, done: 0.9, win: 1, 
 const sfxBuf = {}; let sfxLoading = false;
 function sfxLoad() {
   if (sfxLoading || !AC) return; sfxLoading = true;
-  for (const k in SFX_FILES) fetch("sounds/" + SFX_FILES[k] + ".mp3?v=198").then(r => r.arrayBuffer()).then(b => new Promise((ok, no) => AC.decodeAudioData(b, ok, no))).then(buf => { sfxBuf[k] = buf; }).catch(() => {});
+  for (const k in SFX_FILES) fetch("sounds/" + SFX_FILES[k] + ".mp3?v=199").then(r => r.arrayBuffer()).then(b => new Promise((ok, no) => AC.decodeAudioData(b, ok, no))).then(buf => { sfxBuf[k] = buf; }).catch(() => {});
 }
 function sfx(kind) {
   if (!sndOn || !AC) return;
