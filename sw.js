@@ -1,4 +1,4 @@
-const CACHE="jeongeup-v199", DATA="jeongeup-data-1";   // 큰 지도 데이터(건물·경계)는 DATA 캐시에 두고 파일이 바뀔 때만 번호를 올린다
+const CACHE="jeongeup-v200", DATA="jeongeup-data-1";   // 큰 지도 데이터(건물·경계)는 DATA 캐시에 두고 파일이 바뀔 때만 번호를 올린다
 const BIG=/\/data\/(residential|downtown|boundary|naejangsan)\.geojson$/;
 const SHELL=["./","index.html","admin.html","style.css","data.js","app.js","manifest.json","admin-manifest.json"];
 self.addEventListener("install",e=>{e.waitUntil(caches.open(CACHE).then(c=>c.addAll(SHELL)).catch(()=>{}));self.skipWaiting();});

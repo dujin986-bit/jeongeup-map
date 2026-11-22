@@ -1081,3 +1081,11 @@ body.editing #food-sheet, body.editing #cat-banner{display:none !important}
 .maplibregl-popup-content .pop-photo{max-height:110px;max-width:100%}
 .maplibregl-popup-content .pop-title{font-size:16px}
 .maplibregl-popup-content .pop-desc{font-size:13px}
+/* v200 제보 팝업 컴팩트 */
+.rp{max-height:calc(100vh - 96px - 230px);overflow-y:auto}
+.rp .pop-desc{font-size:13px;margin-top:3px;line-height:1.35}
+.rp .pop-time{margin-top:2px;font-size:11px}
+.rp .pop-photo{max-height:80px;margin-top:5px;border-radius:8px;object-fit:cover}
+.rp .nav-links,.rp .shop-act{margin-top:5px;gap:5px;flex-wrap:nowrap}
+.rp .nav-links a{min-height:28px;padding:0 8px;font-size:12px;white-space:nowrap}
+.rp .rx-b,.rp .shop-act .chip{min-height:28px;padding:0 8px;font-size:12px;white-space:nowrap}
