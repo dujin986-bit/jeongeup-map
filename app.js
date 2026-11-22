@@ -1738,7 +1738,7 @@ function renderTalk() {
   commBody.classList.add("chat-mode");
   commBody.innerHTML = `<div class="cm-info"><b>💬 지금 정읍 어때요?</b> 날씨·교통·웨이팅·맛집, 묻고 알려 주세요. 욕설·광고는 막혀요. 이상한 글은 🚩 신고! <span>시험 운영 중</span></div>` +
     `<div id="talk-list" class="talk-list"><div class="vd-empty">불러오는 중…</div></div><button id="talk-new" hidden>↓ 새 글</button>` +
-    `<div class="talk-form"><div class="talk-nick">내 이름 <button id="talk-nick-b" class="chip">${esc(talkNick())} ✏</button></div><div class="talk-row"><input id="talk-in" maxlength="200" placeholder="지금 정읍 어때요? 한마디 남겨요"><button id="talk-send" class="fb-send" aria-label="올리기">↑</button></div></div>`;
+    `<div class="talk-form"><div class="talk-nick">내 이름 <button id="talk-nick-b" class="chip">${esc(talkNick())} ✏</button></div><div id="talk-rbar" class="talk-rbar" hidden></div><div class="talk-row"><input id="talk-in" maxlength="200" placeholder="지금 정읍 어때요? 한마디 남겨요"><button id="talk-send" class="fb-send" aria-label="올리기">↑</button></div></div>`;
   document.getElementById("talk-nick-b").onclick = () => {
     const v = (prompt("바꿀 이름을 적어 주세요 (2~12글자)", talkNick()) || "").trim().slice(0, 12);
     if (v.length < 2) return;
@@ -1746,10 +1746,17 @@ function renderTalk() {
     document.getElementById("talk-nick-b").textContent = v + " ✏";
   };
   const inp = document.getElementById("talk-in");
-  const send = () => postTalk("chat", null, inp, document.getElementById("talk-send"));
+  talkReplyTo = null;
+  const send = () => postTalk(talkReplyTo ? "reply" : "chat", talkReplyTo ? talkReplyTo.id : null, inp, document.getElementById("talk-send"));
   document.getElementById("talk-send").onclick = send;
   inp.onkeydown = e => { if (e.key === "Enter") { e.preventDefault(); send(); } };
   loadTalk(); talkStart();
+}
+function showReplyBar() {
+  const b = document.getElementById("talk-rbar"); if (!b) return;
+  if (!talkReplyTo) { b.hidden = true; b.innerHTML = ""; return; }
+  b.hidden = false; b.innerHTML = `↩ <b>${esc(talkReplyTo.nick || "이 글")}</b>님 글에 답글 <button id="talk-rx" aria-label="답글 취소">✕</button>`;
+  document.getElementById("talk-rx").onclick = () => { talkReplyTo = null; showReplyBar(); };
 }
 async function postTalk(kind, parent, inp, btn) {
   const body = inp.value.trim(); if (!body) return;
@@ -1757,21 +1764,22 @@ async function postTalk(kind, parent, inp, btn) {
   try {
     const res = await fetch(TALK_URL, { method: "POST", headers: { apikey: SUPABASE_KEY, Authorization: "Bearer " + SUPABASE_KEY, "Content-Type": "application/json", Prefer: "return=minimal" },
       body: JSON.stringify({ kind, parent_id: parent, body: body.slice(0, 200), nick: talkNick(), voter: voterId() }) });
-    if (res.ok) { inp.value = ""; sfx("done"); await loadTalk(); }
+    if (res.ok) { inp.value = ""; if (kind === "reply") { talkReplyTo = null; showReplyBar(); } sfx("done"); await loadTalk(); }
     else { const tx = await res.text().catch(() => ""); alert(/badword/.test(tx) ? "욕설이나 비속어가 들어 있어요. 순화해서 다시 적어 주세요 🙏" : /ratelimit/.test(tx) ? "너무 빨리 올리고 있어요. 잠시 뒤에 다시 올려 주세요 🙏" : "아직 준비 중이에요. 잠시 뒤 다시 시도해 주세요."); }
   } catch (e) { alert("전송에 실패했어요. 인터넷을 확인해 주세요."); }
   btn.disabled = false;
 }
 function talkHue(n) { let h = 0; for (const c of String(n)) h = (h * 31 + c.charCodeAt(0)) % 360; return h; }
+let talkById = {}, talkReplyTo = null;
 function talkMsg(p, canReply) {
   const liked = talkLiked().includes(p.id), mine = p.voter && p.voter === voterId();
-  return `<div class="talk-msg tb${mine ? " me" : ""}" data-id="${p.id}"><div class="tb-n"><i style="background:hsl(${talkHue(p.nick)},60%,52%)"></i><b>${esc(p.nick)}</b> · ${timeAgo(p.created_at)}</div><div class="tb-b">${esc(p.body)}</div>` +
-    `<div class="talk-act"><button class="tk-like${liked ? " on" : ""}">👍 좋아요 <i>${p.likes || 0}</i></button>${mine ? "" : `<button class="tk-flag" title="신고">🚩 신고</button>`}</div></div>`;
+  return `<div class="talk-msg tb${mine ? " me" : ""}" data-id="${p.id}"><div class="tb-n"><i style="background:hsl(${talkHue(p.nick)},60%,52%)"></i><b>${esc(p.nick)}</b> · ${timeAgo(p.created_at)}</div>${p.kind === "reply" ? (() => { const q = talkById[p.parent_id]; return `<div class="tb-q">↩ ${q ? esc(q.nick) + " · " + esc(String(q.body).slice(0, 24)) + (String(q.body).length > 24 ? "…" : "") : "이전 글에 대한 답글"}</div>`; })() : ""}<div class="tb-b">${esc(p.body)}</div>` +
+    `<div class="talk-act"><button class="tk-like${liked ? " on" : ""}">👍 좋아요 <i>${p.likes || 0}</i></button><button class="tk-re" title="답글">↩ 답글</button>${mine ? "" : `<button class="tk-flag" title="신고">🚩 신고</button>`}</div></div>`;
 }
 async function loadTalk() {
   const list = document.getElementById("talk-list"); if (!list) return;
   const chat = true;
-  const q = TALK_URL + "?select=id,kind,parent_id,body,nick,voter,likes,created_at&hidden=eq.false&" + (chat ? "kind=in.(chat,ask)&order=created_at.desc&limit=80" : "kind=in.(ask,reply)&order=created_at.desc&limit=150");
+  const q = TALK_URL + "?select=id,kind,parent_id,body,nick,voter,likes,created_at&hidden=eq.false&" + (chat ? "kind=in.(chat,ask,reply)&order=created_at.desc&limit=80" : "kind=in.(ask,reply)&order=created_at.desc&limit=150");
   let rows = null;
   try { const r = await fetch(q, { headers: { apikey: SUPABASE_KEY, Authorization: "Bearer " + SUPABASE_KEY } }); if (r.ok) rows = await r.json(); } catch (e) {}
   if (!document.getElementById("talk-list")) return;
@@ -1783,7 +1791,7 @@ async function loadTalk() {
   const open = new Set([...list.querySelectorAll(".talk-reply-box:not([hidden])")].map(b => b.closest(".talk-msg").dataset.id));
   const drafts = {}; list.querySelectorAll(".talk-reply-box input").forEach(i => { if (i.value) drafts[i.closest(".talk-msg").dataset.id] = i.value; });
   if (chat) {
-    rows.reverse();
+    rows.reverse(); talkById = {}; rows.forEach(p => talkById[p.id] = p);
     list.innerHTML = rows.length ? rows.map(p => talkMsg(p, false)).join("") : `<div class="vd-empty">아직 글이 없어요. 첫 한마디를 남겨 보세요!</div>`;
   } else {
     const asks = rows.filter(p => p.kind === "ask"), reps = {};
@@ -1798,6 +1806,7 @@ async function loadTalk() {
       i.textContent = n; const on = n > prev; b.classList.toggle("on", on);
       try { const a = talkLiked().filter(x => x !== id); if (on) a.push(id); localStorage.setItem("talk_liked", JSON.stringify(a.slice(-300))); } catch (er) {}
     };
+    const rb = m.querySelector(".tk-re"); if (rb) rb.onclick = () => { const q = talkById[id]; talkReplyTo = { id, nick: q ? q.nick : "" }; showReplyBar(); const i = document.getElementById("talk-in"); if (i) i.focus(); };
     const fl = m.querySelector(".tk-flag"); if (fl) fl.onclick = async () => { if (!confirm("이 글을 신고할까요?\n여러 명이 신고하면 자동으로 숨겨져요.")) return; await talkRpc("talk_flag", { p_id: id, p_voter: voterId() }); alert("신고했어요. 고맙습니다 🙏"); loadTalk(); };
     const rep = m.querySelector(".tk-rep");
     if (rep) {
@@ -2076,7 +2085,7 @@ const SFX_GAIN = { open: 0.7, close: 0.7, on: 0.8, off: 0.8, done: 0.9, win: 1, 
 const sfxBuf = {}; let sfxLoading = false;
 function sfxLoad() {
   if (sfxLoading || !AC) return; sfxLoading = true;
-  for (const k in SFX_FILES) fetch("sounds/" + SFX_FILES[k] + ".mp3?v=205").then(r => r.arrayBuffer()).then(b => new Promise((ok, no) => AC.decodeAudioData(b, ok, no))).then(buf => { sfxBuf[k] = buf; }).catch(() => {});
+  for (const k in SFX_FILES) fetch("sounds/" + SFX_FILES[k] + ".mp3?v=206").then(r => r.arrayBuffer()).then(b => new Promise((ok, no) => AC.decodeAudioData(b, ok, no))).then(buf => { sfxBuf[k] = buf; }).catch(() => {});
 }
 function sfx(kind) {
   if (!sndOn || !AC) return;

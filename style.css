@@ -1101,3 +1101,9 @@ body.insta #fab{right:auto;left:12px}
 .talk-row input { color: #1E1B18; }
 .talk-row input::placeholder { color: #8a8178; }
 .talk-nick { color: #6B6259; }
+/* v206 채팅 답글 */
+.tb-q { font-size: 12px; color: #6B6259 !important; background: #F1E6D3; border-left: 3px solid #C83E2B; border-radius: 6px; padding: 3px 8px; margin: 0 2px 3px; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.tb.me .tb-q { align-self: flex-end; }
+.talk-rbar { font-size: 13px; color: #6B6259; background: #F1E6D3; border-radius: 10px; padding: 6px 10px; margin: 0 0 6px; display: flex; align-items: center; gap: 6px; }
+.talk-rbar b { color: #C83E2B; }
+.talk-rbar button { margin-left: auto; border: 0; background: none; color: #6B6259; font-size: 16px; padding: 0 4px; min-height: 0; }
