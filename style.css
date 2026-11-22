@@ -1093,3 +1093,11 @@ body.editing #food-sheet, body.editing #cat-banner{display:none !important}
 body.insta #kk-bar{bottom:calc(var(--sheet-vis,52px) + 76px);font-size:14px;line-height:1.35}
 body.insta #kk-go{padding:11px 14px;font-size:15px}
 body.insta #fab{right:auto;left:12px}
+/* v204 채팅 말풍선: 밤 모드에서도 글자 보이게 (흰 배경 위 흰 글씨 방지) */
+.tb-b { color: #1E1B18 !important; }
+.tb.me .tb-b { color: #fff !important; }
+.tb-n, .tb .talk-act button { color: #6B6259 !important; }
+.tb .talk-act .tk-like.on { color: #C83E2B !important; }
+.talk-row input { color: #1E1B18; }
+.talk-row input::placeholder { color: #8a8178; }
+.talk-nick { color: #6B6259; }
