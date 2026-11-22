@@ -572,9 +572,9 @@ async function loadShops() {
       const found = nearShops(pt);
       const seen = new Set(), list = [];
       for (const f of found) {
-        const id = f.properties.id;
-        if (seen.has(id)) continue;
-        seen.add(id); list.push(f.properties);
+        const id = f.properties.id, dk = (f.properties.name || "") + "|" + (f.properties.address || "");
+        if (seen.has(id) || seen.has(dk)) continue;            // 같은 이름·주소로 두 번 등록된 가게는 하나만 보여줌
+        seen.add(id); seen.add(dk); list.push(f.properties);
       }
       if (!list.length) return;
       const rows = list.map((p, i) =>
@@ -2053,7 +2053,7 @@ const SFX_GAIN = { open: 0.7, close: 0.7, on: 0.8, off: 0.8, done: 0.9, win: 1, 
 const sfxBuf = {}; let sfxLoading = false;
 function sfxLoad() {
   if (sfxLoading || !AC) return; sfxLoading = true;
-  for (const k in SFX_FILES) fetch("sounds/" + SFX_FILES[k] + ".mp3?v=197").then(r => r.arrayBuffer()).then(b => new Promise((ok, no) => AC.decodeAudioData(b, ok, no))).then(buf => { sfxBuf[k] = buf; }).catch(() => {});
+  for (const k in SFX_FILES) fetch("sounds/" + SFX_FILES[k] + ".mp3?v=198").then(r => r.arrayBuffer()).then(b => new Promise((ok, no) => AC.decodeAudioData(b, ok, no))).then(buf => { sfxBuf[k] = buf; }).catch(() => {});
 }
 function sfx(kind) {
   if (!sndOn || !AC) return;

@@ -1071,3 +1071,8 @@ body.editing #food-sheet, body.editing #cat-banner{display:none !important}
 
 /* v196 환영 카드: 앱처럼 쓰기 */
 #wl-app{display:block;width:100%;margin-top:8px;padding:10px;border:0;background:transparent;color:var(--muted);font-size:14px;font-weight:700;text-decoration:underline;font-family:inherit;cursor:pointer}
+
+/* v198 겹친 가게 팝업 정리 */
+.shop-list{max-height:min(260px,38vh)}
+.maplibregl-popup-content .shop-act{flex-wrap:wrap}
+.maplibregl-popup-content .info-btn{white-space:nowrap;flex:0 0 auto}
