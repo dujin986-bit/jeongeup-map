@@ -82,7 +82,7 @@
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.js"></script>
-<script src="data.js?v=204"></script>
+<script src="data.js?v=205"></script>
 <script>
 const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 const TABS = [["info", "가게정보"], ["office", "시청공지"], ["pending", "대기"], ["approved", "승인됨"], ["hidden", "숨김"], ["notice", "공지"], ["wx", "날씨"], ["fix", "수정요청"], ["fb", "고쳐줘"], ["talk", "얘기방"], ["log", "편집기록"], ["map", "지도 수정 ↗"]];
@@ -199,6 +199,7 @@ async function loadVisits() {
     const t = kst(new Date()), y = kst(new Date(Date.now() - 864e5));
     const sum = Object.values(m).reduce((a, b) => a + b, 0);
     el.innerHTML = `👥 방문자 · <b>오늘 ${m[t] || 0}명</b> · 어제 ${m[y] || 0}명 · 최근 7일 ${sum}명`;
+    try { const g = await sb.from("push_subscriptions").select("endpoint", { count: "exact", head: true }).eq("role", "guest"); if (!g.error) el.innerHTML += ` · 🔔 알림 받는 손님 <b>${g.count || 0}대</b>`; } catch (e) {}
   } catch (e) { el.textContent = "👥 방문자: 불러오지 못했어요"; }
 }
 async function loadInfoCount() { try { const { count } = await sb.from("shop_info_req").select("id", { count: "exact", head: true }).eq("status", "pending"); infoNew = count || 0; const t = document.querySelector('.tab[data-k="info"]'); if (t) t.textContent = "가게정보" + (infoNew ? " 🔴" + infoNew : ""); } catch (e) {} }
