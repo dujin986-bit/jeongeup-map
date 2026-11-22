@@ -1481,14 +1481,15 @@ qEl.addEventListener("blur", () => setTimeout(() => { if (document.activeElement
   const url = location.origin + location.pathname + (SHARED_R ? "?r=" + encodeURIComponent(SHARED_R) : "");   // 공유 링크로 들어왔으면 크롬으로 넘어가도 같은 제보로
   const KAKAO_OPEN = "kakaotalk://web/openExternal?url=" + encodeURIComponent(url);
   if (inapp) {            // 카톡·인스타·스레드 등 안에서 열면 안내 띠 → 외부 브라우저(크롬/사파리)로 열기
-    let hid = true;   // v156: 카톡으로 처음 들어온 사람에게는 설치 띠를 보이지 않는다 (설치는 알림이 필요한 순간에만 안내)
+    const insta = /Instagram|Threads|FBAN|FBAV/i.test(ua); if (insta) document.body.classList.add("insta");
+    let hid = !insta;   // v156: 카톡으로 처음 들어온 사람에게는 설치 띠를 보이지 않는다 (설치는 알림이 필요한 순간에만 안내)
     if (!hid) {
       const bar = document.createElement("div"); bar.id = "kk-bar";
-      bar.innerHTML = '<span>' + (SHARED_R ? '🌐 크롬·사파리로 열면 <b>더 빠르고 편해요</b>' : '🌐 크롬·사파리로 열면 앱처럼 <b>설치</b>할 수 있어요') + '</span><button id="kk-go">' + (/KAKAOTALK/i.test(ua) || android ? "브라우저로 열기" : "여는 방법 보기") + '</button><button id="kk-x" aria-label="닫기">✕</button>';
+      bar.innerHTML = '<span>' + (insta ? '📱 인스타 화면에서는 <b>느리거나 일부가 안 될 수 있어요</b>' : SHARED_R ? '🌐 크롬·사파리로 열면 <b>더 빠르고 편해요</b>' : '🌐 크롬·사파리로 열면 앱처럼 <b>설치</b>할 수 있어요') + '</span><button id="kk-go">' + (/KAKAOTALK/i.test(ua) || android ? (galaxy ? "삼성 인터넷으로 열기" : "브라우저로 열기") : "여는 방법 보기") + '</button><button id="kk-x" aria-label="닫기">✕</button>';
       document.body.appendChild(bar);
       document.getElementById("kk-go").onclick = () => {
         if (/KAKAOTALK/i.test(ua)) location.href = KAKAO_OPEN;
-        else if (android) location.href = "intent://" + url.replace(/^https?:\/\//, "") + "#Intent;scheme=https;package=com.android.chrome;end";
+        else if (android) { location.href = galaxy ? SAM_OPEN : "intent://" + url.replace(/^https?:\/\//, "") + "#Intent;scheme=https;package=com.android.chrome;end"; setTimeout(() => { if (!document.hidden) btn.click(); }, 1500); }
         else btn.click();
       };
       document.getElementById("kk-x").onclick = () => { bar.remove(); try { sessionStorage.setItem("kk_bar", "1"); } catch (e) {} };
@@ -2075,7 +2076,7 @@ const SFX_GAIN = { open: 0.7, close: 0.7, on: 0.8, off: 0.8, done: 0.9, win: 1, 
 const sfxBuf = {}; let sfxLoading = false;
 function sfxLoad() {
   if (sfxLoading || !AC) return; sfxLoading = true;
-  for (const k in SFX_FILES) fetch("sounds/" + SFX_FILES[k] + ".mp3?v=201").then(r => r.arrayBuffer()).then(b => new Promise((ok, no) => AC.decodeAudioData(b, ok, no))).then(buf => { sfxBuf[k] = buf; }).catch(() => {});
+  for (const k in SFX_FILES) fetch("sounds/" + SFX_FILES[k] + ".mp3?v=202").then(r => r.arrayBuffer()).then(b => new Promise((ok, no) => AC.decodeAudioData(b, ok, no))).then(buf => { sfxBuf[k] = buf; }).catch(() => {});
 }
 function sfx(kind) {
   if (!sndOn || !AC) return;

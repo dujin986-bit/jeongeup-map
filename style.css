@@ -1089,3 +1089,7 @@ body.editing #food-sheet, body.editing #cat-banner{display:none !important}
 .rp .nav-links,.rp .shop-act{margin-top:5px;gap:5px;flex-wrap:nowrap}
 .rp .nav-links a{min-height:28px;padding:0 8px;font-size:12px;white-space:nowrap}
 .rp .rx-b,.rp .shop-act .chip{min-height:28px;padding:0 8px;font-size:12px;white-space:nowrap}
+/* v202 인스타 안 화면: 안내 띠를 제보 버튼 위로, 제보 버튼은 왼쪽으로 */
+body.insta #kk-bar{bottom:calc(var(--sheet-vis,52px) + 76px);font-size:14px;line-height:1.35}
+body.insta #kk-go{padding:11px 14px;font-size:15px}
+body.insta #fab{right:auto;left:12px}
