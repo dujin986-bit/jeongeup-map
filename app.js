@@ -1477,9 +1477,9 @@ qEl.addEventListener("blur", () => setTimeout(() => { if (document.activeElement
   const samsungBr = /SamsungBrowser/i.test(ua), galaxy = /SM-[A-Z]|SAMSUNG/i.test(ua);
   const brName = inapp ? "앱 안의 화면(카톡·인스타 등)" : ios ? "사파리/아이폰" : samsungBr ? "삼성 인터넷" : /Chrome/i.test(ua) ? "크롬" : "브라우저";
   const brLine = `<div style="background:#eef3fd;border-radius:10px;padding:8px 10px;margin:6px 0;font-size:14px">지금 <b>${brName}</b>(으)로 보고 계세요</div>`;
-  const SAM_OPEN = "intent://" + url.replace(/^https?:\/\//, "") + "#Intent;scheme=https;package=com.sec.android.app.sbrowser;end";
   const url = location.origin + location.pathname + (SHARED_R ? "?r=" + encodeURIComponent(SHARED_R) : "");   // 공유 링크로 들어왔으면 크롬으로 넘어가도 같은 제보로
   const KAKAO_OPEN = "kakaotalk://web/openExternal?url=" + encodeURIComponent(url);
+  const SAM_OPEN = "intent://" + url.replace(/^https?:\/\//, "") + "#Intent;scheme=https;package=com.sec.android.app.sbrowser;end";
   if (inapp) {            // 카톡·인스타·스레드 등 안에서 열면 안내 띠 → 외부 브라우저(크롬/사파리)로 열기
     const insta = /Instagram|Threads|FBAN|FBAV/i.test(ua); if (insta) document.body.classList.add("insta");
     let hid = !insta;   // v156: 카톡으로 처음 들어온 사람에게는 설치 띠를 보이지 않는다 (설치는 알림이 필요한 순간에만 안내)
@@ -2076,7 +2076,7 @@ const SFX_GAIN = { open: 0.7, close: 0.7, on: 0.8, off: 0.8, done: 0.9, win: 1, 
 const sfxBuf = {}; let sfxLoading = false;
 function sfxLoad() {
   if (sfxLoading || !AC) return; sfxLoading = true;
-  for (const k in SFX_FILES) fetch("sounds/" + SFX_FILES[k] + ".mp3?v=202").then(r => r.arrayBuffer()).then(b => new Promise((ok, no) => AC.decodeAudioData(b, ok, no))).then(buf => { sfxBuf[k] = buf; }).catch(() => {});
+  for (const k in SFX_FILES) fetch("sounds/" + SFX_FILES[k] + ".mp3?v=203").then(r => r.arrayBuffer()).then(b => new Promise((ok, no) => AC.decodeAudioData(b, ok, no))).then(buf => { sfxBuf[k] = buf; }).catch(() => {});
 }
 function sfx(kind) {
   if (!sndOn || !AC) return;
