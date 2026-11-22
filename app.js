@@ -62,7 +62,7 @@ async function refreshBell() {
   b.classList.toggle("on", on); b.textContent = on ? "🔔" : "🔕"; b.title = on ? "알림 켜짐 (누르면 끄기)" : "알림 받기";
 }
 async function bellClick() {
-  if (!pushReady()) { alert("이 화면(인스타·카톡 등)에서는 알림을 켤 수 없어요.\n크롬·사파리 같은 브라우저로 열어 주세요.\n(아이폰은 '홈 화면에 추가'한 앱에서만 알림이 와요)"); return; }
+  if (!pushReady()) { alert("이 화면(인스타·카톡 등)에서는 알림을 켤 수 없어요.\n삼성 인터넷·크롬·사파리로 열어 주세요.\n(아이폰은 '홈 화면에 추가'한 앱에서만 알림이 와요)"); return; }
   const b = document.getElementById("bell-btn");
   try {
     const sub = await pushGetSub(false);
@@ -1474,6 +1474,10 @@ qEl.addEventListener("blur", () => setTimeout(() => { if (document.activeElement
   if (standalone) return;
   const inapp = /KAKAOTALK|Instagram|FBAN|FBAV|Threads|NAVER\(inapp|DaumApps|Line\//i.test(ua);
   const ios = /iPhone|iPad|iPod/.test(ua), android = /Android/.test(ua);
+  const samsungBr = /SamsungBrowser/i.test(ua), galaxy = /SM-[A-Z]|SAMSUNG/i.test(ua);
+  const brName = inapp ? "앱 안의 화면(카톡·인스타 등)" : ios ? "사파리/아이폰" : samsungBr ? "삼성 인터넷" : /Chrome/i.test(ua) ? "크롬" : "브라우저";
+  const brLine = `<div style="background:#eef3fd;border-radius:10px;padding:8px 10px;margin:6px 0;font-size:14px">지금 <b>${brName}</b>(으)로 보고 계세요</div>`;
+  const SAM_OPEN = "intent://" + url.replace(/^https?:\/\//, "") + "#Intent;scheme=https;package=com.sec.android.app.sbrowser;end";
   const url = location.origin + location.pathname + (SHARED_R ? "?r=" + encodeURIComponent(SHARED_R) : "");   // 공유 링크로 들어왔으면 크롬으로 넘어가도 같은 제보로
   const KAKAO_OPEN = "kakaotalk://web/openExternal?url=" + encodeURIComponent(url);
   if (inapp) {            // 카톡·인스타·스레드 등 안에서 열면 안내 띠 → 외부 브라우저(크롬/사파리)로 열기
@@ -1521,15 +1525,19 @@ qEl.addEventListener("blur", () => setTimeout(() => { if (document.activeElement
     if (inapp) {
       const acts = [];
       if (/KAKAOTALK/i.test(ua)) acts.push(["브라우저로 열기", () => { location.href = KAKAO_OPEN; }]);
-      if (android) acts.push(["크롬으로 열기", () => { location.href = "intent://" + url.replace(/^https?:\/\//, "") + "#Intent;scheme=https;package=com.android.chrome;end"; }]);
+      const chromeAct = ["크롬으로 열기", () => { location.href = "intent://" + url.replace(/^https?:\/\//, "") + "#Intent;scheme=https;package=com.android.chrome;end"; }];
+      const samAct = ["삼성 인터넷으로 열기", () => { location.href = SAM_OPEN; }];
+      if (android) { if (galaxy) { acts.push(samAct, chromeAct); } else { acts.push(chromeAct, samAct); } }
       acts.push(["주소 복사", copy]);
-      show(`<b>📲 앱으로 설치하기</b><p>지금 열린 화면(인스타·스레드·카카오톡 등)에서는 설치가 안 돼요.</p>` +
+      show(`<b>📲 앱으로 설치하기</b>${brLine}<p>지금 열린 화면(인스타·스레드·카카오톡 등)에서는 설치가 안 돼요.</p>` +
         (ios ? `<p>① 화면의 <b>⋯</b> 또는 <b>공유</b> 메뉴 → <b>Safari로 열기</b><br>② Safari에서 공유 버튼(□↑) → <b>홈 화면에 추가</b></p>` :
-               `<p>아래 <b>크롬으로 열기</b>를 누른 뒤, 크롬에서 다시 <b>🔔 알림 받기</b>를 눌러 주세요.</p>`), acts);
+               `<p>아래 <b>${galaxy ? "삼성 인터넷으로 열기" : "크롬으로 열기"}</b>를 누른 뒤, 거기서 다시 <b>📲 앱 설치</b>를 눌러 주세요.</p>`), acts);
     } else if (ios) {
       show(`<b>📲 홈 화면에 추가 (아이폰)</b><p style="font-size:16px;line-height:1.8">① 아래쪽 <b>공유 버튼(네모에 ↑)</b><br>② 아래로 내려서 <b>홈 화면에 추가</b><br>③ 오른쪽 위 <b>추가</b> → 끝! 🎉</p><p style="color:#666;font-size:12px">설치하지 않아도 지도는 똑같이 쓸 수 있어요.</p>`, []);
     } else {
-      show(`<b>📲 홈 화면에 추가 (갤럭시·안드로이드)</b><p style="font-size:16px;line-height:1.8">① 오른쪽 위 <b>⋮</b> (또는 아래 ☰)<br>② <b>홈 화면에 추가</b> 또는 <b>앱 설치</b><br>③ <b>추가</b> → 끝! 🎉</p><p style="color:#666;font-size:12px">설치하지 않아도 지도는 똑같이 쓸 수 있어요.</p>`, [["주소 복사", copy]]);
+      show(samsungBr
+        ? `<b>📲 홈 화면에 추가 (삼성 인터넷)</b>${brLine}<p style="font-size:16px;line-height:1.8">① 오른쪽 아래 <b>☰ 메뉴</b><br>② <b>현재 페이지 추가</b><br>③ <b>홈 화면</b><br>④ <b>추가</b> → 끝! 🎉</p><p style="font-size:13px;line-height:1.6;background:#fff4dc;border-radius:10px;padding:8px 10px">🔔 알림이 안 오면<br>① 휴대폰 <b>설정 → 알림 → 정읍 지금</b> 켜기<br>② <b>설정 → 배터리 → 정읍 지금</b> 제한 없음</p><p style="color:#666;font-size:12px">메뉴 이름이 다르면 비슷한 이름을 눌러 주세요. 설치 안 해도 지도는 똑같이 써요.</p>`
+        : `<b>📲 홈 화면에 추가 (안드로이드)</b>${brLine}<p style="font-size:16px;line-height:1.8">① 오른쪽 위 <b>⋮</b> (또는 아래 ☰)<br>② <b>홈 화면에 추가</b> 또는 <b>앱 설치</b><br>③ <b>추가</b> → 끝! 🎉</p><p style="color:#666;font-size:12px">설치하지 않아도 지도는 똑같이 쓸 수 있어요.</p>`, galaxy && !samsungBr ? [["삼성 인터넷으로 열기", () => { location.href = SAM_OPEN; }], ["주소 복사", copy]] : [["주소 복사", copy]]);
     }
   };
 })();
