@@ -1,3 +1,14 @@
+// v207 팝업은 항상 하나만: 새 팝업이 열리면 먼저 열려 있던 팝업을 닫는다
+(function () {
+  if (!window.maplibregl || !maplibregl.Popup || maplibregl.Popup.__one) return;
+  const add = maplibregl.Popup.prototype.addTo; let cur = null;
+  maplibregl.Popup.prototype.addTo = function (m) {
+    if (cur && cur !== this) { try { cur.remove(); } catch (e) {} }
+    cur = this; this.once("close", () => { if (cur === this) cur = null; });
+    return add.call(this, m);
+  };
+  maplibregl.Popup.__one = true;
+})();
 // 큰 데이터(건물·가게·신호)는 지도 준비를 기다리지 않고 바로 내려받기 시작한다. (화면에 올리는 순서는 그대로)
 const PRE = {};
 try { const pf = u => fetch(u).catch(() => null); for (const z of ["naejangsan", "downtown", "residential"]) PRE[z] = pf(`data/${z}.geojson`); PRE.shops = pf("data/shops.json"); PRE.signals = pf("data/signals.json?" + Date.now()); } catch (e) {}
@@ -2085,7 +2096,7 @@ const SFX_GAIN = { open: 0.7, close: 0.7, on: 0.8, off: 0.8, done: 0.9, win: 1, 
 const sfxBuf = {}; let sfxLoading = false;
 function sfxLoad() {
   if (sfxLoading || !AC) return; sfxLoading = true;
-  for (const k in SFX_FILES) fetch("sounds/" + SFX_FILES[k] + ".mp3?v=206").then(r => r.arrayBuffer()).then(b => new Promise((ok, no) => AC.decodeAudioData(b, ok, no))).then(buf => { sfxBuf[k] = buf; }).catch(() => {});
+  for (const k in SFX_FILES) fetch("sounds/" + SFX_FILES[k] + ".mp3?v=207").then(r => r.arrayBuffer()).then(b => new Promise((ok, no) => AC.decodeAudioData(b, ok, no))).then(buf => { sfxBuf[k] = buf; }).catch(() => {});
 }
 function sfx(kind) {
   if (!sndOn || !AC) return;
